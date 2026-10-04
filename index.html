@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#7f927a" />
+  <title>As Minhas Horas</title>
+  <style>
+    :root{--bg:#f4f5f0;--card:#fff;--ink:#243128;--muted:#6f7b72;--sage:#7f927a;--sage2:#dfe6dc;--line:#d9ded7;--danger:#a14a4a}
+    *{box-sizing:border-box} body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
+    .wrap{max-width:760px;margin:auto;padding:20px 16px 40px}
+    h1{font-size:28px;margin:8px 0 4px}.sub{color:var(--muted);margin:0 0 18px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:0 4px 18px rgba(0,0,0,.035)}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.total{font-size:28px;font-weight:750;margin-top:5px}.label{font-size:13px;color:var(--muted)}
+    input,button{font:inherit} input{width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink)}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.row3{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px}
+    button{border:0;border-radius:12px;padding:12px 14px;font-weight:700;background:var(--sage);color:white;cursor:pointer}
+    button.secondary{background:var(--sage2);color:var(--ink)} button.ghost{background:transparent;color:var(--muted);padding:8px} button.danger{background:transparent;color:var(--danger);padding:8px}
+    .actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.hidden{display:none!important}
+    .shift{display:flex;justify-content:space-between;gap:14px;padding:13px 0;border-bottom:1px solid var(--line)}.shift:last-child{border-bottom:0}
+    .shift strong{display:block}.shift small{color:var(--muted)} .dur{font-weight:750;white-space:nowrap}
+    .topbar{display:flex;justify-content:space-between;gap:12px;align-items:center}.status{font-size:12px;color:var(--muted)}
+    .tabs{display:flex;gap:8px;margin-bottom:12px}.tabs button{flex:1}.error{color:var(--danger);font-size:13px;margin-top:10px}.ok{color:#47704b;font-size:13px;margin-top:10px}
+    @media(max-width:560px){.grid,.row,.row3{grid-template-columns:1fr}.total{font-size:25px}.wrap{padding-top:14px}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar"><div><h1>As Minhas Horas</h1><p class="sub">Registo pessoal de trabalho</p></div><button id="logout" class="ghost hidden">Sair</button></div>
+
+  <section id="auth" class="card">
+    <div class="tabs">
+      <button id="tab-login">Entrar</button>
+      <button id="tab-signup" class="secondary">Criar conta</button>
+    </div>
+    <div class="row">
+      <input id="email" type="email" placeholder="Email" autocomplete="email">
+      <input id="password" type="password" placeholder="Password" autocomplete="current-password">
+    </div>
+    <div class="actions" style="margin-top:10px">
+      <button id="auth-submit">Entrar</button>
+    </div>
+    <div id="auth-msg"></div>
+  </section>
+
+  <main id="app" class="hidden">
+    <div class="grid">
+      <section class="card"><div class="label">Gorjetas · 2ª → Dom</div><div id="tips-total" class="total">0h00</div><div id="tips-range" class="label"></div></section>
+      <section class="card"><div class="label">Minha semana · Qui → Seg</div><div id="mine-total" class="total">0h00</div><div id="mine-range" class="label"></div></section>
+    </div>
+
+    <section class="card">
+      <div class="topbar"><strong id="form-title">Adicionar horário</strong><span id="sync" class="status"></span></div>
+      <div class="row3" style="margin-top:12px">
+        <input id="date" type="date">
+        <input id="start" type="time" step="60">
+        <input id="end" type="time" step="60">
+      </div>
+      <div class="actions" style="margin-top:10px">
+        <button id="save">Guardar</button>
+        <button id="cancel" class="secondary hidden">Cancelar</button>
+      </div>
+      <div id="form-msg"></div>
+    </section>
+
+    <section class="card">
+      <div class="topbar"><strong>Registos</strong><span class="status">mais recentes primeiro</span></div>
+      <div id="list" style="margin-top:6px"></div>
+    </section>
+  </main>
+</div>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/+esm';
+
+const SUPABASE_URL='https://ecxbujytmufnkevddohv.supabase.co';
+const SUPABASE_KEY='sb_publishable_RI2iu-VWK1nTyOTq5x_x8w_514OdXX1';
+const supabase=createClient(SUPABASE_URL,SUPABASE_KEY);
+
+const $=id=>document.getElementById(id);
+let mode='login', editingId=null, rows=[];
+
+const pad=n=>String(n).padStart(2,'0');
+const fmtMins=m=>`${Math.floor(m/60)}h${pad(m%60)}`;
+const localDate=s=>new Date(s+'T12:00:00');
+const iso=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const dayName=d=>['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][d.getDay()];
+const displayDate=s=>{const d=localDate(s);return `${dayName(d)} · ${pad(d.getDate())}/${pad(d.getMonth()+1)}`};
+function duration(r){
+  if(!r.start_time||!r.end_time)return 0;
+  const [sh,sm]=r.start_time.split(':').map(Number), [eh,em]=r.end_time.split(':').map(Number);
+  let v=(eh*60+em)-(sh*60+sm); if(v<0)v+=1440; return v;
+}
+function weekMon(d){const x=new Date(d);const wd=(x.getDay()+6)%7;return addDays(x,-wd)}
+function workWeekThu(d){const x=new Date(d);const wd=x.getDay();const back=(wd>=4?wd-4:wd+3);return addDays(x,-back)}
+function rangeTotal(start,end){return rows.filter(r=>r.work_date>=iso(start)&&r.work_date<=iso(end)).reduce((a,r)=>a+duration(r),0)}
+function setMsg(el,msg,ok=false){el.innerHTML=msg?`<div class="${ok?'ok':'error'}">${msg}</div>`:''}
+
+async function sessionUI(){
+  const {data:{session}}=await supabase.auth.getSession();
+  $('auth').classList.toggle('hidden',!!session);
+  $('app').classList.toggle('hidden',!session);
+  $('logout').classList.toggle('hidden',!session);
+  if(session) await load();
+}
+async function load(){
+  $('sync').textContent='A sincronizar…';
+  const {data,error}=await supabase.from('personal_work_hours').select('*').order('work_date',{ascending:false});
+  if(error){$('sync').textContent='Erro de sincronização';return}
+  rows=data||[];$('sync').textContent='Sincronizado';render();
+}
+function render(){
+  const anchor=rows.length?localDate(rows[0].work_date):new Date();
+  const mon=weekMon(anchor), sun=addDays(mon,6), thu=workWeekThu(anchor), monday=addDays(thu,4);
+  $('tips-total').textContent=fmtMins(rangeTotal(mon,sun)); $('tips-range').textContent=`${pad(mon.getDate())}/${pad(mon.getMonth()+1)} – ${pad(sun.getDate())}/${pad(sun.getMonth()+1)}`;
+  $('mine-total').textContent=fmtMins(rangeTotal(thu,monday)); $('mine-range').textContent=`${pad(thu.getDate())}/${pad(thu.getMonth()+1)} – ${pad(monday.getDate())}/${pad(monday.getMonth()+1)}`;
+  $('list').innerHTML=rows.length?rows.map(r=>`<div class="shift"><div><strong>${displayDate(r.work_date)}</strong><small>${(r.start_time||'—').slice(0,5)} → ${(r.end_time||'—').slice(0,5)}</small></div><div><div class="dur">${fmtMins(duration(r))}</div><div class="actions"><button class="ghost" data-edit="${r.id}">Editar</button><button class="danger" data-del="${r.id}">Apagar</button></div></div></div>`).join(''):'<div class="status" style="padding:14px 0">Ainda não tens registos.</div>';
+}
+$('tab-login').onclick=()=>{mode='login';$('tab-login').className='';$('tab-signup').className='secondary';$('auth-submit').textContent='Entrar';setMsg($('auth-msg'),'')};
+$('tab-signup').onclick=()=>{mode='signup';$('tab-login').className='secondary';$('tab-signup').className='';$('auth-submit').textContent='Criar conta';setMsg($('auth-msg'),'')};
+$('auth-submit').onclick=async()=>{
+  setMsg($('auth-msg'),'');
+  const email=$('email').value.trim(), password=$('password').value;
+  if(!email||!password)return setMsg($('auth-msg'),'Preenche o email e a password.');
+  const res=mode==='login'?await supabase.auth.signInWithPassword({email,password}):await supabase.auth.signUp({email,password});
+  if(res.error)return setMsg($('auth-msg'),res.error.message);
+  if(mode==='signup'&&!res.data.session)setMsg($('auth-msg'),'Conta criada. Confirma o email e depois entra.',true);
+  await sessionUI();
+};
+$('logout').onclick=async()=>{await supabase.auth.signOut();await sessionUI()};
+$('save').onclick=async()=>{
+  const {data:{user}}=await supabase.auth.getUser(); if(!user)return;
+  const work_date=$('date').value,start_time=$('start').value||null,end_time=$('end').value||null;
+  if(!work_date)return setMsg($('form-msg'),'Escolhe a data.');
+  $('sync').textContent='A guardar…';
+  let result;
+  if(editingId) result=await supabase.from('personal_work_hours').update({work_date,start_time,end_time,updated_at:new Date().toISOString()}).eq('id',editingId);
+  else result=await supabase.from('personal_work_hours').upsert({user_id:user.id,work_date,start_time,end_time,updated_at:new Date().toISOString()},{onConflict:'user_id,work_date'});
+  if(result.error){$('sync').textContent='Erro';return setMsg($('form-msg'),result.error.message)}
+  resetForm(); await load();
+};
+function resetForm(){editingId=null;$('form-title').textContent='Adicionar horário';$('cancel').classList.add('hidden');$('date').value=iso(new Date());$('start').value='';$('end').value='';setMsg($('form-msg'),'')}
+$('cancel').onclick=resetForm;
+$('list').onclick=async e=>{
+  const edit=e.target.dataset.edit, del=e.target.dataset.del;
+  if(edit){const r=rows.find(x=>x.id===edit);if(!r)return;editingId=r.id;$('form-title').textContent='Editar horário';$('cancel').classList.remove('hidden');$('date').value=r.work_date;$('start').value=(r.start_time||'').slice(0,5);$('end').value=(r.end_time||'').slice(0,5);window.scrollTo({top:0,behavior:'smooth'})}
+  if(del){if(!confirm('Apagar este registo?'))return;const {error}=await supabase.from('personal_work_hours').delete().eq('id',del);if(error)return alert(error.message);await load()}
+};
+supabase.auth.onAuthStateChange(()=>sessionUI());
+$('date').value=iso(new Date());
+sessionUI();
+</script>
+</body></html>
