@@ -69,7 +69,12 @@ edição e recuperação. Não requer build nem novas dependências de produçã
 ## Ícone no iPhone
 
 O ícone do ecrã principal é um relógio sage, definido por `apple-touch-icon` com
-PNG opaco de 180×180. O browser também utiliza o mesmo relógio como favicon.
+PNG opaco de 180×180 e caminho absoluto com ficheiro versionado. `site.webmanifest`
+também declara ícones de 180, 192 e 512 px, mantendo `display: browser`.
+O browser também utiliza o mesmo relógio como favicon.
 Para atualizar um atalho que ainda mostra “M”, abrir a página no Safari e usar
 **Partilhar → Adicionar ao ecrã principal**; remover o atalho antigo se necessário.
+Se o Safari ainda apresentar uma versão anterior, usar o endereço
+`https://nth8m6fcs7-byte.github.io/Hours/?icone=2` e confirmar o relógio na
+pré-visualização antes de adicionar. Não é necessário apagar os dados do Safari.
 É um ícone estático: não altera o funcionamento nem os dados da app.
