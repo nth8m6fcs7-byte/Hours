@@ -17,6 +17,8 @@
     button{border:0;border-radius:12px;padding:12px 14px;font-weight:700;background:var(--sage);color:white;cursor:pointer}
     button.secondary{background:var(--sage2);color:var(--ink)} button.ghost{background:transparent;color:var(--muted);padding:8px} button.danger{background:transparent;color:var(--danger);padding:8px}
     .actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.hidden{display:none!important}
+    .password-field{display:flex;gap:6px;align-items:center;min-width:0}.password-field input{min-width:0}.password-field button{flex-shrink:0}
+    button:disabled{opacity:.55;cursor:wait} :focus-visible{outline:3px solid var(--sage);outline-offset:3px}
     .shift{display:flex;justify-content:space-between;gap:14px;padding:13px 0;border-bottom:1px solid var(--line)}.shift:last-child{border-bottom:0}
     .shift strong{display:block}.shift small{color:var(--muted)} .dur{font-weight:750;white-space:nowrap}
     .topbar{display:flex;justify-content:space-between;gap:12px;align-items:center}.status{font-size:12px;color:var(--muted)}
@@ -34,16 +36,33 @@
       <button id="tab-signup" class="secondary">Criar conta</button>
     </div>
     <div class="row">
-      <input id="email" type="email" placeholder="Email" autocomplete="email">
-      <input id="password" type="password" placeholder="Password" autocomplete="current-password">
+      <input id="email" type="email" placeholder="Email" autocomplete="email" aria-label="Email">
+      <div class="password-field"><input id="password" type="password" placeholder="Password" autocomplete="current-password" aria-label="Password"><button id="toggle-password" class="ghost" type="button" aria-controls="password" aria-pressed="false">Mostrar</button></div>
     </div>
     <div class="actions" style="margin-top:10px">
       <button id="auth-submit">Entrar</button>
+      <button id="forgot-password" class="ghost">Esqueci a password</button>
+      <button id="passkey-login" class="secondary">Entrar com Face ID</button>
     </div>
-    <div id="auth-msg"></div>
+    <p id="passkey-hint" class="status">Usa uma passkey já ativada. O dispositivo pode pedir Face ID, Touch ID ou PIN.</p>
+    <div id="auth-msg" role="status" aria-live="polite"></div>
+  </section>
+
+  <section id="recovery" class="card hidden">
+    <h2>Definir nova password</h2>
+    <form id="recovery-form">
+      <div class="password-field"><input id="new-password" type="password" placeholder="Nova password" autocomplete="new-password" aria-label="Nova password" minlength="6" required><button id="toggle-new-password" class="ghost" type="button" aria-controls="new-password" aria-pressed="false">Mostrar</button></div>
+      <input id="confirm-password" type="password" placeholder="Confirmar nova password" autocomplete="new-password" aria-label="Confirmar nova password" minlength="6" required style="margin-top:10px">
+      <div class="actions" style="margin-top:10px"><button id="recovery-submit" type="submit">Guardar nova password</button><button id="recovery-cancel" class="ghost" type="button">Cancelar</button></div>
+    </form>
+    <div id="recovery-msg" role="status" aria-live="polite"></div>
   </section>
 
   <main id="app" class="hidden">
+    <section class="card">
+      <div class="actions"><button id="passkey-register" class="secondary">Ativar Face ID</button><span class="status">Cria uma passkey para entrar neste dispositivo.</span></div>
+      <div id="passkey-msg" role="status" aria-live="polite"></div>
+    </section>
     <div class="grid">
       <section class="card"><div class="label">Gorjetas · 2ª → Dom</div><div id="tips-total" class="total">0h00</div><div id="tips-range" class="label"></div></section>
       <section class="card"><div class="label">Minha semana · Qui → Seg</div><div id="mine-total" class="total">0h00</div><div id="mine-range" class="label"></div></section>
@@ -71,14 +90,27 @@
 </div>
 
 <script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/+esm';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/+esm';
 
 const SUPABASE_URL='https://ecxbujytmufnkevddohv.supabase.co';
 const SUPABASE_KEY='sb_publishable_RI2iu-VWK1nTyOTq5x_x8w_514OdXX1';
-const supabase=createClient(SUPABASE_URL,SUPABASE_KEY);
+const RECOVERY_REDIRECT='https://nth8m6fcs7-byte.github.io/Hours/';
+const supabase=createClient(SUPABASE_URL,SUPABASE_KEY,{
+  auth:{experimental:{passkey:true},flowType:'implicit',detectSessionInUrl:true}
+});
 
 const $=id=>document.getElementById(id);
 let mode='login', editingId=null, rows=[];
+const recoveryParams=new URLSearchParams(window.location.hash.slice(1));
+const recoveryKey='hours-password-recovery';
+// Remember the recovery screen after the SDK removes the token fragment.
+let recovering=recoveryParams.get('type')==='recovery';
+try{recovering=recovering||sessionStorage.getItem(recoveryKey)==='true'}catch{}
+function setRecovering(value){
+  recovering=value;
+  try{if(value)sessionStorage.setItem(recoveryKey,'true');else sessionStorage.removeItem(recoveryKey)}catch{}
+}
+if(recovering)setRecovering(true);
 
 const pad=n=>String(n).padStart(2,'0');
 const fmtMins=m=>`${Math.floor(m/60)}h${pad(m%60)}`;
@@ -95,14 +127,17 @@ function duration(r){
 function weekMon(d){const x=new Date(d);const wd=(x.getDay()+6)%7;return addDays(x,-wd)}
 function workWeekThu(d){const x=new Date(d);const wd=x.getDay();const back=(wd>=4?wd-4:wd+3);return addDays(x,-back)}
 function rangeTotal(start,end){return rows.filter(r=>r.work_date>=iso(start)&&r.work_date<=iso(end)).reduce((a,r)=>a+duration(r),0)}
-function setMsg(el,msg,ok=false){el.innerHTML=msg?`<div class="${ok?'ok':'error'}">${msg}</div>`:''}
+function setMsg(el,msg,ok=false){el.textContent=msg;el.className=msg?(ok?'ok':'error'):''}
 
 async function sessionUI(){
   const {data:{session}}=await supabase.auth.getSession();
-  $('auth').classList.toggle('hidden',!!session);
-  $('app').classList.toggle('hidden',!session);
-  $('logout').classList.toggle('hidden',!session);
-  if(session) await load();
+  if(!session)setRecovering(false);
+  $('recovery').classList.toggle('hidden',!recovering);
+  $('auth').classList.toggle('hidden',!!session||recovering);
+  $('app').classList.toggle('hidden',!session||recovering);
+  $('logout').classList.toggle('hidden',!session||recovering);
+  if(session&&!recovering) await load();
+  if(!session){rows=[];resetForm();render()}
 }
 async function load(){
   $('sync').textContent='A sincronizar…';
@@ -117,17 +152,94 @@ function render(){
   $('mine-total').textContent=fmtMins(rangeTotal(thu,monday)); $('mine-range').textContent=`${pad(thu.getDate())}/${pad(thu.getMonth()+1)} – ${pad(monday.getDate())}/${pad(monday.getMonth()+1)}`;
   $('list').innerHTML=rows.length?rows.map(r=>`<div class="shift"><div><strong>${displayDate(r.work_date)}</strong><small>${(r.start_time||'—').slice(0,5)} → ${(r.end_time||'—').slice(0,5)}</small></div><div><div class="dur">${fmtMins(duration(r))}</div><div class="actions"><button class="ghost" data-edit="${r.id}">Editar</button><button class="danger" data-del="${r.id}">Apagar</button></div></div></div>`).join(''):'<div class="status" style="padding:14px 0">Ainda não tens registos.</div>';
 }
-$('tab-login').onclick=()=>{mode='login';$('tab-login').className='';$('tab-signup').className='secondary';$('auth-submit').textContent='Entrar';setMsg($('auth-msg'),'')};
-$('tab-signup').onclick=()=>{mode='signup';$('tab-login').className='secondary';$('tab-signup').className='';$('auth-submit').textContent='Criar conta';setMsg($('auth-msg'),'')};
-$('auth-submit').onclick=async()=>{
+function authMode(next){
+  mode=next;
+  $('tab-login').className=mode==='login'?'':'secondary';
+  $('tab-signup').className=mode==='signup'?'':'secondary';
+  $('auth-submit').textContent=mode==='login'?'Entrar':'Criar conta';
+  $('password').autocomplete=mode==='login'?'current-password':'new-password';
+  $('password').type='password';$('toggle-password').textContent='Mostrar';$('toggle-password').setAttribute('aria-pressed','false');
+  $('forgot-password').classList.toggle('hidden',mode!=='login');
+  $('passkey-login').classList.toggle('hidden',mode!=='login');
+  $('passkey-hint').classList.toggle('hidden',mode!=='login');
   setMsg($('auth-msg'),'');
+}
+$('tab-login').onclick=()=>authMode('login');
+$('tab-signup').onclick=()=>authMode('signup');
+function passwordToggle(buttonId,inputIds){
+  $(buttonId).onclick=()=>{
+    const show=$(inputIds[0]).type==='password';
+    inputIds.forEach(id=>$(id).type=show?'text':'password');
+    $(buttonId).textContent=show?'Ocultar':'Mostrar';
+    $(buttonId).setAttribute('aria-pressed',String(show));
+  };
+}
+passwordToggle('toggle-password',['password']);
+passwordToggle('toggle-new-password',['new-password','confirm-password']);
+async function authAction(buttonId,messageId,action){
+  const button=$(buttonId);
+  if(button.disabled)return;
+  button.disabled=true;setMsg($(messageId),'');
+  try{await action()}catch(error){setMsg($(messageId),error.message||'Não foi possível concluir. Tenta novamente.')}
+  finally{button.disabled=false}
+}
+$('forgot-password').onclick=()=>authAction('forgot-password','auth-msg',async()=>{
+  const email=$('email').value.trim();
+  if(!email||!$('email').checkValidity())return setMsg($('auth-msg'),'Preenche um email válido para recuperar a password.');
+  const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:RECOVERY_REDIRECT});
+  if(error)throw error;
+  setMsg($('auth-msg'),'Se existir uma conta com este email, receberás um link para definir uma nova password. Verifica também o spam.',true);
+});
+$('recovery-form').onsubmit=e=>{
+  e.preventDefault();
+  return authAction('recovery-submit','recovery-msg',async()=>{
+    const password=$('new-password').value;
+    if(password.length<6)return setMsg($('recovery-msg'),'Usa pelo menos 6 caracteres.');
+    if(password!==$('confirm-password').value)return setMsg($('recovery-msg'),'As passwords não coincidem.');
+    const {data:{session}}=await supabase.auth.getSession();
+    if(!session)return setMsg($('recovery-msg'),'O link expirou. Cancela e pede um novo link.');
+    const {error}=await supabase.auth.updateUser({password});
+    if(error)throw error;
+    setRecovering(false);$('recovery-form').reset();$('password').value='';
+    await sessionUI();
+    setMsg($('passkey-msg'),'Password atualizada.',true);
+  });
+};
+$('recovery-cancel').onclick=()=>authAction('recovery-cancel','recovery-msg',async()=>{
+  const {error}=await supabase.auth.signOut();if(error)throw error;
+  setRecovering(false);$('recovery-form').reset();authMode('login');await sessionUI();
+});
+const passkeySupported=window.isSecureContext&&typeof window.PublicKeyCredential!=='undefined'&&!!navigator.credentials;
+if(!passkeySupported){
+  $('passkey-login').disabled=true;$('passkey-register').disabled=true;
+  $('passkey-hint').textContent='Este navegador não suporta passkeys. Entra com email e password.';
+  setMsg($('passkey-msg'),'Para ativar Face ID, usa um navegador compatível numa ligação HTTPS.');
+}
+function passkeyError(error){
+  if(error.name==='NotAllowedError'||/cancel|not.allowed/i.test(error.message||''))return 'O pedido foi cancelado ou expirou. Podes tentar novamente ou usar a password.';
+  return error.message||'Não foi possível usar a passkey. Verifica se as Passkeys estão ativadas no Supabase.';
+}
+$('passkey-login').onclick=()=>authAction('passkey-login','auth-msg',async()=>{
+  try{
+    const {error}=await supabase.auth.signInWithPasskey();if(error)throw error;
+    $('password').value='';await sessionUI();
+  }catch(error){setMsg($('auth-msg'),passkeyError(error))}
+});
+$('passkey-register').onclick=()=>authAction('passkey-register','passkey-msg',async()=>{
+  try{
+    const {error}=await supabase.auth.registerPasskey();if(error)throw error;
+    setMsg($('passkey-msg'),'Passkey ativada. Já podes usar “Entrar com Face ID”.',true);
+  }catch(error){setMsg($('passkey-msg'),passkeyError(error))}
+});
+$('auth-submit').onclick=()=>authAction('auth-submit','auth-msg',async()=>{
   const email=$('email').value.trim(), password=$('password').value;
   if(!email||!password)return setMsg($('auth-msg'),'Preenche o email e a password.');
   const res=mode==='login'?await supabase.auth.signInWithPassword({email,password}):await supabase.auth.signUp({email,password});
   if(res.error)return setMsg($('auth-msg'),res.error.message);
   if(mode==='signup'&&!res.data.session)setMsg($('auth-msg'),'Conta criada. Confirma o email e depois entra.',true);
+  $('password').value='';
   await sessionUI();
-};
+});
 $('logout').onclick=async()=>{await supabase.auth.signOut();await sessionUI()};
 $('save').onclick=async()=>{
   const {data:{user}}=await supabase.auth.getUser(); if(!user)return;
@@ -147,8 +259,18 @@ $('list').onclick=async e=>{
   if(edit){const r=rows.find(x=>x.id===edit);if(!r)return;editingId=r.id;$('form-title').textContent='Editar horário';$('cancel').classList.remove('hidden');$('date').value=r.work_date;$('start').value=(r.start_time||'').slice(0,5);$('end').value=(r.end_time||'').slice(0,5);window.scrollTo({top:0,behavior:'smooth'})}
   if(del){if(!confirm('Apagar este registo?'))return;const {error}=await supabase.from('personal_work_hours').delete().eq('id',del);if(error)return alert(error.message);await load()}
 };
-supabase.auth.onAuthStateChange(()=>sessionUI());
+supabase.auth.onAuthStateChange((event)=>{
+  if(event==='PASSWORD_RECOVERY')setRecovering(true);
+  if(event==='SIGNED_OUT'){setRecovering(false);setMsg($('passkey-msg'),'');$('recovery-form').reset()}
+  // Supabase holds its auth lock during this callback: defer SDK calls.
+  setTimeout(()=>sessionUI().catch(()=>setMsg($('auth-msg'),'Não foi possível carregar a sessão. Tenta novamente.')),0);
+});
 $('date').value=iso(new Date());
-sessionUI();
+sessionUI().catch(()=>setMsg($('auth-msg'),'Não foi possível carregar a sessão. Tenta novamente.'));
+if(recoveryParams.has('error')){
+  setRecovering(false);
+  setMsg($('auth-msg'),'O link de autenticação é inválido ou expirou. Pede um novo link.');
+  history.replaceState(null,'',window.location.pathname+window.location.search);
+}
 </script>
 </body></html>
