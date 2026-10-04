@@ -65,3 +65,11 @@ Design sage e marfim, com totais em destaque, etiquetas visíveis nos campos e r
 com data e duração. As opções da conta ficam no fim da página. O layout foi verificado
 entre 320 e 430 px em telemóvel e a 780/1280 px no desktop, incluindo estados vazios,
 edição e recuperação. Não requer build nem novas dependências de produção.
+
+## Ícone no iPhone
+
+O ícone do ecrã principal é um relógio sage, definido por `apple-touch-icon` com
+PNG opaco de 180×180. O browser também utiliza o mesmo relógio como favicon.
+Para atualizar um atalho que ainda mostra “M”, abrir a página no Safari e usar
+**Partilhar → Adicionar ao ecrã principal**; remover o atalho antigo se necessário.
+É um ícone estático: não altera o funcionamento nem os dados da app.
