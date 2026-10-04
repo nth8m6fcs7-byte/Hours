@@ -58,6 +58,8 @@ test('authentication, recovery, passkeys and hours regression',async()=>{
   await page.evaluate(()=>window.authError=null);
   await page.click('#passkey-login');await page.waitForSelector('#app',{state:'visible'});
   assert.equal(await page.textContent('#tips-total'),'8h00');assert.equal(await page.textContent('#mine-total'),'17h00');
+  assert.equal(await page.locator('#passkey-register').isVisible(),false);
+  await page.click('#account summary');
   await page.click('#passkey-register');await page.waitForFunction(()=>window.calls.some(c=>c[0]==='register'));
   await page.click('[data-edit="two"]');assert.equal(await page.inputValue('#start'),'22:00');
   await page.fill('#end','03:00');await page.click('#save');await page.waitForFunction(()=>window.calls.some(c=>c[0]==='edit'));

@@ -12,7 +12,8 @@ apenas a publishable key e o SDK Supabase JS 2.117.2, fixado no import CDN.
 - O evento `PASSWORD_RECOVERY` abre o formulário de nova password; a alteração
   é feita por `updateUser({ password })`. A recuperação usa o fluxo implicit do
   SDK para aceitar o link no dispositivo onde o email é aberto.
-- “Ativar Face ID”, depois de entrar numa conta confirmada, chama `registerPasskey()`.
+- “Ativar Face ID”, em “A tua conta” abaixo dos registos, depois de entrar numa
+  conta confirmada, chama `registerPasskey()`.
 - “Entrar com Face ID” chama `signInWithPasskey()`, sem exigir email. O dispositivo
   escolhe Face ID, Touch ID, PIN ou outro autenticador disponível.
 
@@ -20,16 +21,21 @@ apenas a publishable key e o SDK Supabase JS 2.117.2, fixado no import CDN.
 
 Em **Authentication → URL Configuration**, confirmar:
 
-- Site URL: `https://nth8m6fcs7-byte.github.io/Hours/`
-- Redirect URLs: incluir exatamente `https://nth8m6fcs7-byte.github.io/Hours/`
+- Redirect URLs: acrescentar exatamente `https://nth8m6fcs7-byte.github.io/Hours/`,
+  mantendo os endereços de outras apps.
+- Site URL: se o projeto servir outras apps, preservar o valor existente e confirmar
+  os fluxos de email de cada app antes de o alterar. A recuperação de Hours já envia
+  o seu próprio `redirectTo`.
 
-Em **Authentication → Passkeys**, ativar Passkey authentication e configurar:
+Em **Authentication → Passkeys**, os valores previstos para Hours são:
 
 - Relying Party Display Name: `As Minhas Horas`
 - Relying Party ID: `nth8m6fcs7-byte.github.io`
 - Relying Party Origins: `https://nth8m6fcs7-byte.github.io`
 
 O origin não inclui `/Hours/`. Manter o RP ID depois de registar passkeys.
+Se outras apps partilharem o projeto, confirmar a compatibilidade dos domínios antes
+de substituir o RP ID ou origins existentes; alterar o RP ID invalida passkeys existentes.
 As passkeys exigem uma conta confirmada e um navegador compatível com WebAuthn.
 Para testar Face ID no iPhone, abrir a página publicada em Safari, entrar com
 email/password, ativar Face ID, sair e usar “Entrar com Face ID”.
@@ -52,3 +58,10 @@ para usar Microsoft Edge e `PLAYWRIGHT_PATH` para apontar a uma instalação exi
 
 O envio real do email, um link real de recuperação e a cerimónia biométrica precisam
 de uma conta de teste e de validação no dispositivo; os testes simulados não os comprovam.
+
+## Interface
+
+Design sage e marfim, com totais em destaque, etiquetas visíveis nos campos e registos
+com data e duração. As opções da conta ficam no fim da página. O layout foi verificado
+entre 320 e 430 px em telemóvel e a 780/1280 px no desktop, incluindo estados vazios,
+edição e recuperação. Não requer build nem novas dependências de produção.
