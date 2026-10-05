@@ -13,6 +13,12 @@ const records=[
  {id:'dec-day',work_date:'2025-12-31',start_time:'08:00',end_time:'16:00'},
  {id:'oct-day',work_date:'2025-10-01',start_time:'10:00',end_time:'15:00'}
 ];
+const adjustedRecords=[
+ {id:'split-shift',work_date:'2026-07-31',start_time:'09:00',end_time:'22:40',duration_minutes:670,notes:'09:00–14:00 / 16:30–22:40'},
+ {id:'zero-shift',work_date:'2026-07-30',start_time:'09:00',end_time:'17:00',duration_minutes:0,notes:'Zero contado'},
+ {id:'automatic-shift',work_date:'2026-07-27',start_time:'10:00',end_time:'15:00',duration_minutes:null,notes:null},
+ {id:'older-shift',work_date:'2026-06-01',start_time:'09:00',end_time:'17:00',duration_minutes:null,notes:null}
+];
 
 async function withHistory(fixture,run,{cap=500}={}){
  const browser=await chromium.launch({headless:true,...(process.env.BROWSER_CHANNEL?{channel:process.env.BROWSER_CHANNEL}:{})});
@@ -110,6 +116,89 @@ test('global edit mode reveals actions, clears edit on conclusion and preserves 
   await page.fill('#date','2025-09-10');await page.fill('#start','09:00');await page.fill('#end','10:00');await page.click('#save');
   await page.waitForFunction(()=>window.records.some(record=>record.work_date==='2025-09-10')&&document.getElementById('sync').textContent==='Sincronizado');
   assert.equal(await page.inputValue('#month-filter'),'');
+ });
+});
+
+test('adjusted duration counts split shifts and zero in monthly and both weekly totals',async()=>{
+ await withHistory(adjustedRecords,async page=>{
+  assert.equal(await page.inputValue('#month-filter'),'2026-07');
+  assert.equal(await page.locator('#list .shift').nth(0).locator('.dur').textContent(),'11h10');
+  assert.equal(await page.locator('#list .shift').nth(1).locator('.dur').textContent(),'0h00');
+  assert.equal(await page.locator('#list .shift').nth(2).locator('.dur').textContent(),'5h00');
+  assert.equal(await page.textContent('#history-total'),'16h10');
+  assert.equal(await page.textContent('#tips-total'),'16h10');
+  assert.equal(await page.textContent('#mine-total'),'11h10');
+  assert.equal(await page.locator('#shift-details').getAttribute('open'),null);
+  const weekly=await page.locator('.grid').innerText();
+  await page.selectOption('#month-filter','2026-06');assert.equal(await page.textContent('#history-total'),'8h00');
+  await page.selectOption('#month-filter','');assert.equal(await page.textContent('#history-total'),'24h10');
+  assert.equal(await page.locator('.grid').innerText(),weekly);
+  await page.click('#edit-records');await page.click('[data-edit="zero-shift"]');
+  assert.equal(await page.inputValue('#duration-override'),'00:00');
+  assert.equal(await page.inputValue('#notes'),'Zero contado');
+ });
+});
+
+test('editing preserves, adjusts and clears recorded duration and notes while escaping note markup',async()=>{
+ await withHistory(adjustedRecords,async page=>{
+  const waitForEdit=async count=>page.waitForFunction(count=>window.calls.filter(call=>call[0]==='edit').length===count&&document.getElementById('sync').textContent==='Sincronizado',count);
+  const lastEdit=()=>page.evaluate(()=>window.calls.filter(call=>call[0]==='edit').at(-1)[2]);
+  await page.click('#edit-records');await page.click('[data-edit="split-shift"]');
+  assert.equal(await page.locator('#shift-details').getAttribute('open'),'');
+  assert.equal(await page.inputValue('#start'),'09:00');assert.equal(await page.inputValue('#end'),'22:40');
+  assert.equal(await page.inputValue('#duration-override'),'11:10');
+  assert.equal(await page.inputValue('#notes'),'09:00–14:00 / 16:30–22:40');
+  await page.click('#save');await waitForEdit(1);
+  assert.equal((await lastEdit()).duration_minutes,670);
+  assert.equal((await lastEdit()).notes,'09:00–14:00 / 16:30–22:40');
+  assert.equal(await page.textContent('#history-total'),'16h10');
+  await page.click('[data-edit="split-shift"]');await page.fill('#duration-override','10:30');
+  const literalNote='<img src=x onerror="window.notesExecuted=true"> & <strong>texto</strong>\nLinha 2';
+  await page.fill('#notes',`  ${literalNote}  `);await page.click('#save');await waitForEdit(2);
+  assert.equal((await lastEdit()).duration_minutes,630);assert.equal((await lastEdit()).notes,literalNote);
+  assert.equal(await page.textContent('#history-total'),'15h30');
+  assert.equal(await page.textContent('#mine-total'),'10h30');
+  assert.equal(await page.locator('#list img').count(),0);
+  assert.equal(await page.evaluate(()=>window.notesExecuted===true),false);
+  assert.ok((await page.locator('#list').textContent()).includes(literalNote));
+  await page.setViewportSize({width:320,height:844});
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'Notes overflow at 320px');
+  await page.setViewportSize({width:390,height:844});
+  // A blank override returns to the entry/exit calculation and blank notes become null.
+  await page.click('[data-edit="split-shift"]');await page.fill('#duration-override','');await page.fill('#notes','   ');
+  await page.click('#save');await waitForEdit(3);
+  assert.equal((await lastEdit()).duration_minutes,null);assert.equal((await lastEdit()).notes,null);
+  assert.equal(await page.locator('#list .shift').first().locator('.dur').textContent(),'13h40');
+  assert.equal(await page.textContent('#history-total'),'18h40');
+  assert.equal(await page.textContent('#tips-total'),'18h40');
+  assert.equal(await page.textContent('#mine-total'),'13h40');
+  await page.fill('#date','2026-08-01');await page.fill('#start','22:00');await page.fill('#end','02:00');await page.click('#save');
+  await page.waitForFunction(()=>window.calls.some(call=>call[0]==='upsert')&&document.getElementById('sync').textContent==='Sincronizado');
+  const created=await page.evaluate(()=>window.calls.find(call=>call[0]==='upsert')[2]);
+  assert.equal(created.duration_minutes,null);assert.equal(created.notes,null);
+  assert.equal(await page.inputValue('#month-filter'),'2026-08');
+  assert.equal(await page.textContent('#history-total'),'4h00');
+ });
+});
+
+test('duration adjustment validates minutes and maximum, accepts explicit zero and a full day',async()=>{
+ await withHistory(records,async page=>{
+  await page.fill('#date','2026-01-20');await page.fill('#start','09:00');await page.fill('#end','17:00');
+  await page.click('#shift-details summary');
+  for(const invalid of ['25:00','12:60','-01:00','not a duration']){
+   await page.fill('#duration-override',invalid);await page.click('#save');
+   assert.equal(await page.evaluate(()=>window.calls.some(call=>call[0]==='upsert')),false,`Accepted invalid duration: ${invalid}`);
+   assert.ok((await page.textContent('#form-msg')).trim().length>0);
+  }
+  await page.fill('#duration-override','00:00');await page.click('#save');
+  await page.waitForFunction(()=>window.calls.filter(call=>call[0]==='upsert').length===1&&document.getElementById('sync').textContent==='Sincronizado');
+  assert.equal(await page.evaluate(()=>window.calls.find(call=>call[0]==='upsert')[2].duration_minutes),0);
+  assert.equal(await page.locator('#list .shift').first().locator('.dur').textContent(),'0h00');
+  await page.fill('#date','2026-01-21');await page.fill('#start','09:00');await page.fill('#end','17:00');
+  await page.click('#shift-details summary');await page.fill('#duration-override','24:00');await page.click('#save');
+  await page.waitForFunction(()=>window.calls.filter(call=>call[0]==='upsert').length===2&&document.getElementById('sync').textContent==='Sincronizado');
+  assert.equal(await page.evaluate(()=>window.calls.filter(call=>call[0]==='upsert').at(-1)[2].duration_minutes),1440);
+  assert.equal(await page.locator('#list .shift').first().locator('.dur').textContent(),'24h00');
  });
 });
 

@@ -42,7 +42,7 @@ email/password, ativar Face ID, sair e usar “Entrar com Face ID”.
 
 A chave pública não permite consultar a lista de redirects nem os detalhes do RP
 no painel. O endpoint público de settings indicou `passkeys_enabled: true` durante
-a verificação. Não foram alterados RLS, privilégios nem dados.
+a verificação. Não foram alterados RLS nem privilégios.
 
 Documentação: [Passkeys](https://supabase.com/docs/guides/auth/passkeys),
 [Recuperação de password](https://supabase.com/docs/reference/javascript/auth-resetpasswordforemail).
@@ -80,6 +80,26 @@ edição e recuperação. Não requer build nem novas dependências de produçã
 `tests/history.cjs` verifica mudança de ano, meses vazios, edição geral, totais,
 mais de 1000 registos, limite reduzido do servidor, falha durante a paginação e
 saída da conta durante o carregamento.
+
+## Pausas e notas
+
+O detalhe opcional “Pausas e notas”, recolhido por defeito no formulário, permite
+indicar o total realmente trabalhado e guardar uma observação. Deixar o total vazio
+mantém o cálculo entre entrada e saída, incluindo turnos que passam a meia-noite.
+Um total explícito aceita `HH:MM` (também `H:MM`), de `00:00` a `24:00`; `0` equivale
+a zero horas. As notas aparecem como texto nos turnos, com quebras de linha e HTML
+escapado. Editar um turno repõe esses campos; cancelar ou guardar limpa-os.
+
+Antes de publicar esta versão, a tabela `personal_work_hours` precisa de duas colunas
+nullable: `duration_minutes integer` e `notes text`. Um total válido de 0 a 1440
+minutos substitui o cálculo automático nos totais semanal, mensal e individual.
+Registos anteriores com `duration_minutes` nulo continuam a usar entrada e saída.
+Guardar o campo vazio envia `duration_minutes: null`; notas em branco enviam
+`notes: null`, permitindo remover um ajuste ou observação ao editar. O frontend
+mantém a publishable key, a tabela, o conflito `user_id,work_date` e as políticas RLS;
+esta documentação não executa alterações na base de dados. A alteração aditiva está
+em [`sql/optional-shift-details.sql`](sql/optional-shift-details.sql), com um limite
+de 0 a 1440 minutos, sem substituir dados ou políticas existentes.
 
 ## Ícone no iPhone
 
