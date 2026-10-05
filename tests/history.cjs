@@ -19,6 +19,17 @@ const adjustedRecords=[
  {id:'automatic-shift',work_date:'2026-07-27',start_time:'10:00',end_time:'15:00',duration_minutes:null,notes:null},
  {id:'older-shift',work_date:'2026-06-01',start_time:'09:00',end_time:'17:00',duration_minutes:null,notes:null}
 ];
+const yearBoundaryRecords=[
+ {id:'week-sun',work_date:'2027-01-03',start_time:'09:00',end_time:'12:00',duration_minutes:null,notes:'Compras às 10:30'},
+ {id:'week-sat',work_date:'2027-01-02',start_time:'10:00',end_time:'14:00',duration_minutes:180,notes:'Pausa de uma hora'},
+ {id:'week-fri',work_date:'2027-01-01',start_time:'22:00',end_time:'02:00',duration_minutes:null,notes:null},
+ {id:'week-thu',work_date:'2026-12-31',start_time:'09:00',end_time:'17:00',duration_minutes:null,notes:null},
+ {id:'week-wed',work_date:'2026-12-30',start_time:'09:00',end_time:'17:00',duration_minutes:0,notes:null},
+ {id:'week-tue',work_date:'2026-12-29',start_time:'09:00',end_time:'17:00',duration_minutes:null,notes:null},
+ {id:'week-mon',work_date:'2026-12-28',start_time:'10:00',end_time:'16:00',duration_minutes:null,notes:null},
+ {id:'previous-sun',work_date:'2026-12-27',start_time:'08:00',end_time:'10:00',duration_minutes:null,notes:null},
+ {id:'older-month',work_date:'2026-11-01',start_time:'10:00',end_time:'12:00',duration_minutes:null,notes:null}
+];
 
 async function withHistory(fixture,run,{cap=500}={}){
  const browser=await chromium.launch({headless:true,...(process.env.BROWSER_CHANNEL?{channel:process.env.BROWSER_CHANNEL}:{})});
@@ -130,6 +141,110 @@ test('global edit mode reveals actions, clears edit on conclusion and preserves 
   await page.fill('#date','2025-09-10');await page.fill('#start','09:00');await page.fill('#end','10:00');await page.click('#save');
   await page.waitForFunction(()=>window.records.some(record=>record.work_date==='2025-09-10')&&document.getElementById('sync').textContent==='Sincronizado');
   assert.equal(await page.inputValue('#month-filter'),'');
+ });
+});
+
+test('weekly cards show their exact year-crossing records, support keyboard and restore the prior month or all months',async()=>{
+ await withHistory(yearBoundaryRecords,async page=>{
+  const assertWeek=async(card,total,durations)=>{
+   assert.equal(await page.getAttribute('#'+card+'-card','aria-pressed'),'true');
+   assert.equal(await page.getAttribute('#'+(card==='tips'?'mine':'tips')+'-card','aria-pressed'),'false');
+   assert.equal(await page.textContent('#history-total'),total);
+   assert.equal(await page.textContent('#'+card+'-total'),total);
+   assert.deepEqual(await page.locator('#list .dur').allTextContents(),durations);
+   const actualMinutes=durations.reduce((sum,value)=>{const [,hours,minutes]=value.match(/^(\d+)h(\d{2})$/);return sum+Number(hours)*60+Number(minutes)},0);
+   const [,hours,minutes]=total.match(/^(\d+)h(\d{2})$/);
+   assert.equal(actualMinutes,Number(hours)*60+Number(minutes));
+   assert.equal(await page.locator('#week-controls').isVisible(),true);
+   assert.equal(await page.locator('#month-controls').isVisible(),false);
+  };
+  for(const card of ['tips','mine'])assert.equal(await page.locator('#'+card+'-card').evaluate(element=>element.tagName),'BUTTON');
+  await page.selectOption('#month-filter','2026-11');assert.equal(await page.textContent('#history-total'),'2h00');
+  await page.click('#tips-card');
+  await assertWeek('tips','32h00',['3h00','3h00','4h00','8h00','0h00','8h00','6h00']);
+  assert.equal(await page.textContent('#history-week-title'),'Gorjetas');
+  assert.match(await page.textContent('#history-week-range'),/28\/12/);assert.match(await page.textContent('#history-week-range'),/03\/01/);
+  assert.deepEqual(await page.locator('#list .shift-main small').allTextContents(),['3 de janeiro de 2027','2 de janeiro de 2027','1 de janeiro de 2027','31 de dezembro de 2026','30 de dezembro de 2026','29 de dezembro de 2026','28 de dezembro de 2026']);
+  await page.click('#tips-card'); // Clicking the active card keeps the requested week.
+  await assertWeek('tips','32h00',['3h00','3h00','4h00','8h00','0h00','8h00','6h00']);
+  await page.locator('#mine-card').press('Enter');
+  await assertWeek('mine','18h00',['3h00','3h00','4h00','8h00']);
+  assert.equal(await page.textContent('#history-week-title'),'Minha semana');
+  assert.match(await page.textContent('#history-week-range'),/31\/12/);assert.match(await page.textContent('#history-week-range'),/04\/01/);
+  await page.locator('#tips-card').press('Space');
+  await assertWeek('tips','32h00',['3h00','3h00','4h00','8h00','0h00','8h00','6h00']);
+  for(const width of [320,375,390,430]){
+   await page.setViewportSize({width,height:844});
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`Weekly history overflow at ${width}px`);
+  }
+  await page.click('#history-back');
+  assert.equal(await page.inputValue('#month-filter'),'2026-11');assert.equal(await page.textContent('#history-total'),'2h00');
+  assert.equal(await page.locator('#month-controls').isVisible(),true);assert.equal(await page.locator('#week-controls').isVisible(),false);
+  assert.equal(await page.getAttribute('#tips-card','aria-pressed'),'false');assert.equal(await page.getAttribute('#mine-card','aria-pressed'),'false');
+  await page.selectOption('#month-filter','');assert.equal(await page.textContent('#history-total'),'36h00');
+  await page.click('#mine-card');await assertWeek('mine','18h00',['3h00','3h00','4h00','8h00']);
+  await page.click('#history-back');assert.equal(await page.inputValue('#month-filter'),'');
+  assert.equal(await page.textContent('#history-total'),'36h00');assert.equal(await page.locator('#list .shift').count(),9);
+ });
+});
+
+test('weekly and monthly browsing preserves new drafts and the edited record target until explicit save',async()=>{
+ await withHistory(yearBoundaryRecords,async page=>{
+  const fieldIds=['date','start','end','duration-override','notes'];
+  const values=()=>page.evaluate(ids=>ids.map(id=>document.getElementById(id).value),fieldIds);
+  await page.selectOption('#month-filter','2026-11');
+  await page.fill('#date','2026-12-24');await page.fill('#start','11:00');await page.fill('#end','16:00');
+  await page.click('#shift-details summary');await page.fill('#duration-override','04:30');await page.fill('#notes','Compras às 10:30. Rascunho novo.');
+  const draft=await values();
+  for(const control of ['#tips-card','#mine-card','#history-back']){await page.click(control);assert.deepEqual(await values(),draft)}
+  assert.equal(await page.inputValue('#month-filter'),'2026-11');
+  assert.equal(await page.locator('#cancel').isVisible(),false);
+  await page.click('#edit-records');await page.click('[data-edit="older-month"]');
+  await page.fill('#start','10:30');await page.fill('#end','13:00');
+  if(!await page.locator('#shift-details').evaluate(element=>element.open))await page.click('#shift-details summary');
+  await page.fill('#duration-override','02:15');await page.fill('#notes','Pausa de 15 minutos. Compras às 10:30.');
+  const edit=await values();
+  for(const control of ['#tips-card','#mine-card','#history-back']){
+   await page.click(control);assert.deepEqual(await values(),edit);assert.equal(await page.locator('#cancel').isVisible(),true);
+  }
+  await page.selectOption('#month-filter','2026-12');assert.deepEqual(await values(),edit);
+  await page.click('#month-prev');assert.deepEqual(await values(),edit);
+  await page.selectOption('#month-filter','');assert.deepEqual(await values(),edit);
+  await page.click('#save');
+  await page.waitForFunction(()=>window.calls.some(call=>call[0]==='edit')&&document.getElementById('sync').textContent==='Sincronizado');
+  const saved=await page.evaluate(()=>window.calls.find(call=>call[0]==='edit'));
+  assert.equal(saved[1],'personal_work_hours');assert.deepEqual(saved[3],['id','older-month']);
+  assert.equal(saved[2].work_date,'2026-11-01');assert.equal(saved[2].start_time,'10:30');assert.equal(saved[2].end_time,'13:00');
+  assert.equal(saved[2].duration_minutes,135);assert.equal(saved[2].notes,'Pausa de 15 minutos. Compras às 10:30.');
+  assert.equal(await page.inputValue('#month-filter'),'');assert.equal(await page.textContent('#history-total'),'36h15');
+  assert.equal(await page.locator('#cancel').isVisible(),false);assert.equal(await page.inputValue('#notes'),'');
+  assert.equal(await page.textContent('#tips-total'),'32h00');assert.equal(await page.textContent('#mine-total'),'18h00');
+ });
+});
+
+test('weekly history keeps editing and deletion scoped correctly and note times add no hours',async()=>{
+ await withHistory(yearBoundaryRecords,async page=>{
+  const waitForEdit=async count=>page.waitForFunction(count=>window.calls.filter(call=>call[0]==='edit').length===count&&document.getElementById('sync').textContent==='Sincronizado',count);
+  await page.selectOption('#month-filter','2026-11');
+  await page.click('#mine-card');await page.click('#edit-records');
+  assert.equal(await page.locator('[data-edit]:visible').count(),4);
+  await page.click('[data-edit="week-sun"]');await page.fill('#notes','Compras às 10:30. Não altera o turno.');await page.click('#save');await waitForEdit(1);
+  assert.equal(await page.getAttribute('#mine-card','aria-pressed'),'true');assert.equal(await page.textContent('#history-total'),'18h00');
+  assert.equal(await page.textContent('#mine-total'),'18h00');assert.equal(await page.textContent('#tips-total'),'32h00');
+  assert.equal(await page.evaluate(()=>window.calls.filter(call=>call[0]==='edit').at(-1)[2].duration_minutes),null);
+  await page.click('[data-edit="week-fri"]');await page.fill('#end','03:00');await page.click('#save');await waitForEdit(2);
+  assert.equal(await page.getAttribute('#mine-card','aria-pressed'),'true');assert.equal(await page.textContent('#history-total'),'19h00');
+  assert.equal(await page.textContent('#mine-total'),'19h00');assert.equal(await page.textContent('#tips-total'),'33h00');
+  assert.deepEqual(await page.evaluate(()=>window.calls.filter(call=>call[0]==='edit').at(-1)[3]),['id','week-fri']);
+  await page.click('[data-edit="week-thu"]');
+  page.once('dialog',dialog=>dialog.accept());await page.click('[data-del="week-thu"]');
+  await page.waitForFunction(()=>window.calls.some(call=>call[0]==='delete')&&document.getElementById('sync').textContent==='Sincronizado');
+  assert.equal(await page.getAttribute('#mine-card','aria-pressed'),'true');assert.equal(await page.locator('#list .shift').count(),3);
+  assert.equal(await page.textContent('#history-total'),'11h00');assert.equal(await page.textContent('#mine-total'),'11h00');
+  assert.equal(await page.textContent('#tips-total'),'25h00');assert.equal(await page.locator('#cancel').isVisible(),false);
+  assert.deepEqual(await page.evaluate(()=>window.calls.find(call=>call[0]==='delete').slice(1)),['personal_work_hours',['id','week-thu']]);
+  await page.click('#history-back');assert.equal(await page.inputValue('#month-filter'),'2026-11');
+  assert.equal(await page.textContent('#history-total'),'2h00');assert.equal(await page.locator('#list .shift').count(),1);
  });
 });
 

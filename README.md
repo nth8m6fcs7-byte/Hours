@@ -73,6 +73,12 @@ edição e recuperação. Não requer build nem novas dependências de produçã
 - A consulta mostra a quantidade e as horas do mês, além do intervalo de datas guardado.
 - Os cartões Gorjetas e Minha semana mantêm o cálculo semanal existente, baseado no
   registo mais recente, independentemente do mês consultado.
+- Tocar em qualquer cartão (ou usar Enter/Espaço) abre apenas os turnos desse intervalo:
+  Gorjetas de segunda a domingo, Minha semana de quinta a segunda. O histórico mostra
+  a semana, as datas, a quantidade e o subtotal, com ano explícito na mudança de ano.
+- “Ver por mês” repõe o mês anteriormente consultado, incluindo “Todos os meses”.
+  Os controlos mensais ficam recolhidos durante a consulta semanal. Navegar entre
+  mês e semana mantém os campos por guardar, tanto novos turnos como uma edição.
 - O carregamento utiliza páginas ordenadas de até 500 registos e contagem exata,
   respeitando RLS. Em caso de erro, mantém o último histórico completo e apresenta
   uma mensagem, sem substituir a lista por uma resposta parcial.

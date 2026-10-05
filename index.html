@@ -43,6 +43,7 @@
     /* iOS can add date/time padding outside the declared input width (WebKit 301648). */
     @supports(-webkit-touch-callout:none){.form-card .row3 input{padding-inline:0}}
     @media(max-width:560px){.form-card .row3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    button.metric{display:block;width:100%;border:0;text-align:left;font:inherit;color:var(--ink)}button.metric.primary{color:#f2f5ea}button.metric:hover{background:#dfe8d6}button.metric.primary:hover{background:#315340}button.metric[aria-pressed="true"]{box-shadow:inset 0 0 0 2px #b7c8ac}button.metric.primary[aria-pressed="true"]{box-shadow:inset 0 0 0 2px #b7c8ac}.metric-days,.metric .total,.metric-range,.metric-footer{display:block}.metric-action{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11px;font-weight:500;margin-top:15px;opacity:.9}.week-controls .topbar{align-items:center;gap:10px}.week-controls h3{margin:0;font-size:16px;font-weight:650;letter-spacing:-.3px}.week-controls button{font-size:12px;font-weight:500;min-height:44px;white-space:nowrap}.week-range{font-size:12px;line-height:1.6;color:var(--muted);margin-top:5px}
   </style>
 </head>
 <body>
@@ -99,8 +100,8 @@
     <div class="overview"><div><div class="eyebrow">O teu resumo</div><h2>Tudo em dia.</h2></div><div class="today" id="today-label"></div></div>
     <div id="app-msg" role="status" aria-live="polite"></div>
     <div class="grid">
-      <section class="metric primary" aria-label="Horas para gorjetas"><div class="metric-top"><div class="metric-title">Gorjetas</div><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M12 3v18m5-14H9a3 3 0 0 0 0 6h6a3 3 0 0 1 0 6H6"/></svg></div><div class="metric-days">Segunda → domingo</div><div id="tips-total" class="total">0h00</div><div id="tips-range" class="metric-range"></div><div class="metric-footer">Horas registadas</div></section>
-      <section class="metric" aria-label="Horas da minha semana"><div class="metric-top"><div class="metric-title">Minha semana</div><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 3v4m8-4v4M4 11h16m-11 5 2 2 4-4"/></svg></div><div class="metric-days">Quinta → segunda</div><div id="mine-total" class="total">0h00</div><div id="mine-range" class="metric-range"></div><div class="metric-footer">Horas registadas</div></section>
+      <button id="tips-card" type="button" class="metric primary" aria-pressed="false" aria-controls="records"><span class="metric-top"><span class="metric-title">Gorjetas</span><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M12 3v18m5-14H9a3 3 0 0 0 0 6h6a3 3 0 0 1 0 6H6"/></svg></span><span class="metric-days">Segunda → domingo</span><span id="tips-total" class="total">0h00</span><span id="tips-range" class="metric-range"></span><span class="metric-footer">Horas registadas</span><span class="metric-action">Ver turnos<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></span></button>
+      <button id="mine-card" type="button" class="metric" aria-pressed="false" aria-controls="records"><span class="metric-top"><span class="metric-title">Minha semana</span><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 3v4m8-4v4M4 11h16m-11 5 2 2 4-4"/></svg></span><span class="metric-days">Quinta → segunda</span><span id="mine-total" class="total">0h00</span><span id="mine-range" class="metric-range"></span><span class="metric-footer">Horas registadas</span><span class="metric-action">Ver turnos<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></span></button>
     </div>
 
     <section class="card form-card">
@@ -124,13 +125,17 @@
       <div id="form-msg" role="status" aria-live="polite"></div>
     </section>
 
-    <section class="records" id="records">
-      <div class="topbar records-heading"><h2 class="section-title">Os teus turnos</h2><button id="edit-records" class="secondary" aria-pressed="false" aria-controls="list">Editar</button></div>
+    <section class="records" id="records" aria-labelledby="records-title">
+      <div class="topbar records-heading"><h2 id="records-title" class="section-title" tabindex="-1">Os teus turnos</h2><button id="edit-records" class="secondary" aria-pressed="false" aria-controls="list">Editar</button></div>
       <div class="history-panel">
-        <div class="month-controls">
+        <div id="month-controls" class="month-controls">
           <button id="month-prev" aria-label="Mês anterior"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button>
           <div class="month-select"><select id="month-filter" aria-label="Mês dos turnos"></select><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></div>
           <button id="month-next" aria-label="Mês seguinte"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button>
+        </div>
+        <div id="week-controls" class="week-controls hidden">
+          <div class="topbar"><h3 id="history-week-title"></h3><button id="history-back" class="ghost" type="button">Ver por mês</button></div>
+          <p id="history-week-range" class="week-range"></p>
         </div>
         <div class="history-summary" role="status" aria-live="polite"><span id="history-count"><span id="record-count">0 turnos</span></span><div><strong id="history-total">0h00</strong><small id="history-total-label">no mês</small></div></div>
       </div>
@@ -159,7 +164,7 @@ const supabase=createClient(SUPABASE_URL,SUPABASE_KEY,{
 
 const $=id=>document.getElementById(id);
 let mode='login', editingId=null, rows=[];
-let selectedMonth=null, editingRecords=false, monthOptions=[], loadVersion=0;
+let selectedMonth=null, activeWeek=null, editingRecords=false, monthOptions=[], loadVersion=0;
 const recoveryParams=new URLSearchParams(window.location.hash.slice(1));
 const recoveryKey='hours-password-recovery';
 // Remember the recovery screen after the SDK removes the token fragment.
@@ -199,7 +204,17 @@ function duration(r){
 }
 function weekMon(d){const x=new Date(d);const wd=(x.getDay()+6)%7;return addDays(x,-wd)}
 function workWeekThu(d){const x=new Date(d);const wd=x.getDay();const back=(wd>=4?wd-4:wd+3);return addDays(x,-back)}
-function rangeTotal(start,end){return rows.filter(r=>r.work_date>=iso(start)&&r.work_date<=iso(end)).reduce((a,r)=>a+duration(r),0)}
+function weeklyRanges(){
+  const anchor=rows.length?localDate(rows[0].work_date):new Date();
+  const mon=weekMon(anchor),thu=workWeekThu(anchor);
+  return {tips:{title:'Gorjetas',start:mon,end:addDays(mon,6)},mine:{title:'Minha semana',start:thu,end:addDays(thu,4)}};
+}
+function rowsInRange({start,end}){const first=iso(start),last=iso(end);return rows.filter(r=>r.work_date>=first&&r.work_date<=last)}
+function rangeTotal(start,end){return rowsInRange({start,end}).reduce((sum,r)=>sum+duration(r),0)}
+function rangeLabel({start,end},withYear=false){
+  const short=d=>`${pad(d.getDate())}/${pad(d.getMonth()+1)}`;
+  return `${short(start)}${withYear&&start.getFullYear()!==end.getFullYear()?'/'+start.getFullYear():''} – ${short(end)}${withYear?'/'+end.getFullYear():''}`;
+}
 function setMsg(el,msg,ok=false){el.textContent=msg;el.className=msg?(ok?'ok':'error'):''}
 
 async function sessionUI(){
@@ -210,7 +225,7 @@ async function sessionUI(){
   $('app').classList.toggle('hidden',!session||recovering);
   $('logout').classList.toggle('hidden',!session||recovering);
   if(session&&!recovering) await load();
-  if(!session){loadVersion++;rows=[];selectedMonth=null;editingRecords=false;$('account').open=false;resetForm();render()}
+  if(!session){loadVersion++;rows=[];selectedMonth=null;activeWeek=null;editingRecords=false;$('account').open=false;resetForm();render()}
 }
 async function load(){
   const version=++loadVersion,loaded=[],pageSize=500;
@@ -239,10 +254,12 @@ async function load(){
   }
 }
 function render(){
-  const anchor=rows.length?localDate(rows[0].work_date):new Date();
-  const mon=weekMon(anchor), sun=addDays(mon,6), thu=workWeekThu(anchor), monday=addDays(thu,4);
-  $('tips-total').textContent=fmtMins(rangeTotal(mon,sun)); $('tips-range').textContent=`${pad(mon.getDate())}/${pad(mon.getMonth()+1)} – ${pad(sun.getDate())}/${pad(sun.getMonth()+1)}`;
-  $('mine-total').textContent=fmtMins(rangeTotal(thu,monday)); $('mine-range').textContent=`${pad(thu.getDate())}/${pad(thu.getMonth()+1)} – ${pad(monday.getDate())}/${pad(monday.getMonth()+1)}`;
+  const ranges=weeklyRanges();
+  for(const type of ['tips','mine']){
+    const range=ranges[type],total=fmtMins(rangeTotal(range.start,range.end));
+    $(type+'-total').textContent=total;$(type+'-range').textContent=rangeLabel(range);
+    $(type+'-card').setAttribute('aria-label',`${range.title}: ${total}. Ver turnos de ${rangeLabel(range,true)}.`);
+  }
   renderHistory();
 }
 function monthLabel(month){
@@ -263,10 +280,17 @@ function renderHistory(){
   const monthIndex=monthOptions.indexOf(current);
   $('month-prev').disabled=current===''||monthIndex<=0;
   $('month-next').disabled=current===''||monthIndex>=monthOptions.length-1;
-  const visible=current?rows.filter(r=>r.work_date.startsWith(current+'-')):rows;
+  const week=activeWeek?weeklyRanges()[activeWeek]:null;
+  $('month-controls').classList.toggle('hidden',!!week);
+  $('week-controls').classList.toggle('hidden',!week);
+  $('history-week-title').textContent=week?week.title:'';
+  $('history-week-range').textContent=week?rangeLabel(week,true):'';
+  $('tips-card').setAttribute('aria-pressed',String(activeWeek==='tips'));
+  $('mine-card').setAttribute('aria-pressed',String(activeWeek==='mine'));
+  const visible=week?rowsInRange(week):current?rows.filter(r=>r.work_date.startsWith(current+'-')):rows;
   $('record-count').textContent=`${visible.length} ${visible.length===1?'turno':'turnos'}`;
   $('history-total').textContent=fmtMins(visible.reduce((sum,r)=>sum+duration(r),0));
-  $('history-total-label').textContent=current?'no mês':'no total';
+  $('history-total-label').textContent=week?'na semana':current?'no mês':'no total';
   $('edit-records').textContent=editingRecords?'Concluir':'Editar';
   $('edit-records').setAttribute('aria-pressed',String(editingRecords));
   $('edit-records').disabled=!visible.length&&!editingRecords;
@@ -276,16 +300,23 @@ function renderHistory(){
     const date=localDate(r.work_date),fullDate=new Intl.DateTimeFormat('pt-PT',{day:'numeric',month:'long',year:'numeric'}).format(date);
     const note=typeof r.notes==='string'?r.notes.trim():'';
     return `<div class="shift${note?' has-note':''}"><div class="shift-main"><div class="date-tile" aria-hidden="true"><b>${pad(date.getDate())}</b><span>${dayName(date)}</span></div><div><strong>${(r.start_time||'—').slice(0,5)} <span>→</span> ${(r.end_time||'—').slice(0,5)}</strong><small>${fullDate}</small></div></div><div class="shift-end"><div class="dur">${fmtMins(duration(r))}</div></div>${note?`<p class="shift-note">${escapeHTML(note)}</p>`:''}${editingRecords?`<div class="shift-actions"><button class="ghost" data-edit="${r.id}" aria-label="Editar horário de ${fullDate}">Editar</button><button class="danger" data-del="${r.id}" aria-label="Apagar horário de ${fullDate}">Apagar</button></div>`:''}</div>`;
-  }).join(''):`<div class="empty-state"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><strong>${rows.length?'Sem turnos neste mês.':'A tua primeira hora começa aqui.'}</strong><p>${rows.length?'Escolhe outro mês para consultar o histórico.':'Adiciona um horário acima.<br>Os teus totais aparecem automaticamente.'}</p></div>`;
+  }).join(''):`<div class="empty-state"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><strong>${week?'Sem turnos nesta semana.':rows.length?'Sem turnos neste mês.':'A tua primeira hora começa aqui.'}</strong><p>${week?'Os turnos deste intervalo aparecem aqui.':rows.length?'Escolhe outro mês para consultar o histórico.':'Adiciona um horário acima.<br>Os teus totais aparecem automaticamente.'}</p></div>`;
   const dates=rows.map(r=>r.work_date).sort();
   const fullDate=s=>new Intl.DateTimeFormat('pt-PT',{day:'2-digit',month:'2-digit',year:'numeric'}).format(localDate(s));
   $('history-coverage').textContent=dates.length?`${rows.length} ${rows.length===1?'turno guardado':'turnos guardados'} · ${fullDate(dates[0])} → ${fullDate(dates[dates.length-1])}`:'Ainda não há turnos guardados.';
 }
 function changeMonth(month){
-  selectedMonth=month;
-  if(editingId)resetForm();
+  activeWeek=null;selectedMonth=month;
   renderHistory();
 }
+function focusHistory(){
+  $('records-title').focus({preventScroll:true});
+  $('records').scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
+}
+function showWeek(type){activeWeek=type;renderHistory();focusHistory()}
+$('tips-card').onclick=()=>showWeek('tips');
+$('mine-card').onclick=()=>showWeek('mine');
+$('history-back').onclick=()=>{activeWeek=null;renderHistory();focusHistory()};
 $('month-filter').onchange=e=>changeMonth(e.target.value);
 $('month-prev').onclick=()=>{const index=monthOptions.indexOf(selectedMonth);if(index>0)changeMonth(monthOptions[index-1])};
 $('month-next').onclick=()=>{const index=monthOptions.indexOf(selectedMonth);if(index>=0&&index<monthOptions.length-1)changeMonth(monthOptions[index+1])};
@@ -402,7 +433,7 @@ $('save').onclick=async()=>{
   if(recordId) result=await supabase.from('personal_work_hours').update({work_date,start_time,end_time,duration_minutes,notes,updated_at:new Date().toISOString()}).eq('id',recordId);
   else result=await supabase.from('personal_work_hours').upsert({user_id:user.id,work_date,start_time,end_time,duration_minutes,notes,updated_at:new Date().toISOString()},{onConflict:'user_id,work_date'});
   if(result.error){$('sync').textContent='Erro';return setMsg($('form-msg'),result.error.message)}
-  if(selectedMonth!==''&&selectedMonth!==null)selectedMonth=work_date.slice(0,7);
+  if(!activeWeek&&selectedMonth!==''&&selectedMonth!==null)selectedMonth=work_date.slice(0,7);
   resetForm(); await load();
 };
 function resetForm(){editingId=null;$('form-title').textContent='Adicionar horário';$('cancel').classList.add('hidden');$('date').value=iso(new Date());$('start').value='';$('end').value='';$('duration-override').value='';$('notes').value='';$('shift-details').open=false;setMsg($('form-msg'),'')}
