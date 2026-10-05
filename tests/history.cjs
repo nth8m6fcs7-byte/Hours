@@ -72,6 +72,20 @@ test('history browses across years, empty months and all months without changing
   for(const width of [320,375,390,430,780]){
    await page.setViewportSize({width,height:844});
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`History overflow at ${width}px`);
+   if(width<=560){
+    const mobileForm=await page.evaluate(()=>{
+     const rect=selector=>document.querySelector(selector).getBoundingClientRect();
+     const grid=rect('.row3'),card=rect('.form-card'),date=rect('#date'),start=rect('#start'),end=rect('#end');
+     const near=(left,right)=>Math.abs(left-right)<=1;
+     return {
+      dateFillsGrid:near(date.left,grid.left)&&near(date.right,grid.right),
+      timesAligned:near(start.width,end.width)&&near(start.top,end.top)&&near(start.left,date.left)&&near(end.right,date.right),
+      equalMargins:near(date.left-card.left,card.right-date.right),
+      inputsContained:['date','start','end'].every(id=>{const input=rect('#'+id),field=document.getElementById(id).closest('.field').getBoundingClientRect();return input.left>=field.left-1&&input.right<=field.right+1})
+     };
+    });
+    assert.deepEqual(mobileForm,{dateFillsGrid:true,timesAligned:true,equalMargins:true,inputsContained:true},`Uneven mobile fields at ${width}px`);
+   }
   }
  });
 });
@@ -143,18 +157,29 @@ test('editing preserves, adjusts and clears recorded duration and notes while es
  await withHistory(adjustedRecords,async page=>{
   const waitForEdit=async count=>page.waitForFunction(count=>window.calls.filter(call=>call[0]==='edit').length===count&&document.getElementById('sync').textContent==='Sincronizado',count);
   const lastEdit=()=>page.evaluate(()=>window.calls.filter(call=>call[0]==='edit').at(-1)[2]);
-  await page.click('#edit-records');await page.click('[data-edit="split-shift"]');
+  await page.click('#edit-records');
+  const originalTotals=await page.locator('#history-total,#tips-total,#mine-total').allTextContents();
+  await page.click('[data-edit="automatic-shift"]');
+  assert.equal(await page.inputValue('#duration-override'),'');
+  await page.click('#shift-details summary');
+  const shoppingNote='Compras às 10:30. Material para a equipa.';
+  await page.fill('#notes',shoppingNote);await page.click('#save');await waitForEdit(1);
+  assert.equal((await lastEdit()).duration_minutes,null);assert.equal((await lastEdit()).notes,shoppingNote);
+  assert.equal(await page.evaluate(()=>window.records.find(record=>record.id==='automatic-shift').duration_minutes),null);
+  assert.equal(await page.locator('#list .shift').filter({hasText:'27 de julho de 2026'}).locator('.dur').textContent(),'5h00');
+  assert.deepEqual(await page.locator('#history-total,#tips-total,#mine-total').allTextContents(),originalTotals);
+  await page.click('[data-edit="split-shift"]');
   assert.equal(await page.locator('#shift-details').getAttribute('open'),'');
   assert.equal(await page.inputValue('#start'),'09:00');assert.equal(await page.inputValue('#end'),'22:40');
   assert.equal(await page.inputValue('#duration-override'),'11:10');
   assert.equal(await page.inputValue('#notes'),'09:00–14:00 / 16:30–22:40');
-  await page.click('#save');await waitForEdit(1);
+  await page.click('#save');await waitForEdit(2);
   assert.equal((await lastEdit()).duration_minutes,670);
   assert.equal((await lastEdit()).notes,'09:00–14:00 / 16:30–22:40');
   assert.equal(await page.textContent('#history-total'),'16h10');
   await page.click('[data-edit="split-shift"]');await page.fill('#duration-override','10:30');
   const literalNote='<img src=x onerror="window.notesExecuted=true"> & <strong>texto</strong>\nLinha 2';
-  await page.fill('#notes',`  ${literalNote}  `);await page.click('#save');await waitForEdit(2);
+  await page.fill('#notes',`  ${literalNote}  `);await page.click('#save');await waitForEdit(3);
   assert.equal((await lastEdit()).duration_minutes,630);assert.equal((await lastEdit()).notes,literalNote);
   assert.equal(await page.textContent('#history-total'),'15h30');
   assert.equal(await page.textContent('#mine-total'),'10h30');
@@ -166,7 +191,7 @@ test('editing preserves, adjusts and clears recorded duration and notes while es
   await page.setViewportSize({width:390,height:844});
   // A blank override returns to the entry/exit calculation and blank notes become null.
   await page.click('[data-edit="split-shift"]');await page.fill('#duration-override','');await page.fill('#notes','   ');
-  await page.click('#save');await waitForEdit(3);
+  await page.click('#save');await waitForEdit(4);
   assert.equal((await lastEdit()).duration_minutes,null);assert.equal((await lastEdit()).notes,null);
   assert.equal(await page.locator('#list .shift').first().locator('.dur').textContent(),'13h40');
   assert.equal(await page.textContent('#history-total'),'18h40');

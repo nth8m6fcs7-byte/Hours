@@ -88,7 +88,8 @@ indicar o total realmente trabalhado e guardar uma observação. Deixar o total 
 mantém o cálculo entre entrada e saída, incluindo turnos que passam a meia-noite.
 Um total explícito aceita `HH:MM` (também `H:MM`), de `00:00` a `24:00`; `0` equivale
 a zero horas. As notas aparecem como texto nos turnos, com quebras de linha e HTML
-escapado. Editar um turno repõe esses campos; cancelar ou guardar limpa-os.
+escapado. As notas não alteram as horas. Editar um turno repõe esses campos;
+cancelar ou guardar limpa-os.
 
 Antes de publicar esta versão, a tabela `personal_work_hours` precisa de duas colunas
 nullable: `duration_minutes integer` e `notes text`. Um total válido de 0 a 1440

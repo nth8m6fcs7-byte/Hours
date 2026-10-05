@@ -38,6 +38,11 @@
     @media(max-width:360px){.history-panel{padding:12px}.month-controls{gap:2px}.month-select select{font-size:15px;padding-left:2px;padding-right:22px}.records .shift-main{gap:10px}.records .date-tile{width:42px;padding-right:8px}.records .shift-main strong{font-size:15px}.records .shift-end .dur{font-size:20px}.history-summary small{margin-left:3px}}
     .shift-details{border-top:1px solid var(--line);margin-top:20px}.shift-details summary{list-style:none;min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:600}.shift-details summary::-webkit-details-marker{display:none}.shift-details summary small{font-size:11px;font-weight:400;margin-left:6px}.shift-details summary svg{transition:transform .2s}.shift-details[open] summary svg{transform:rotate(180deg)}.shift-detail-fields{display:grid;gap:18px;padding:8px 0 3px}.field-help{font-size:12px;line-height:1.6;color:var(--muted);margin-top:8px}textarea{width:100%;min-width:0;min-height:94px;resize:vertical;padding:14px 15px;border:1px solid var(--line);border-radius:13px;background:#f8f9f4;color:var(--ink);font:inherit;font-size:16px;line-height:1.5}textarea::placeholder{color:var(--muted);opacity:1}textarea:focus{outline:none;border-color:var(--sage);box-shadow:0 0 0 3px #768b721c}.shift.has-note{flex-wrap:wrap}.shift-note{width:100%;white-space:pre-wrap;overflow-wrap:anywhere;padding-left:63px;font-size:12px;line-height:1.6;color:var(--muted);margin-top:-4px}
     @media(max-width:560px){.shift-note{padding-left:60px}}@media(max-width:360px){.shift-note{padding-left:52px}}
+    .form-card .row3{grid-template-columns:minmax(0,1.2fr) repeat(2,minmax(0,1fr));min-width:0;align-items:start}.form-card .row3 .field{max-width:100%}.form-card .row3 input{display:block;width:100%;min-width:0;max-width:100%;margin:0;text-align:center;line-height:24px;font-variant-numeric:tabular-nums}
+    .form-card .row3 input::-webkit-datetime-edit{min-width:0;padding:0;text-align:center}.form-card .row3 input::-webkit-date-and-time-value{min-width:0;height:24px;line-height:24px;text-align:center}
+    /* iOS can add date/time padding outside the declared input width (WebKit 301648). */
+    @supports(-webkit-touch-callout:none){.form-card .row3 input{padding-inline:0}}
+    @media(max-width:560px){.form-card .row3{grid-template-columns:repeat(2,minmax(0,1fr))}}
   </style>
 </head>
 <body>
@@ -109,7 +114,7 @@
         <summary><span>Pausas e notas <small>opcional</small></span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
         <div class="shift-detail-fields">
           <div class="field"><label class="field-label" for="duration-override">Total de horas trabalhadas</label><input id="duration-override" type="text" placeholder="Automático" autocomplete="off" aria-describedby="duration-hint"><p id="duration-hint" class="field-help">Deixa vazio para calcular pela entrada e saída. Para descontar uma pausa, indica o total em HH:MM, por exemplo 08:30. Máximo: 24:00.</p></div>
-          <label class="field" for="notes"><span class="field-label">Notas</span><textarea id="notes" rows="3" placeholder="Uma pausa ou observação…"></textarea></label>
+          <div class="field"><label class="field-label" for="notes">Notas</label><textarea id="notes" rows="3" placeholder="Uma pausa ou observação…" aria-describedby="notes-hint"></textarea><p id="notes-hint" class="field-help">As notas não alteram as horas.</p></div>
         </div>
       </details>
       <div class="actions form-actions">
