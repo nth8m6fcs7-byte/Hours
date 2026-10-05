@@ -34,6 +34,8 @@
     @media(max-width:560px){.wrap{padding:24px 20px 30px}.masthead{margin-bottom:34px}.edition{font-size:9px;letter-spacing:1px}.intro h2{font-size:45px;letter-spacing:-2px}.intro .orbital{width:85px;height:85px;right:0;top:24px;opacity:.4}.intro p{max-width:275px;font-size:14px}.card{padding:22px}.auth-card{padding:22px}.overview h2{font-size:34px}.grid{gap:12px}.metric{padding:21px 17px}.metric-title{font-size:13px}.metric svg{width:16px;height:16px}.total{font-size:38px;letter-spacing:-2px}.metric-range{font-size:11px}.row3{grid-template-columns:1fr 1fr;gap:16px 12px}.row3 .field:first-child{grid-column:1/-1}.form-actions #save{max-width:none}.section-title{font-size:17px}.shift-main{gap:11px}.date-tile{width:46px;height:54px}.today{max-width:110px}.brand h1{font-size:17px}.brand p{font-size:11px}.brand-mark{width:39px;height:39px}.brand{gap:10px}}
     @media(max-width:360px){.wrap{padding-left:16px;padding-right:16px}.edition{display:none}.metric{padding:18px 13px}.total{font-size:34px}.metric-title{font-size:12px}.metric-top svg{display:none}.card{padding:18px}.shift-main{gap:9px}.shift strong{font-size:13px}.shift small{font-size:12px}}
     @media(prefers-reduced-motion:no-preference){#auth,#app,#recovery{animation:arrive .35s ease both}@keyframes arrive{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}}
+    .records-heading{margin-bottom:18px}.records-heading button{font-size:13px;min-height:44px;padding:10px 15px}.history-panel{background:#e9eee3;border-radius:18px;padding:16px;margin-bottom:8px}.month-controls{display:flex;align-items:center;gap:8px}.month-controls button{width:44px;min-width:44px;height:44px;padding:0;border-radius:12px;background:#f5f7ee;color:var(--ink)}.month-controls button:disabled{opacity:.3}.month-select{flex:1;min-width:0;position:relative}.month-select select{width:100%;height:44px;appearance:none;-webkit-appearance:none;border:0;border-radius:12px;padding:10px 30px 10px 12px;text-align:center;text-align-last:center;background:transparent;color:var(--ink);font:inherit;font-size:16px;font-weight:650;cursor:pointer}.month-select svg{position:absolute;right:8px;top:16px;pointer-events:none;color:var(--muted)}.history-summary{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:13px 4px 0;padding-top:13px;border-top:1px solid #d5dfcd}.history-summary>span{font-size:12px;color:var(--muted)}.history-summary strong{font-size:21px;font-weight:650;letter-spacing:-.5px;font-variant-numeric:tabular-nums}.history-summary small{font-size:11px;font-weight:400;color:var(--muted);margin-left:6px}.history-coverage{font-size:11px;color:var(--muted);line-height:1.7;padding:13px 2px 0}.records .date-tile{border-radius:0;background:none;border-right:1px solid var(--line);height:50px;padding-right:12px;width:49px}.records .shift{padding:18px 0}.records .shift-main strong{font-size:16px;font-variant-numeric:tabular-nums;white-space:nowrap}.records .shift-main strong span{font-size:13px;color:var(--muted);padding:0 4px}.records .shift small{font-size:12px}.shift-actions{display:flex;gap:4px;align-items:center}.shift-actions.hidden{display:none!important}.shift-actions button{font-size:12px;min-height:44px}.records.editing .shift{flex-wrap:wrap}.records.editing .shift-actions{width:100%;justify-content:flex-end;margin-top:-6px}.records.editing .date-tile{border-color:#c4d2ba}.records.editing .shift{border-bottom-color:#cbd8c2}.history-hint{font-size:12px;line-height:1.5;color:var(--muted);padding:10px 3px 4px}
+    @media(max-width:360px){.history-panel{padding:12px}.month-controls{gap:2px}.month-select select{font-size:15px;padding-left:2px;padding-right:22px}.records .shift-main{gap:10px}.records .date-tile{width:42px;padding-right:8px}.records .shift-main strong{font-size:15px}.records .shift-end .dur{font-size:20px}.history-summary small{margin-left:3px}}
   </style>
 </head>
 <body>
@@ -108,9 +110,20 @@
       <div id="form-msg" role="status" aria-live="polite"></div>
     </section>
 
-    <section class="records">
-      <div class="topbar records-heading"><h2 class="section-title">Os teus registos</h2><span class="record-count" id="record-count">0 registos</span></div>
+    <section class="records" id="records">
+      <div class="topbar records-heading"><h2 class="section-title">Os teus turnos</h2><button id="edit-records" class="secondary" aria-pressed="false" aria-controls="list">Editar</button></div>
+      <div class="history-panel">
+        <div class="month-controls">
+          <button id="month-prev" aria-label="Mês anterior"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button>
+          <div class="month-select"><select id="month-filter" aria-label="Mês dos turnos"></select><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></div>
+          <button id="month-next" aria-label="Mês seguinte"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button>
+        </div>
+        <div class="history-summary" role="status" aria-live="polite"><span id="history-count"><span id="record-count">0 turnos</span></span><div><strong id="history-total">0h00</strong><small id="history-total-label">no mês</small></div></div>
+      </div>
+      <p id="history-hint" class="history-hint hidden">Escolhe o turno que queres corrigir. Toca em Concluir quando terminares.</p>
+      <div id="records-msg" role="status" aria-live="polite"></div>
       <div id="list"></div>
+      <p id="history-coverage" class="history-coverage"></p>
     </section>
     <details id="account" class="account">
       <summary><span><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg>A tua conta</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
@@ -132,6 +145,7 @@ const supabase=createClient(SUPABASE_URL,SUPABASE_KEY,{
 
 const $=id=>document.getElementById(id);
 let mode='login', editingId=null, rows=[];
+let selectedMonth=null, editingRecords=false, monthOptions=[], loadVersion=0;
 const recoveryParams=new URLSearchParams(window.location.hash.slice(1));
 const recoveryKey='hours-password-recovery';
 // Remember the recovery screen after the SDK removes the token fragment.
@@ -168,25 +182,89 @@ async function sessionUI(){
   $('app').classList.toggle('hidden',!session||recovering);
   $('logout').classList.toggle('hidden',!session||recovering);
   if(session&&!recovering) await load();
-  if(!session){rows=[];$('account').open=false;resetForm();render()}
+  if(!session){loadVersion++;rows=[];selectedMonth=null;editingRecords=false;$('account').open=false;resetForm();render()}
 }
 async function load(){
+  const version=++loadVersion,loaded=[],pageSize=500;
+  let expected=null;
   $('sync').textContent='A sincronizar…';
-  const {data,error}=await supabase.from('personal_work_hours').select('*').order('work_date',{ascending:false});
-  if(error){$('sync').textContent='Erro de sincronização';return}
-  rows=data||[];$('sync').textContent='Sincronizado';render();
+  setMsg($('records-msg'),'');
+  try{
+    while(true){
+      const {data,error,count}=await supabase.from('personal_work_hours').select('*',{count:'exact'}).order('work_date',{ascending:false}).order('id',{ascending:false}).range(loaded.length,loaded.length+pageSize-1);
+      if(version!==loadVersion)return;
+      if(error)throw error;
+      if(typeof count==='number')expected=count;
+      const page=data||[];
+      if(!page.length){if(expected!==null&&loaded.length<expected)throw new Error('Histórico incompleto');break}
+      loaded.push(...page);
+      if(expected!==null&&loaded.length>=expected)break;
+    }
+    if(version!==loadVersion)return;
+    rows=loaded;
+    if(selectedMonth===null)selectedMonth=rows.length?rows[0].work_date.slice(0,7):iso(new Date()).slice(0,7);
+    $('sync').textContent='Sincronizado';render();
+  }catch(error){
+    if(version!==loadVersion)return;
+    $('sync').textContent='Erro de sincronização';
+    setMsg($('records-msg'),'Não foi possível carregar o histórico completo. Tenta atualizar a página.');
+  }
 }
 function render(){
   const anchor=rows.length?localDate(rows[0].work_date):new Date();
   const mon=weekMon(anchor), sun=addDays(mon,6), thu=workWeekThu(anchor), monday=addDays(thu,4);
   $('tips-total').textContent=fmtMins(rangeTotal(mon,sun)); $('tips-range').textContent=`${pad(mon.getDate())}/${pad(mon.getMonth()+1)} – ${pad(sun.getDate())}/${pad(sun.getMonth()+1)}`;
   $('mine-total').textContent=fmtMins(rangeTotal(thu,monday)); $('mine-range').textContent=`${pad(thu.getDate())}/${pad(thu.getMonth()+1)} – ${pad(monday.getDate())}/${pad(monday.getMonth()+1)}`;
-  $('record-count').textContent=`${rows.length} ${rows.length===1?'registo':'registos'}`;
-  $('list').innerHTML=rows.length?rows.map(r=>{
-    const date=localDate(r.work_date),month=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][date.getMonth()];
-    return `<div class="shift"><div class="shift-main"><div class="date-tile" aria-hidden="true"><b>${pad(date.getDate())}</b><span>${month}</span></div><div><strong>${displayDate(r.work_date)}</strong><small>${(r.start_time||'—').slice(0,5)} → ${(r.end_time||'—').slice(0,5)}</small></div></div><div class="shift-end"><div class="dur">${fmtMins(duration(r))}</div><div class="actions"><button class="ghost" data-edit="${r.id}" aria-label="Editar horário de ${displayDate(r.work_date)}">Editar</button><button class="danger" data-del="${r.id}" aria-label="Apagar horário de ${displayDate(r.work_date)}">Apagar</button></div></div></div>`;
-  }).join(''):'<div class="empty-state"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><strong>A tua primeira hora começa aqui.</strong><p>Adiciona um horário acima.<br>Os teus totais aparecem automaticamente.</p></div>';
+  renderHistory();
 }
+function monthLabel(month){
+  const label=new Intl.DateTimeFormat('pt-PT',{month:'long',year:'numeric'}).format(localDate(month+'-01'));
+  return label.charAt(0).toUpperCase()+label.slice(1);
+}
+function renderHistory(){
+  const current=selectedMonth??iso(new Date()).slice(0,7),nowMonth=iso(new Date()).slice(0,7);
+  const keys=[nowMonth,...rows.map(r=>r.work_date.slice(0,7))];
+  if(current)keys.push(current);
+  keys.sort();monthOptions=[];
+  const first=localDate(keys[0].slice(0,4)+'-01-01'),last=keys[keys.length-1];
+  for(const date=new Date(first);iso(date).slice(0,7)<=last;date.setMonth(date.getMonth()+1))monthOptions.push(iso(date).slice(0,7));
+  const select=$('month-filter');select.replaceChildren();
+  select.add(new Option('Todos os meses',''));
+  [...monthOptions].reverse().forEach(month=>select.add(new Option(monthLabel(month),month)));
+  select.value=current;
+  const monthIndex=monthOptions.indexOf(current);
+  $('month-prev').disabled=current===''||monthIndex<=0;
+  $('month-next').disabled=current===''||monthIndex>=monthOptions.length-1;
+  const visible=current?rows.filter(r=>r.work_date.startsWith(current+'-')):rows;
+  $('record-count').textContent=`${visible.length} ${visible.length===1?'turno':'turnos'}`;
+  $('history-total').textContent=fmtMins(visible.reduce((sum,r)=>sum+duration(r),0));
+  $('history-total-label').textContent=current?'no mês':'no total';
+  $('edit-records').textContent=editingRecords?'Concluir':'Editar';
+  $('edit-records').setAttribute('aria-pressed',String(editingRecords));
+  $('edit-records').disabled=!visible.length&&!editingRecords;
+  $('records').classList.toggle('editing',editingRecords);
+  $('history-hint').classList.toggle('hidden',!editingRecords);
+  $('list').innerHTML=visible.length?visible.map(r=>{
+    const date=localDate(r.work_date),fullDate=new Intl.DateTimeFormat('pt-PT',{day:'numeric',month:'long',year:'numeric'}).format(date);
+    return `<div class="shift"><div class="shift-main"><div class="date-tile" aria-hidden="true"><b>${pad(date.getDate())}</b><span>${dayName(date)}</span></div><div><strong>${(r.start_time||'—').slice(0,5)} <span>→</span> ${(r.end_time||'—').slice(0,5)}</strong><small>${fullDate}</small></div></div><div class="shift-end"><div class="dur">${fmtMins(duration(r))}</div></div>${editingRecords?`<div class="shift-actions"><button class="ghost" data-edit="${r.id}" aria-label="Editar horário de ${fullDate}">Editar</button><button class="danger" data-del="${r.id}" aria-label="Apagar horário de ${fullDate}">Apagar</button></div>`:''}</div>`;
+  }).join(''):`<div class="empty-state"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><strong>${rows.length?'Sem turnos neste mês.':'A tua primeira hora começa aqui.'}</strong><p>${rows.length?'Escolhe outro mês para consultar o histórico.':'Adiciona um horário acima.<br>Os teus totais aparecem automaticamente.'}</p></div>`;
+  const dates=rows.map(r=>r.work_date).sort();
+  const fullDate=s=>new Intl.DateTimeFormat('pt-PT',{day:'2-digit',month:'2-digit',year:'numeric'}).format(localDate(s));
+  $('history-coverage').textContent=dates.length?`${rows.length} ${rows.length===1?'turno guardado':'turnos guardados'} · ${fullDate(dates[0])} → ${fullDate(dates[dates.length-1])}`:'Ainda não há turnos guardados.';
+}
+function changeMonth(month){
+  selectedMonth=month;
+  if(editingId)resetForm();
+  renderHistory();
+}
+$('month-filter').onchange=e=>changeMonth(e.target.value);
+$('month-prev').onclick=()=>{const index=monthOptions.indexOf(selectedMonth);if(index>0)changeMonth(monthOptions[index-1])};
+$('month-next').onclick=()=>{const index=monthOptions.indexOf(selectedMonth);if(index>=0&&index<monthOptions.length-1)changeMonth(monthOptions[index+1])};
+$('edit-records').onclick=()=>{
+  editingRecords=!editingRecords;
+  if(!editingRecords&&editingId)resetForm();
+  renderHistory();
+};
 function authMode(next){
   mode=next;
   $('tab-login').className=mode==='login'?'':'secondary';
@@ -291,14 +369,17 @@ $('save').onclick=async()=>{
   if(editingId) result=await supabase.from('personal_work_hours').update({work_date,start_time,end_time,updated_at:new Date().toISOString()}).eq('id',editingId);
   else result=await supabase.from('personal_work_hours').upsert({user_id:user.id,work_date,start_time,end_time,updated_at:new Date().toISOString()},{onConflict:'user_id,work_date'});
   if(result.error){$('sync').textContent='Erro';return setMsg($('form-msg'),result.error.message)}
+  if(selectedMonth!==''&&selectedMonth!==null)selectedMonth=work_date.slice(0,7);
   resetForm(); await load();
 };
 function resetForm(){editingId=null;$('form-title').textContent='Adicionar horário';$('cancel').classList.add('hidden');$('date').value=iso(new Date());$('start').value='';$('end').value='';setMsg($('form-msg'),'')}
 $('cancel').onclick=resetForm;
 $('list').onclick=async e=>{
-  const edit=e.target.dataset.edit, del=e.target.dataset.del;
+  if(!editingRecords)return;
+  const action=e.target.closest('[data-edit],[data-del]');if(!action)return;
+  const edit=action.dataset.edit, del=action.dataset.del;
   if(edit){const r=rows.find(x=>x.id===edit);if(!r)return;editingId=r.id;$('form-title').textContent='Editar horário';$('cancel').classList.remove('hidden');$('date').value=r.work_date;$('start').value=(r.start_time||'').slice(0,5);$('end').value=(r.end_time||'').slice(0,5);$('form-title').scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'})}
-  if(del){if(!confirm('Apagar este registo?'))return;const {error}=await supabase.from('personal_work_hours').delete().eq('id',del);if(error)return alert(error.message);await load()}
+  if(del){if(!confirm('Apagar este registo?'))return;const {error}=await supabase.from('personal_work_hours').delete().eq('id',del);if(error)return alert(error.message);if(editingId===del)resetForm();await load()}
 };
 supabase.auth.onAuthStateChange((event)=>{
   if(event==='PASSWORD_RECOVERY')setRecovering(true);

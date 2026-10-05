@@ -53,7 +53,7 @@ Documentação: [Passkeys](https://supabase.com/docs/guides/auth/passkeys),
 produção. Verifica mostrar/ocultar, criação de conta, recuperação, erros, passkeys,
 login/logout, adicionar/editar/apagar, turnos noturnos e os dois totais semanais
 num viewport móvel. Requer Playwright e Chromium instalados; executar
-`node --test tests/auth.cjs`. Opcionalmente, definir `BROWSER_CHANNEL=msedge`
+`node --test tests/auth.cjs tests/history.cjs`. Opcionalmente, definir `BROWSER_CHANNEL=msedge`
 para usar Microsoft Edge e `PLAYWRIGHT_PATH` para apontar a uma instalação existente.
 
 O envio real do email, um link real de recuperação e a cerimónia biométrica precisam
@@ -65,6 +65,21 @@ Design sage e marfim, com totais em destaque, etiquetas visíveis nos campos e r
 com data e duração. As opções da conta ficam no fim da página. O layout foi verificado
 entre 320 e 430 px em telemóvel e a 780/1280 px no desktop, incluindo estados vazios,
 edição e recuperação. Não requer build nem novas dependências de produção.
+
+## Histórico de turnos
+
+- Um botão geral “Editar” mostra as ações de corrigir/apagar; “Concluir” volta à consulta.
+- O seletor permite consultar cada mês e ano, meses vazios e “Todos os meses”.
+- A consulta mostra a quantidade e as horas do mês, além do intervalo de datas guardado.
+- Os cartões Gorjetas e Minha semana mantêm o cálculo semanal existente, baseado no
+  registo mais recente, independentemente do mês consultado.
+- O carregamento utiliza páginas ordenadas de até 500 registos e contagem exata,
+  respeitando RLS. Em caso de erro, mantém o último histórico completo e apresenta
+  uma mensagem, sem substituir a lista por uma resposta parcial.
+
+`tests/history.cjs` verifica mudança de ano, meses vazios, edição geral, totais,
+mais de 1000 registos, limite reduzido do servidor, falha durante a paginação e
+saída da conta durante o carregamento.
 
 ## Ícone no iPhone
 

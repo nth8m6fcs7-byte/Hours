@@ -6,7 +6,7 @@ const path=require('node:path');
 const {chromium}=require(process.env.PLAYWRIGHT_PATH||'playwright');
 const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
 const stub=`
-window.calls=[];window.session=location.hash.includes('access_token=mock')?{user:{id:'user'}}:null;window.authError=null;
+window.calls=[];window.rangeCalls=[];window.session=location.hash.includes('access_token=mock')?{user:{id:'user'}}:null;window.authError=null;
 window.records=[
  {id:'one',work_date:'2026-10-05',start_time:'09:00',end_time:'17:00'},
  {id:'two',work_date:'2026-10-04',start_time:'22:00',end_time:'02:00'},
@@ -28,10 +28,28 @@ const createClient=(url,key,options)=>{
   signInWithPasskey:async()=>{window.calls.push(['passkey']);if(!window.authError){window.session={user:{id:'user'}};window.authEvent('SIGNED_IN')}return result()}
  };
  return {auth,from:table=>({
-  select:()=>({order:async()=>({data:window.records,error:null})}),
-  upsert:async(input,options)=>{window.calls.push(['upsert',table,input,options]);return {error:null}},
-  update:input=>({eq:async(...filter)=>{window.calls.push(['edit',table,input,filter]);return {error:null}}}),
-  delete:()=>({eq:async(...filter)=>{window.calls.push(['delete',table,filter]);return {error:null}}})
+  select:(columns,options)=>{
+   const ordering=[];
+   const query={
+    order:(column,settings)=>{ordering.push([column,settings]);return query},
+    range:async(start,end)=>{
+     window.rangeCalls.push({table,columns,options,ordering,start,end});
+     if(window.deferNextRange){window.deferNextRange=false;await new Promise(resolve=>window.resumeRange=resolve)}
+     if(start===window.recordErrorAt)return {data:null,count:null,error:{message:'History unavailable'}};
+     const records=[...window.records].sort((a,b)=>{
+      for(const [column,settings] of ordering){const difference=String(a[column]).localeCompare(String(b[column]));if(difference)return settings.ascending?difference:-difference}
+      return 0;
+     });
+     const cap=window.pageCap||500;
+     return {data:start===window.recordEmptyAt?[]:records.slice(start,Math.min(end+1,start+cap)),count:records.length,error:null};
+    },
+    then:(resolve,reject)=>query.range(0,499).then(resolve,reject)
+   };
+   return query;
+  },
+  upsert:async(input,options)=>{window.calls.push(['upsert',table,input,options]);const existing=window.records.find(record=>record.work_date===input.work_date);if(existing)Object.assign(existing,input);else window.records.push({...input,id:'saved-'+window.records.length});return {error:null}},
+  update:input=>({eq:async(...filter)=>{window.calls.push(['edit',table,input,filter]);Object.assign(window.records.find(record=>record[filter[0]]===filter[1]),input);return {error:null}}}),
+  delete:()=>({eq:async(...filter)=>{window.calls.push(['delete',table,filter]);window.records=window.records.filter(record=>record[filter[0]]!==filter[1]);return {error:null}}})
  })};
 };`;
 test('authentication, recovery, passkeys and hours regression',async()=>{
@@ -61,10 +79,13 @@ test('authentication, recovery, passkeys and hours regression',async()=>{
   assert.equal(await page.locator('#passkey-register').isVisible(),false);
   await page.click('#account summary');
   await page.click('#passkey-register');await page.waitForFunction(()=>window.calls.some(c=>c[0]==='register'));
+  assert.equal(await page.locator('[data-edit="two"]').isVisible(),false);
+  await page.click('#edit-records');assert.equal(await page.getAttribute('#edit-records','aria-pressed'),'true');
   await page.click('[data-edit="two"]');assert.equal(await page.inputValue('#start'),'22:00');
   await page.fill('#end','03:00');await page.click('#save');await page.waitForFunction(()=>window.calls.some(c=>c[0]==='edit'));
   await page.fill('#date','2026-10-06');await page.fill('#start','09:00');await page.fill('#end','18:00');await page.click('#save');
   await page.waitForFunction(()=>window.calls.some(c=>c[0]==='upsert'));
+  if(await page.getAttribute('#edit-records','aria-pressed')!=='true')await page.click('#edit-records');
   page.once('dialog',dialog=>dialog.accept());await page.click('[data-del="three"]');
   await page.waitForFunction(()=>window.calls.some(c=>c[0]==='delete'));
   await page.evaluate(()=>window.authEvent('PASSWORD_RECOVERY'));
