@@ -53,7 +53,7 @@ Documentação: [Passkeys](https://supabase.com/docs/guides/auth/passkeys),
 produção. Verifica mostrar/ocultar, criação de conta, recuperação, erros, passkeys,
 login/logout, adicionar/editar/apagar, turnos noturnos e os dois totais semanais
 num viewport móvel. Requer Playwright e Chromium instalados; executar
-`node --test tests/auth.cjs tests/history.cjs`. Opcionalmente, definir `BROWSER_CHANNEL=msedge`
+`node --test tests/auth.cjs tests/history.cjs tests/days.cjs`. Opcionalmente, definir `BROWSER_CHANNEL=msedge`
 para usar Microsoft Edge e `PLAYWRIGHT_PATH` para apontar a uma instalação existente.
 
 O envio real do email, um link real de recuperação e a cerimónia biométrica precisam
@@ -107,6 +107,25 @@ mantém a publishable key, a tabela, o conflito `user_id,work_date` e as políti
 esta documentação não executa alterações na base de dados. A alteração aditiva está
 em [`sql/optional-shift-details.sql`](sql/optional-shift-details.sql), com um limite
 de 0 a 1440 minutos, sem substituir dados ou políticas existentes.
+
+## Folga e Férias
+
+- “Folga” usa a data selecionada no formulário. “Férias” abre as datas de início e
+  fim e guarda um registo por dia, incluindo ambos os extremos do intervalo.
+- Antes de substituir horários de trabalho, a app consulta novamente o intervalo
+  completo e pede confirmação, indicando quantos dias têm horários no caso de férias.
+  Cancelar ou falhar a consulta não grava alterações. O intervalo é guardado num
+  único upsert, mantendo `UNIQUE(user_id,work_date)` e as políticas RLS.
+- Folgas e férias guardam `start_time`, `end_time` e `duration_minutes` como `null`.
+  Notas já existentes são preservadas. O histórico mostra “Folga” ou “Férias”, com
+  zero horas, sem ação individual Editar; podem ser apagadas no modo de edição do histórico.
+- Os totais individuais, mensais e semanais ignoram horas de registos desses tipos,
+  mesmo que contenham valores antigos. Guardar ou editar um horário define `day_type='work'`.
+- Schema confirmado no projeto Bacalhau: `day_type text NOT NULL DEFAULT 'work'`,
+  constraint `work/day_off/vacation`, campos de horas nullable, unicidade e RLS ativos.
+  Não é necessária outra tabela nem alteração manual da base de dados.
+- `tests/days.cjs` cobre confirmações e cancelamentos, limites inclusivos, mudança
+  de mês, dia bissexto, falhas, totais, edição normal e eliminação, com Supabase simulado.
 
 ## Ícone no iPhone
 

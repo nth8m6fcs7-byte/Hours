@@ -29,14 +29,17 @@ const createClient=(url,key,options)=>{
  };
  return {auth,from:table=>({
   select:(columns,options)=>{
-   const ordering=[];
+   const ordering=[],filters=[];
    const query={
+    eq:(column,value)=>{filters.push(record=>record[column]===value);return query},
+    gte:(column,value)=>{filters.push(record=>record[column]>=value);return query},
+    lte:(column,value)=>{filters.push(record=>record[column]<=value);return query},
     order:(column,settings)=>{ordering.push([column,settings]);return query},
     range:async(start,end)=>{
      window.rangeCalls.push({table,columns,options,ordering,start,end});
      if(window.deferNextRange){window.deferNextRange=false;await new Promise(resolve=>window.resumeRange=resolve)}
      if(start===window.recordErrorAt)return {data:null,count:null,error:{message:'History unavailable'}};
-     const records=[...window.records].sort((a,b)=>{
+     const records=window.records.filter(record=>filters.every(filter=>filter(record))).sort((a,b)=>{
       for(const [column,settings] of ordering){const difference=String(a[column]).localeCompare(String(b[column]));if(difference)return settings.ascending?difference:-difference}
       return 0;
      });
@@ -47,7 +50,7 @@ const createClient=(url,key,options)=>{
    };
    return query;
   },
-  upsert:async(input,options)=>{window.calls.push(['upsert',table,input,options]);const existing=window.records.find(record=>record.work_date===input.work_date);if(existing)Object.assign(existing,input);else window.records.push({...input,id:'saved-'+window.records.length});return {error:null}},
+  upsert:async(input,options)=>{window.calls.push(['upsert',table,input,options]);if(window.saveError)return {error:{message:window.saveError}};for(const record of (Array.isArray(input)?input:[input])){const existing=window.records.find(row=>row.work_date===record.work_date);if(existing)Object.assign(existing,record);else window.records.push({...record,id:'saved-'+window.records.length})}return {error:null}},
   update:input=>({eq:async(...filter)=>{window.calls.push(['edit',table,input,filter]);Object.assign(window.records.find(record=>record[filter[0]]===filter[1]),input);return {error:null}}}),
   delete:()=>({eq:async(...filter)=>{window.calls.push(['delete',table,filter]);window.records=window.records.filter(record=>record[filter[0]]!==filter[1]);return {error:null}}})
  })};
