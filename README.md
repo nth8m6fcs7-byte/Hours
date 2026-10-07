@@ -84,6 +84,8 @@ Validação adicional: `node tests/tips-core.test.mjs` (inclui 1.000 distribuiç
 `node tests/tips-browser.cjs` (interface real com transporte simulado) e
 `tests/tips-server.sql` (transação com rollback no Supabase). Não gravar os testes de
 servidor fora da transação; não é necessário criar uma conta de teste nem enviar emails.
+`node tests/tips-live.cjs` verifica o carregamento da app publicada e dos módulos sem
+criar pagamentos; aceita as mesmas variáveis `PLAYWRIGHT_PATH` e `BROWSER_CHANNEL`.
 
 ## Testes de autenticação e horas
 
