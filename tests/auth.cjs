@@ -4,7 +4,8 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 const {chromium}=require(process.env.PLAYWRIGHT_PATH||'playwright');
-const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+// Tips has its own browser integration test; isolate it from auth/shift fixtures.
+const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8').replace("import { mountTips } from './tips-ui.mjs';","const mountTips=()=>({setSession:async()=>{}});");
 const stub=`
 window.calls=[];window.rangeCalls=[];window.session=location.hash.includes('access_token=mock')?{user:{id:'user'}}:null;window.authError=null;
 window.records=[

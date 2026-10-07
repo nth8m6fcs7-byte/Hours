@@ -49,6 +49,44 @@ Documentação: [Passkeys](https://supabase.com/docs/guides/auth/passkeys),
 
 ## Testes
 
+## Gorjetas da equipa
+
+Secção separada em Valores → Equipa → Pagar. Usa `personal_tip_ledgers`, com leitura
+protegida por RLS e escrita apenas através de `personal_tip_command`. Os registos de
+horas e as tabelas de gorjetas da outra aplicação Bacalhau permanecem independentes.
+
+- Euros são convertidos em cêntimos inteiros; horas, em minutos inteiros.
+- O total contado substitui o total dos sete emails, exigindo nota para diferenças.
+- Distribuição proporcional às horas, com os cêntimos restantes atribuídos às maiores
+  frações; empate resolvido pelo identificador estável da pessoa.
+- Sugestão habitual: 95% da quota, arredondados ao euro mais próximo, limitada ao
+  dinheiro disponível dessa pessoa. O valor entregue pode ser ajustado; a diferença
+  real fica no saldo. Extras sem retenção recebem a quota completa e qualquer saldo.
+- A semana pertence ao mês da segunda-feira. A última segunda-feira do mês inicia
+  a semana de liquidação: 100% da quota mais o saldo anterior. Saídas também liquidam tudo.
+- Confirmar grava uma operação indivisível, recalcula no servidor e fecha a semana.
+  Uma revisão bloqueia concorrência entre dispositivos; só a semana seguinte pode
+  ser confirmada. Semanas sem movimento podem ser fechadas a zero.
+- Histórico confirmado é imutável nesta versão. Não apagar nem recriar pessoas para
+  corrigir pagamentos antigos. Uma correção posterior exige lançamento compensatório
+  explícito; não há edição silenciosa dos saldos.
+- Para começar a meio do mês, adicionar cada pessoa com o saldo **real** já retido e
+  uma nota de origem. Depois começar na próxima semana ainda não distribuída. Não
+  importar simultaneamente o saldo e as semanas que o geraram.
+- Há rascunho sincronizado e CSV com pagamentos, saldos, horas e notas. Emails continuam
+  a ser lidos manualmente. A opção “Esta pessoa sou eu” permite importar as horas da app.
+
+SQL instalado: `sql/tips-ledger.sql`. O cálculo privilegiado fica em `hours_private`,
+fora da API, usa `auth.uid()` e `search_path` fixo; a função pública é invoker e não
+é executável por anon. Clientes não podem atualizar o documento do histórico diretamente.
+
+Validação adicional: `node tests/tips-core.test.mjs` (inclui 1.000 distribuições),
+`node tests/tips-browser.cjs` (interface real com transporte simulado) e
+`tests/tips-server.sql` (transação com rollback no Supabase). Não gravar os testes de
+servidor fora da transação; não é necessário criar uma conta de teste nem enviar emails.
+
+## Testes de autenticação e horas
+
 `tests/auth.cjs` usa Playwright com respostas Supabase simuladas, sem escrever em
 produção. Verifica mostrar/ocultar, criação de conta, recuperação, erros, passkeys,
 login/logout, adicionar/editar/apagar, turnos noturnos e os dois totais semanais
