@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 const {chromium}=require(process.env.PLAYWRIGHT_PATH||'playwright');
-const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8').replace("import { mountTips } from './tips-ui.mjs';","const mountTips=()=>({setSession:async()=>{}});");
+const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
 const stub=fs.readFileSync(path.join(__dirname,'auth.cjs'),'utf8').match(/const stub=`([\s\S]*?)`;/)[1];
 
 async function withDays(run){
