@@ -139,3 +139,21 @@ Se o Safari ainda apresentar uma versão anterior, usar o endereço
 `https://nth8m6fcs7-byte.github.io/Hours/?icone=2` e confirmar o relógio na
 pré-visualização antes de adicionar. Não é necessário apagar os dados do Safari.
 É um ícone estático: não altera o funcionamento nem os dados da app.
+
+## Entrada e saída em dois momentos
+
+- Os campos de data e horas têm 44 px de altura. No telemóvel, a data fica
+  numa caixa curta à direita da etiqueta; entrada e saída ficam lado a lado.
+  O formulário tem espaços reduzidos e ações Folga/Férias com contorno discreto.
+- Preencher a entrada e escolher “Iniciar turno” guarda o dia com saída nula.
+  A entrada e a data ficam bloqueadas; “Corrigir entrada” permite corrigir e voltar
+  a guardar a entrada. A correção não conclui o turno.
+- Ao entrar novamente na conta, o formulário recupera o turno em curso mais recente,
+  incluindo um turno iniciado no dia anterior. No histórico aparece “Em curso”.
+- “Terminar e guardar” exige saída e conclui o mesmo registo. Turnos noturnos
+  mantêm a data da entrada. Só depois de concluídos somam horas aos totais.
+- Continua a ser possível preencher entrada e saída de uma vez para registar
+  um dia completo e editar turnos anteriores. Um total explícito continua disponível
+  para registos de horas ajustadas.
+- Usa os campos existentes, sem migrações nem alterações de RLS. Os novos testes em
+  `tests/days.cjs` simulam gravação, reabertura, correção, falhas e conclusão noturna.

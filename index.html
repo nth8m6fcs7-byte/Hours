@@ -46,6 +46,33 @@
     button.metric{display:block;width:100%;border:0;text-align:left;font:inherit;color:var(--ink)}button.metric.primary{color:#f2f5ea}button.metric:hover{background:#dfe8d6}button.metric.primary:hover{background:#315340}button.metric[aria-pressed="true"]{box-shadow:inset 0 0 0 2px #b7c8ac}button.metric.primary[aria-pressed="true"]{box-shadow:inset 0 0 0 2px #b7c8ac}.metric-days,.metric .total,.metric-range,.metric-footer{display:block}.metric-action{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11px;font-weight:500;margin-top:15px;opacity:.9}.week-controls .topbar{align-items:center;gap:10px}.week-controls h3{margin:0;font-size:16px;font-weight:650;letter-spacing:-.3px}.week-controls button{font-size:12px;font-weight:500;min-height:44px;white-space:nowrap}.week-range{font-size:12px;line-height:1.6;color:var(--muted);margin-top:5px}
     .form-card #vacation-panel .row3{grid-template-columns:repeat(2,minmax(0,1fr))}
     @media(max-width:560px){.form-card #vacation-panel .row3{grid-template-columns:minmax(0,1fr)}}
+  /* Compact time controls keep a comfortable touch target. */
+    .form-card .row3 input[type="time"]{height:44px;max-width:140px;padding:9px 8px}
+    .form-card .row3 input:disabled{opacity:1;color:var(--muted);background:#e9eee3}
+    .shift-lock{margin-top:14px;font-size:13px;color:var(--muted);line-height:1.5}
+    .form-card .row3 input[type="date"],.form-card .row3 input[type="time"]{
+      appearance:none;-webkit-appearance:none;height:44px;min-height:44px;max-height:44px;
+      padding:9px 10px;border-radius:10px;font-size:16px;line-height:24px;
+    }
+    @media(max-width:560px){
+      .form-card{padding:18px;border-radius:20px}
+      .form-card>.topbar{align-items:baseline;flex-wrap:wrap;gap:4px 10px}
+      .form-card .section-title{font-size:16px}
+      .form-card .status{font-size:11px}
+      .form-card>.row3{margin-top:18px;gap:14px 12px;grid-template-columns:repeat(2,minmax(0,1fr))}
+      .form-card>.row3>.field:first-child{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+      .form-card>.row3>.field:first-child .field-label{margin:0}
+      .form-card>.row3 #date{width:156px;max-width:65%;background:#f0f3eb}
+      .form-card .field-label{font-size:12px;margin-bottom:6px}
+      .form-card>.row3 input[type="time"]{max-width:none;background:#f0f3eb}
+      .form-card .shift-details{margin-top:16px}
+      .form-card .shift-details summary{min-height:44px;font-size:12px}
+      .form-card .shift-details summary small{font-size:10px}
+      .form-card .form-actions{margin-top:12px;gap:8px}
+      .form-card .form-actions button{min-height:44px;font-size:13px;border-radius:11px;padding:10px 14px}
+      .form-card #day-off,.form-card #vacation-toggle{background:transparent;border:1px solid var(--line);min-height:40px;padding:8px 16px;font-size:12px}
+      .form-card .shift-lock{margin-top:12px;font-size:12px}
+    }
   </style>
 </head>
 <body>
@@ -113,6 +140,7 @@
         <label class="field" for="start"><span class="field-label">Entrada</span><input id="start" type="time" step="60"></label>
         <label class="field" for="end"><span class="field-label">Saída</span><input id="end" type="time" step="60"></label>
       </div>
+      <p id="shift-lock" class="shift-lock hidden" role="status"></p>
       <details id="shift-details" class="shift-details">
         <summary><span>Pausas e notas <small>opcional</small></span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
         <div class="shift-detail-fields">
@@ -121,7 +149,8 @@
         </div>
       </details>
       <div class="actions form-actions">
-        <button id="save">Guardar horário</button>
+        <button id="save">Iniciar turno</button>
+        <button id="correct-entry" class="ghost hidden" type="button">Corrigir entrada</button>
         <button id="cancel" class="secondary hidden">Cancelar</button>
       </div>
       <div class="actions form-actions">
@@ -210,7 +239,10 @@ function parseDurationInput(value){
   if(minutes>1440)throw new Error('O total não pode ultrapassar 24:00.');
   return minutes;
 }
+const isOpenShift=r=>(!r.day_type||r.day_type==='work')&&!!r.start_time&&!r.end_time&&durationOverride(r)===null;
+let openShiftId=null, correctingEntry=false;
 function duration(r){
+  if(isOpenShift(r))return 0;
   if(r.day_type==='day_off'||r.day_type==='vacation')return 0;
   const override=durationOverride(r);if(override!==null)return override;
   if(!r.start_time||!r.end_time)return 0;
@@ -262,6 +294,7 @@ async function load(){
     rows=loaded;
     if(selectedMonth===null)selectedMonth=rows.length?rows[0].work_date.slice(0,7):iso(new Date()).slice(0,7);
     $('sync').textContent='Sincronizado';render();
+    if(!editingId&&!$('start').value){const pending=rows.find(isOpenShift);if(pending)resumeShift(pending)}
   }catch(error){
     if(version!==loadVersion)return;
     $('sync').textContent='Erro de sincronização';
@@ -316,7 +349,7 @@ function renderHistory(){
     const note=typeof r.notes==='string'?r.notes.trim():'';
     const nonWork=r.day_type==='day_off'||r.day_type==='vacation';
     const heading=nonWork?(r.day_type==='day_off'?'Folga':'Férias'):`${(r.start_time||'—').slice(0,5)} <span>→</span> ${(r.end_time||'—').slice(0,5)}`;
-    return `<div class="shift${note?' has-note':''}"><div class="shift-main"><div class="date-tile" aria-hidden="true"><b>${pad(date.getDate())}</b><span>${dayName(date)}</span></div><div><strong>${heading}</strong><small>${fullDate}</small></div></div><div class="shift-end"><div class="dur">${fmtMins(duration(r))}</div></div>${note?`<p class="shift-note">${escapeHTML(note)}</p>`:''}${editingRecords?`<div class="shift-actions">${nonWork?'':`<button class="ghost" data-edit="${r.id}" aria-label="Editar horário de ${fullDate}">Editar</button>`}<button class="danger" data-del="${r.id}" aria-label="Apagar horário de ${fullDate}">Apagar</button></div>`:''}</div>`;
+    return `<div class="shift${note?' has-note':''}"><div class="shift-main"><div class="date-tile" aria-hidden="true"><b>${pad(date.getDate())}</b><span>${dayName(date)}</span></div><div><strong>${heading}</strong><small>${fullDate}</small></div></div><div class="shift-end"><div class="dur">${isOpenShift(r)?'Em curso':fmtMins(duration(r))}</div></div>${note?`<p class="shift-note">${escapeHTML(note)}</p>`:''}${editingRecords?`<div class="shift-actions">${nonWork?'':`<button class="ghost" data-edit="${r.id}" aria-label="Editar horário de ${fullDate}">Editar</button>`}<button class="danger" data-del="${r.id}" aria-label="Apagar horário de ${fullDate}">Apagar</button></div>`:''}</div>`;
   }).join(''):`<div class="empty-state"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><strong>${week?'Sem turnos nesta semana.':rows.length?'Sem turnos neste mês.':'A tua primeira hora começa aqui.'}</strong><p>${week?'Os turnos deste intervalo aparecem aqui.':rows.length?'Escolhe outro mês para consultar o histórico.':'Adiciona um horário acima.<br>Os teus totais aparecem automaticamente.'}</p></div>`;
   const dates=rows.map(r=>r.work_date).sort();
   const fullDate=s=>new Intl.DateTimeFormat('pt-PT',{day:'2-digit',month:'2-digit',year:'numeric'}).format(localDate(s));
@@ -440,7 +473,7 @@ $('logout').onclick=async()=>{await supabase.auth.signOut();await sessionUI()};
 let savingHours=false;
 function setHoursBusy(busy){
   savingHours=busy;
-  for(const id of ['save','cancel','day-off','vacation-toggle','vacation-save','vacation-cancel'])$(id).disabled=busy;
+  for(const id of ['save','cancel','correct-entry','day-off','vacation-toggle','vacation-save','vacation-cancel'])$(id).disabled=busy;
 }
 function closeVacation(){
   $('vacation-panel').classList.add('hidden');$('vacation-toggle').setAttribute('aria-expanded','false');
@@ -498,11 +531,39 @@ async function saveNonWork(day_type,first,last){
 }
 $('day-off').onclick=()=>saveNonWork('day_off',$('date').value,$('date').value);
 $('vacation-save').onclick=()=>saveNonWork('vacation',$('vacation-start').value,$('vacation-end').value);
+function updateShiftForm(){
+  const locked=!!openShiftId;
+  $('date').disabled=locked;
+  $('start').disabled=locked&&!correctingEntry;
+  $('end').disabled=correctingEntry;
+  $('save').textContent=correctingEntry?'Guardar entrada':locked?'Terminar e guardar':editingId||$('end').value||$('duration-override').value.trim()?'Guardar horário':'Iniciar turno';
+  $('correct-entry').classList.toggle('hidden',!locked);
+  $('correct-entry').textContent=correctingEntry?'Cancelar correção':'Corrigir entrada';
+  $('shift-lock').classList.toggle('hidden',!locked);
+  $('shift-lock').textContent=locked?'Entrada guardada. Indica a saída para concluir o dia.':'';
+  if(locked)$('form-title').textContent='Turno em curso';
+}
+function resumeShift(record){
+  closeVacation();editingId=record.id;openShiftId=record.id;correctingEntry=false;
+  $('date').value=record.work_date;$('start').value=record.start_time.slice(0,5);$('end').value='';
+  $('duration-override').value='';$('notes').value=record.notes||'';
+  $('cancel').classList.remove('hidden');updateShiftForm();
+}
+$('correct-entry').onclick=()=>{
+  correctingEntry=!correctingEntry;
+  if(!correctingEntry)$('start').value=rows.find(r=>r.id===openShiftId)?.start_time.slice(0,5)||'';
+  updateShiftForm();if(correctingEntry)$('start').focus();
+};
+$('date').onchange=()=>{const pending=rows.find(r=>r.work_date===$('date').value&&isOpenShift(r));if(pending)resumeShift(pending)};
+$('end').oninput=updateShiftForm;
+$('duration-override').oninput=updateShiftForm;
 $('save').onclick=async()=>{
   if(savingHours)return;
   const recordId=editingId;
   const work_date=$('date').value,start_time=$('start').value||null,end_time=$('end').value||null;
   if(!work_date)return setMsg($('form-msg'),'Escolhe a data.');
+  if(openShiftId&&!correctingEntry&&!end_time)return setMsg($('form-msg'),'Indica a hora de saída para terminar o turno.');
+  if((openShiftId||!editingId)&&!start_time)return setMsg($('form-msg'),'Indica a hora de entrada.');
   let duration_minutes;
   try{duration_minutes=parseDurationInput($('duration-override').value)}catch(error){$('shift-details').open=true;setMsg($('form-msg'),error.message);$('duration-override').focus();return}
   const notes=$('notes').value.trim()||null;
@@ -511,21 +572,32 @@ $('save').onclick=async()=>{
   const {data:{user}}=await supabase.auth.getUser(); if(!user)return;
   $('sync').textContent='A guardar…';
   let result;
+  if(correctingEntry){
+    result=await supabase.from('personal_work_hours').update({start_time,updated_at:new Date().toISOString()}).eq('id',recordId);
+    if(result.error)throw result.error;
+    correctingEntry=false;await load();updateShiftForm();setMsg($('form-msg'),'Entrada corrigida e bloqueada.',true);return;
+  }
+  if(!recordId&&!end_time&&duration_minutes===null){
+    const {data,error}=await supabase.from('personal_work_hours').select('*').eq('user_id',user.id).eq('work_date',work_date).range(0,1);
+    if(error)throw error;
+    if(data?.length&&!confirm('Este dia já tem um registo. Substituir pelo novo horário?')){$('sync').textContent='Sincronizado';return;}
+  }
   if(recordId) result=await supabase.from('personal_work_hours').update({work_date,start_time,end_time,duration_minutes,notes,day_type:'work',updated_at:new Date().toISOString()}).eq('id',recordId);
   else result=await supabase.from('personal_work_hours').upsert({user_id:user.id,work_date,start_time,end_time,duration_minutes,notes,day_type:'work',updated_at:new Date().toISOString()},{onConflict:'user_id,work_date'});
   if(result.error){$('sync').textContent='Erro';return setMsg($('form-msg'),result.error.message)}
   if(!activeWeek&&selectedMonth!==''&&selectedMonth!==null)selectedMonth=work_date.slice(0,7);
   resetForm(); await load();
+  if(start_time&&!end_time&&duration_minutes===null)setMsg($('form-msg'),'Entrada guardada e bloqueada.',true);
   }catch(error){$('sync').textContent='Erro';setMsg($('form-msg'),error.message||'Não foi possível guardar. Tenta novamente.')}
   finally{setHoursBusy(false)}
 };
-function resetForm(){closeVacation();editingId=null;$('form-title').textContent='Adicionar horário';$('cancel').classList.add('hidden');$('date').value=iso(new Date());$('start').value='';$('end').value='';$('duration-override').value='';$('notes').value='';$('shift-details').open=false;setMsg($('form-msg'),'')}
+function resetForm(){closeVacation();openShiftId=null;correctingEntry=false;editingId=null;$('form-title').textContent='Adicionar horário';$('cancel').classList.add('hidden');$('date').value=iso(new Date());$('start').value='';$('end').value='';$('duration-override').value='';$('notes').value='';$('shift-details').open=false;setMsg($('form-msg'),'');updateShiftForm()}
 $('cancel').onclick=resetForm;
 $('list').onclick=async e=>{
   if(!editingRecords||savingHours)return;
   const action=e.target.closest('[data-edit],[data-del]');if(!action)return;
   const edit=action.dataset.edit, del=action.dataset.del;
-  if(edit){const r=rows.find(x=>x.id===edit);if(!r||r.day_type==='day_off'||r.day_type==='vacation')return;editingId=r.id;$('form-title').textContent='Editar horário';$('cancel').classList.remove('hidden');$('date').value=r.work_date;$('start').value=(r.start_time||'').slice(0,5);$('end').value=(r.end_time||'').slice(0,5);const override=durationOverride(r);$('duration-override').value=override===null?'':durationInput(override);$('notes').value=typeof r.notes==='string'?r.notes:'';$('shift-details').open=override!==null||!!$('notes').value.trim();setMsg($('form-msg'),'');$('form-title').scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'})}
+  if(edit){openShiftId=null;correctingEntry=false;const r=rows.find(x=>x.id===edit);if(!r||r.day_type==='day_off'||r.day_type==='vacation')return;editingId=r.id;$('form-title').textContent='Editar horário';$('cancel').classList.remove('hidden');$('date').value=r.work_date;$('start').value=(r.start_time||'').slice(0,5);$('end').value=(r.end_time||'').slice(0,5);const override=durationOverride(r);$('duration-override').value=override===null?'':durationInput(override);$('notes').value=typeof r.notes==='string'?r.notes:'';$('shift-details').open=override!==null||!!$('notes').value.trim();if(isOpenShift(r))resumeShift(r);else updateShiftForm();setMsg($('form-msg'),'');$('form-title').scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'})}
   if(del){if(!confirm('Apagar este registo?'))return;const {error}=await supabase.from('personal_work_hours').delete().eq('id',del);if(error)return alert(error.message);if(editingId===del)resetForm();await load()}
 };
 supabase.auth.onAuthStateChange((event)=>{

@@ -88,3 +88,47 @@ test('non-work ignores stale hours, retains notes and verifies conflicts outside
   assert.equal(await page.evaluate(()=>window.records.find(r=>r.id==='fresh').day_type),'work');
  });
 });
+
+test('entry persists, locks, resumes after reopening and completes an overnight shift',async()=>{
+ await withDays(async page=>{
+  await page.fill('#date','2026-10-06');await page.fill('#start','22:00');
+  await page.click('#save');await saved(page);
+  assert.equal(await page.isDisabled('#start'),true);
+  assert.equal(await page.isDisabled('#date'),true);
+  assert.equal(await page.textContent('#save'),'Terminar e guardar');
+  assert.match(await page.textContent('#list'),/Em curso/);
+  const record=await page.evaluate(()=>window.records.find(r=>r.work_date==='2026-10-06'));
+  assert.equal(record.end_time,null);
+  assert.equal(await page.textContent('#tips-total'),'8h00');
+  await page.click('#save');assert.match(await page.textContent('#form-msg'),/hora de saída/);
+  await page.click('#correct-entry');await page.fill('#start','21:30');await page.click('#save');await saved(page);
+  assert.equal(await page.isDisabled('#start'),true);
+  const persisted=await page.evaluate(()=>window.records);
+  await page.unroute('https://hours.test/**');
+  await page.route('https://hours.test/**',route=>route.fulfill({contentType:'text/html',body:html.replace(/^import .*;$/m,()=>stub+'\nwindow.session={user:{id:"user"}};window.records='+JSON.stringify(persisted)+';')}));
+  await page.reload();await page.waitForFunction(()=>document.getElementById('start').disabled);
+  assert.equal(await page.inputValue('#start'),'21:30');assert.equal(await page.inputValue('#date'),'2026-10-06');
+  await page.fill('#end','02:00');await page.click('#save');
+  await page.waitForFunction(()=>!document.getElementById('start').disabled&&document.getElementById('sync').textContent==='Sincronizado');
+  assert.equal(await page.textContent('#tips-total'),'12h30');
+  assert.doesNotMatch(await page.textContent('#list'),/Em curso/);
+  for(const width of [320,390,1280]){
+   await page.setViewportSize({width,height:844});
+   const a=await page.locator('#start').boundingBox(),b=await page.locator('#end').boundingBox();
+   assert.equal(a.height,44);assert.ok(a.width<=180);assert.equal(a.y,b.y);
+  }
+ });
+});
+
+test('failed entry save keeps the draft unlocked and failed completion keeps the stored entry',async()=>{
+ await withDays(async page=>{
+  await page.fill('#date','2026-10-06');await page.fill('#start','09:00');
+  await page.evaluate(()=>window.saveError='Falha de rede');await page.click('#save');
+  await page.waitForFunction(()=>!document.getElementById('save').disabled);
+  assert.equal(await page.isDisabled('#start'),false);assert.equal(await page.inputValue('#start'),'09:00');
+  await page.evaluate(()=>window.saveError=null);await page.click('#save');await saved(page);
+  await page.fill('#end','17:00');await page.evaluate(()=>window.saveError='Falha de rede');
+  await page.click('#save');await page.waitForFunction(()=>!document.getElementById('save').disabled);
+  assert.equal(await page.isDisabled('#start'),true);assert.equal(await page.inputValue('#end'),'17:00');
+ });
+});

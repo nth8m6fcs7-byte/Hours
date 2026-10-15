@@ -89,13 +89,13 @@ test('history browses across years, empty months and all months without changing
      const grid=rect('.row3'),card=rect('.form-card'),date=rect('#date'),start=rect('#start'),end=rect('#end');
      const near=(left,right)=>Math.abs(left-right)<=1;
      return {
-      dateFillsGrid:near(date.left,grid.left)&&near(date.right,grid.right),
-      timesAligned:near(start.width,end.width)&&near(start.top,end.top)&&near(start.left,date.left)&&near(end.right,date.right),
-      equalMargins:near(date.left-card.left,card.right-date.right),
+      compactDate:date.width<=156&&near(date.height,44)&&near(date.right,grid.right),
+      timesAligned:near(start.width,end.width)&&near(start.top,end.top)&&near(start.left,grid.left)&&near(end.right,grid.right)&&near(start.height,44)&&near(end.height,44),
+      equalMargins:near(grid.left-card.left,card.right-grid.right),
       inputsContained:['date','start','end'].every(id=>{const input=rect('#'+id),field=document.getElementById(id).closest('.field').getBoundingClientRect();return input.left>=field.left-1&&input.right<=field.right+1})
      };
     });
-    assert.deepEqual(mobileForm,{dateFillsGrid:true,timesAligned:true,equalMargins:true,inputsContained:true},`Uneven mobile fields at ${width}px`);
+    assert.deepEqual(mobileForm,{compactDate:true,timesAligned:true,equalMargins:true,inputsContained:true},`Uneven mobile fields at ${width}px`);
    }
   }
  });
