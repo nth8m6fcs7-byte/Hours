@@ -6,8 +6,8 @@
   "start_url": "/Hours/",
   "scope": "/Hours/",
   "display": "browser",
-  "background_color": "#f5f5ef",
-  "theme_color": "#294a3b",
+  "background_color": "#0b0e13",
+  "theme_color": "#0b0e13",
   "icons": [
     {
       "src": "/Hours/icons/clock-180-v2.png",

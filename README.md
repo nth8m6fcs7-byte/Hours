@@ -61,7 +61,7 @@ de uma conta de teste e de validação no dispositivo; os testes simulados não 
 
 ## Interface
 
-Design sage e marfim, com totais em destaque, etiquetas visíveis nos campos e registos
+Design grafite com cartões translúcidos, texto claro e ações em azul discreto, com totais em destaque, etiquetas visíveis nos campos e registos
 com data e duração. As opções da conta ficam no fim da página. O layout foi verificado
 entre 320 e 430 px em telemóvel e a 780/1280 px no desktop, incluindo estados vazios,
 edição e recuperação. Não requer build nem novas dependências de produção.
@@ -157,3 +157,6 @@ pré-visualização antes de adicionar. Não é necessário apagar os dados do S
   para registos de horas ajustadas.
 - Usa os campos existentes, sem migrações nem alterações de RLS. Os novos testes em
   `tests/days.cjs` simulam gravação, reabertura, correção, falhas e conclusão noturna.
+
+O visual grafite mantém os campos compactos, reduz a altura dos cartões semanais
+e aplica a mesma paleta ao login, recuperação, edição e mensagens de estado.
