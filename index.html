@@ -170,6 +170,23 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
     #hours-settings #account{margin-top:18px;border-top:1px solid #ffffff12}#hours-settings #account summary{font-size:14px;font-weight:500;color:#edf2fa}
     #hours-settings #account .account-content p{font-size:12px}
 
+
+    .history-panel{padding:0;background:none;border:0;border-radius:0;box-shadow:none}
+    .month-controls{gap:6px}.month-controls button{background:none;border:0;width:36px;min-width:36px;color:#9aafc9}
+    .month-select select{font-size:13px;font-weight:450;text-align:left;text-align-last:left;padding-left:4px}
+    .history-summary{border:0;padding:6px 0 0;margin:6px 0 0}.history-summary strong{font-size:18px}.history-summary small{font-size:10px}
+    #shift-section.running:not(.correcting)>.row3{display:none}
+    #shift-section.running.correcting>.row3{display:block;padding:12px 0 0;border:0}
+    #shift-section.running.correcting>.row3>.field:not(:nth-child(2)){display:none}
+    #shift-section.running.correcting>.row3>.field:nth-child(2){display:flex;align-items:center;justify-content:center;gap:14px}
+    #shift-section.running.correcting #start{max-width:130px}
+    #shift-section.running:not(.correcting) #shift-form-actions{display:none}
+    #shift-section.running #shift-details{margin-top:12px}#shift-section.running #shift-details summary{font-size:11px}
+    button.entry-summary{display:block;width:auto;margin:10px auto 0;padding:4px 8px;min-height:44px;background:none;color:#a5b6cd;font-size:12px;font-weight:400;letter-spacing:0;border-radius:8px}
+    button.entry-summary:hover{background:#ffffff08;color:#cde5ff}
+    #shift-section.running .timer-actions #save{flex:initial;min-height:40px;padding:10px 20px;font-size:12px;border-radius:13px;background:#422c36;border:1px solid #edafb62b;color:#ffd0d3;box-shadow:none}
+    #shift-section.running #active-shift{padding-top:8px}#shift-section #shift-timer{margin-bottom:14px}
+
   </style>
 </head>
 <body>
@@ -238,7 +255,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
       <div class="settings-heading"><div><p class="settings-eyebrow">HOURS</p><h2 id="settings-title">Definições</h2></div><form method="dialog"><button class="settings-close" aria-label="Fechar definições" autofocus>✕</button></form></div>
       <section class="settings-section"><h3>Turno e pausas</h3><p id="sync" class="field-help" role="status" aria-live="polite"></p>
         <p id="pause-total" class="field-help"></p><p id="timer-progress" class="field-help"></p>
-        <button id="resume-active" class="secondary" type="button">Ver entrada e saída</button>
+        <button id="resume-active" class="secondary" type="button">Ver turno em curso</button>
       </section>
       <section class="settings-section"><h3>Notificações</h3>
       <div class="actions"><button id="push-enable" class="secondary" type="button">Ativar notificações</button><button id="push-disable" class="ghost hidden" type="button">Desativar</button></div>
@@ -264,7 +281,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
       <p id="timer-alert" role="status" aria-live="polite"></p>
 
     </section>
-      <p id="entry-summary" class="entry-summary hidden"></p>
+      <button id="entry-summary" class="entry-summary hidden" type="button" aria-label="Corrigir hora de entrada" aria-expanded="false"></button>
       <div class="row3">
         <label class="field" for="date"><span class="field-label">Data</span><input id="date" type="date"></label>
         <label class="field" for="start"><span class="field-label">Entrada</span><input id="start" type="time" step="60"></label>
@@ -278,7 +295,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
           <div class="field"><label class="field-label" for="notes">Notas</label><textarea id="notes" rows="3" placeholder="Uma pausa ou observação…" aria-describedby="notes-hint"></textarea><p id="notes-hint" class="field-help">As notas não alteram as horas.</p></div>
         </div>
       </details>
-      <div class="actions form-actions">
+      <div id="shift-form-actions" class="actions form-actions">
         <button id="save">Iniciar turno</button>
         <button id="correct-entry" class="ghost hidden" type="button">Corrigir entrada</button>
         <button id="cancel" class="secondary hidden">Cancelar</button>
@@ -605,7 +622,7 @@ $('logout').onclick=async()=>{await disablePush();await supabase.auth.signOut();
 let savingHours=false;
 function setHoursBusy(busy){
   savingHours=busy;
-  for(const id of ['save','cancel','correct-entry','pause-toggle','day-off','vacation-toggle','vacation-save','vacation-cancel'])$(id).disabled=busy;
+  for(const id of ['save','cancel','correct-entry','entry-summary','pause-toggle','day-off','vacation-toggle','vacation-save','vacation-cancel'])$(id).disabled=busy;
 }
 function closeVacation(){
   $('vacation-panel').classList.add('hidden');$('vacation-toggle').setAttribute('aria-expanded','false');
@@ -668,13 +685,18 @@ function updateShiftForm(){
   $('shift-section').classList.toggle('running',locked);
   $('shift-section').classList.toggle('correcting',correctingEntry);
   $('entry-summary').classList.toggle('hidden',!locked);
+  $('entry-summary').setAttribute('aria-expanded',String(correctingEntry));
+  if(locked&&!correctingEntry){if($('save').parentElement!==document.querySelector('.timer-actions'))document.querySelector('.timer-actions').append($('save'))}
+  else if($('save').parentElement!==$('shift-form-actions'))$('shift-form-actions').prepend($('save'));
+  $('cancel').classList.toggle('hidden',locked||!editingId);
+
   $('entry-summary').textContent=locked?`Entrada · ${$('start').value} · ${new Intl.DateTimeFormat('pt-PT',{day:'numeric',month:'short'}).format(localDate($('date').value))}`:'';
 
   $('date').disabled=locked;
   $('start').disabled=locked&&!correctingEntry;
   $('end').disabled=correctingEntry;
-  $('save').textContent=correctingEntry?'Guardar entrada':locked?'Terminar e guardar':editingId||$('end').value||$('duration-override').value.trim()?'Guardar horário':'Iniciar turno';
-  $('correct-entry').classList.toggle('hidden',!locked);
+  $('save').textContent=correctingEntry?'Guardar entrada':locked?'Parar':editingId||$('end').value||$('duration-override').value.trim()?'Guardar horário':'Iniciar turno';
+  $('correct-entry').classList.toggle('hidden',!locked||!correctingEntry);
   $('correct-entry').textContent=correctingEntry?'Cancelar correção':'Corrigir entrada';
   $('cancel').textContent=locked?'Outro dia':'Cancelar';
   $('shift-lock').classList.toggle('hidden',!locked&&!$('start').value);
@@ -688,6 +710,7 @@ function resumeShift(record){
   $('duration-override').value='';$('notes').value=record.notes||'';
   $('cancel').classList.remove('hidden');updateShiftForm();
 }
+$('entry-summary').onclick=()=>{if(!savingHours)$('correct-entry').onclick()};
 $('correct-entry').onclick=()=>{
   correctingEntry=!correctingEntry;
   if(!correctingEntry)$('start').value=rows.find(r=>r.id===openShiftId)?.start_time.slice(0,5)||'';
@@ -699,18 +722,24 @@ $('duration-override').oninput=updateShiftForm;
 $('save').onclick=async()=>{
   if(savingHours)return;
   const recordId=editingId;
-  const work_date=$('date').value,start_time=$('start').value||null,end_time=$('end').value||null;
+  const automaticStop=!!openShiftId&&!correctingEntry;
+  const stopNow=Date.now(),stopDate=new Date(stopNow);
+  const work_date=$('date').value,start_time=$('start').value||null,end_time=automaticStop?`${pad(stopDate.getHours())}:${pad(stopDate.getMinutes())}`:$('end').value||null;
   if(!work_date)return setMsg($('form-msg'),'Escolhe a data.');
-  if(openShiftId&&!correctingEntry&&!end_time)return setMsg($('form-msg'),'Indica a hora de saída para terminar o turno.');
   if((openShiftId||!editingId)&&!start_time)return setMsg($('form-msg'),'Indica a hora de entrada.');
   let duration_minutes;
   try{duration_minutes=parseDurationInput($('duration-override').value)}catch(error){$('shift-details').open=true;setMsg($('form-msg'),error.message);$('duration-override').focus();return}
   const notes=$('notes').value.trim()||null;
   const previous=rows.find(r=>r.id===recordId);
   let break_seconds=previous?storedBreakSeconds(previous):0;
+  if(automaticStop&&previous){
+    if(stopNow<shiftStart(previous))return setMsg($('form-msg'),'A entrada está no futuro. Toca na hora para a corrigir.');
+    duration_minutes=duration_minutes??Math.floor(workedSeconds(previous,stopNow)/60);
+    if(duration_minutes>1440)return setMsg($('form-msg'),'Este turno ultrapassa 24 horas trabalhadas. Corrige a entrada antes de parar.');
+  }
   if(previous&&end_time&&!correctingEntry){
     const timing={...previous,work_date,start_time};
-    let finish=new Date(work_date+'T'+end_time).getTime();
+    let finish=automaticStop?stopNow:new Date(work_date+'T'+end_time).getTime();
     if(finish<shiftStart(timing)){const date=new Date(finish);date.setDate(date.getDate()+1);finish=date.getTime()}
     if(previous.paused_at){
       const pauseStart=new Date(previous.paused_at).getTime();

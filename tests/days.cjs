@@ -91,24 +91,24 @@ test('non-work ignores stale hours, retains notes and verifies conflicts outside
 
 test('entry persists, locks, resumes after reopening and completes an overnight shift',async()=>{
  await withDays(async page=>{
+  await page.clock.setFixedTime(new Date('2026-10-06T22:00:00'));
   await page.fill('#date','2026-10-06');await page.fill('#start','22:00');
   await page.click('#save');await saved(page);
   assert.equal(await page.isDisabled('#start'),true);
   assert.equal(await page.isDisabled('#date'),true);
-  assert.equal(await page.textContent('#save'),'Terminar e guardar');
+  assert.equal(await page.textContent('#save'),'Parar');
   assert.match(await page.textContent('#list'),/Em curso/);
   const record=await page.evaluate(()=>window.records.find(r=>r.work_date==='2026-10-06'));
   assert.equal(record.end_time,null);
   assert.equal(await page.textContent('#tips-total'),'8h00');
-  await page.click('#save');assert.match(await page.textContent('#form-msg'),/hora de saída/);
-  await page.click('#correct-entry');await page.fill('#start','21:30');await page.click('#save');await saved(page);
+  await page.click('#entry-summary');await page.fill('#start','21:30');await page.click('#save');await saved(page);
   assert.equal(await page.isDisabled('#start'),true);
   const persisted=await page.evaluate(()=>window.records);
   await page.unroute('https://hours.test/**');
   await page.route('https://hours.test/**',route=>route.fulfill({contentType:'text/html',body:html.replace(/^import .*;$/m,()=>stub+'\nwindow.session={user:{id:"user"}};window.records='+JSON.stringify(persisted)+';')}));
   await page.reload();await page.waitForFunction(()=>document.getElementById('start').disabled);
   assert.equal(await page.inputValue('#start'),'21:30');assert.equal(await page.inputValue('#date'),'2026-10-06');
-  await page.fill('#end','02:00');await page.click('#save');
+  await page.clock.setFixedTime(new Date('2026-10-07T02:00:00'));await page.click('#save');
   await page.waitForFunction(()=>!document.getElementById('start').disabled&&document.getElementById('sync').textContent==='Sincronizado');
   assert.equal(await page.textContent('#tips-total'),'12h30');
   assert.doesNotMatch(await page.textContent('#list'),/Em curso/);
@@ -122,14 +122,15 @@ test('entry persists, locks, resumes after reopening and completes an overnight 
 
 test('failed entry save keeps the draft unlocked and failed completion keeps the stored entry',async()=>{
  await withDays(async page=>{
+  await page.clock.setFixedTime(new Date('2026-10-06T09:00:00'));
   await page.fill('#date','2026-10-06');await page.fill('#start','09:00');
   await page.evaluate(()=>window.saveError='Falha de rede');await page.click('#save');
   await page.waitForFunction(()=>!document.getElementById('save').disabled);
   assert.equal(await page.isDisabled('#start'),false);assert.equal(await page.inputValue('#start'),'09:00');
   await page.evaluate(()=>window.saveError=null);await page.click('#save');await saved(page);
-  await page.fill('#end','17:00');await page.evaluate(()=>window.saveError='Falha de rede');
+  await page.clock.setFixedTime(new Date('2026-10-06T17:00:00'));await page.evaluate(()=>window.saveError='Falha de rede');
   await page.click('#save');await page.waitForFunction(()=>!document.getElementById('save').disabled);
-  assert.equal(await page.isDisabled('#start'),true);assert.equal(await page.inputValue('#end'),'17:00');
+  assert.equal(await page.isDisabled('#start'),true);assert.equal(await page.textContent('#save'),'Parar');
  });
 });
 
@@ -154,12 +155,12 @@ test('timer recalculates overnight elapsed time, turns red at eight hours and re
   await page.clock.setFixedTime(new Date('2026-10-17T06:00:00'));
   await page.waitForFunction(()=>document.getElementById('active-shift').classList.contains('over-limit'));
   assert.match(await page.textContent('#timer-alert'),/8 horas/);
-  await page.click('#cancel');await page.click('#settings-open');await page.click('#resume-active');
+  await page.click('#toggle-shift');await page.click('#settings-open');await page.click('#resume-active');
   assert.equal(await page.inputValue('#date'),'2026-10-16');assert.equal(await page.isDisabled('#start'),true);
   await page.click('#settings-open');await page.locator('.settings-calendar summary').click();const downloadPromise=page.waitForEvent('download');await page.click('#calendar-alert');const download=await downloadPromise;await page.getByRole('button',{name:'Fechar definições'}).click();
   assert.equal(download.suggestedFilename(),'hours-lembrete-8h.ics');
   const calendar=fs.readFileSync(await download.path(),'utf8');assert.match(calendar,/BEGIN:VALARM/);assert.match(calendar,/DTSTART:20261017T060000Z/);
-  await page.fill('#end','06:00');await page.click('#save');
+  await page.click('#save');
   await page.waitForFunction(()=>document.getElementById('active-shift').classList.contains('hidden'));
   assert.equal(await page.textContent('#tips-total'),'8h00');
  });
@@ -187,7 +188,7 @@ test('pauses freeze worked time, survive reopening, shift the eight-hour target 
   assert.match(fs.readFileSync(await download.path(),'utf8'),/DTSTART:20261016T190000Z/);
   await page.clock.setFixedTime(new Date('2026-10-16T19:00:00'));
   await page.waitForFunction(()=>document.getElementById('active-shift').classList.contains('over-limit'));
-  await page.fill('#end','19:00');await page.click('#save');await page.waitForFunction(()=>document.getElementById('active-shift').classList.contains('hidden'));
+  await page.click('#save');await page.waitForFunction(()=>document.getElementById('active-shift').classList.contains('hidden'));
   const row=await page.evaluate(()=>window.records.find(r=>r.work_date==='2026-10-16'));
   assert.equal(row.break_seconds,1800);assert.equal(row.paused_at,null);
   assert.equal(await page.textContent('#tips-total'),'8h00');
@@ -205,7 +206,7 @@ test('failed pause write does not stop the timer; finishing during a pause deduc
   await page.evaluate(()=>window.saveError=null);await page.click('#pause-toggle');
   await page.waitForFunction(()=>document.getElementById('timer-title').textContent==='Em pausa');
   await page.clock.setFixedTime(new Date('2026-10-16T12:30:00'));
-  await page.fill('#end','12:30');await page.click('#save');
+  await page.click('#save');
   await page.waitForFunction(()=>document.getElementById('active-shift').classList.contains('hidden'));
   assert.equal(await page.textContent('#tips-total'),'2h00');
  });

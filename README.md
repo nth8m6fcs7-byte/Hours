@@ -150,7 +150,7 @@ pré-visualização antes de adicionar. Não é necessário apagar os dados do S
   a guardar a entrada. A correção não conclui o turno.
 - Ao entrar novamente na conta, o formulário recupera o turno em curso mais recente,
   incluindo um turno iniciado no dia anterior. No histórico aparece “Em curso”.
-- “Terminar e guardar” exige saída e conclui o mesmo registo. Turnos noturnos
+- “Parar” usa a hora atual como saída e conclui o mesmo registo. Turnos noturnos
   mantêm a data da entrada. Só depois de concluídos somam horas aos totais.
 - Continua a ser possível preencher entrada e saída de uma vez para registar
   um dia completo e editar turnos anteriores. Um total explícito continua disponível
@@ -259,3 +259,9 @@ Consultar uma semana abre Turnos; editar ou retomar uma entrada abre o formulár
 As três secções usam cabeçalhos idênticos, sem caixa exterior. A tua conta
 e Editar turnos ficam nas definições. Editar abre automaticamente Turnos e
 fecha o painel de definições. O estado de sincronização fica nas definições.
+
+Durante um turno ativo, Parar guarda a hora atual como saída e o tempo líquido
+trabalhado, sem exigir preencher a saída. O botão é compacto e fica ao lado
+da pausa. Tocar no resumo da entrada abre a correção. O formulário manual mantém-se
+para novos registos completos e edição de turnos anteriores. O filtro mensal
+aparece sem caixa exterior.
