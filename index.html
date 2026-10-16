@@ -726,7 +726,14 @@ $('save').onclick=async()=>{
   const recordId=editingId;
   const automaticStop=!!openShiftId&&!correctingEntry;
   const stopNow=Date.now(),stopDate=new Date(stopNow);
-  const work_date=$('date').value,start_time=$('start').value||null,end_time=automaticStop?`${pad(stopDate.getHours())}:${pad(stopDate.getMinutes())}`:$('end').value||null;
+  let work_date=$('date').value,start_time=$('start').value||null;
+  const end_time=automaticStop?`${pad(stopDate.getHours())}:${pad(stopDate.getMinutes())}`:$('end').value||null;
+  // Starting an empty form is a clock-in now; historical edits stay explicit.
+  if(!recordId&&!start_time&&!end_time&&!$('duration-override').value.trim()){
+    work_date=iso(stopDate);start_time=`${pad(stopDate.getHours())}:${pad(stopDate.getMinutes())}`;
+    $('date').value=work_date;$('start').value=start_time;
+    saveEntryDraft();
+  }
   if(!work_date)return setMsg($('form-msg'),'Escolhe a data.');
   if((openShiftId||!editingId)&&!start_time)return setMsg($('form-msg'),'Indica a hora de entrada.');
   let duration_minutes;

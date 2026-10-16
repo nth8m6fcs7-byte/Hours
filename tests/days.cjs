@@ -214,3 +214,23 @@ test('failed pause write does not stop the timer; finishing during a pause deduc
 
 async function editSettings(page){if(!await page.locator('#hours-settings').isVisible())await page.click('#settings-open');await page.click('#edit-records')}
 async function openAccount(page){if(!await page.locator('#hours-settings').isVisible())await page.click('#settings-open');if(!await page.locator('#account').evaluate(e=>e.open))await page.click('#account summary')}
+
+
+test('starting an empty form records the current local time and locks entry without manual input',async()=>{
+ await withDays(async page=>{
+  await page.clock.setFixedTime(new Date('2026-10-16T17:42:00'));
+  await page.fill('#date','2026-10-01');
+  assert.equal(await page.inputValue('#start'),'');
+  await page.click('#save');await saved(page);
+  assert.equal(await page.inputValue('#start'),'17:42');
+  assert.equal(await page.inputValue('#date'),'2026-10-16');
+  assert.equal(await page.isDisabled('#start'),true);
+  const record=await page.evaluate(()=>window.records.find(r=>r.work_date==='2026-10-16'));
+  assert.equal(record.start_time,'17:42');assert.equal(record.end_time,null);
+  await page.click('#entry-summary');await page.fill('#start','17:30');await page.click('#save');await saved(page);
+  assert.equal(await page.isDisabled('#start'),true);
+  await page.clock.setFixedTime(new Date('2026-10-16T18:00:00'));
+  await page.click('#save');await page.waitForFunction(()=>document.getElementById('active-shift').classList.contains('hidden'));
+  assert.equal(await page.textContent('#tips-total'),'0h30');
+ });
+});

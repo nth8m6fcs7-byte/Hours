@@ -265,3 +265,8 @@ trabalhado, sem exigir preencher a saída. O botão é compacto e fica ao lado
 da pausa. Tocar no resumo da entrada abre a correção. O formulário manual mantém-se
 para novos registos completos e edição de turnos anteriores. O filtro mensal
 aparece sem caixa exterior.
+
+Iniciar turno num formulário vazio guarda automaticamente a data e hora locais
+atuais e bloqueia a entrada. Não é necessário preencher uma hora antes de iniciar.
+A hora guardada continua clicável para correção; registos históricos com horários
+preenchidos manualmente mantêm os valores escolhidos.
