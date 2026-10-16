@@ -149,6 +149,16 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
     #shift-section.running:has(#timer-title:not(:empty)) .timer-actions{margin-top:0}
     .records-heading .section-title{font-size:17px}#app .overview-tools{display:none}
 
+
+    .section-header h2{margin:0;min-width:0;flex:1}.section-header{gap:12px}
+    button.section-toggle{justify-content:space-between;width:100%;min-height:44px;padding:0;gap:12px;border:0;border-radius:8px;background:transparent;color:inherit;font:inherit;text-align:left;letter-spacing:inherit}
+    button.section-toggle:hover{background:transparent;color:#c7e1ff}
+    .section-toggle::after{content:"";width:7px;height:7px;border-right:1.5px solid #91a8c3;border-bottom:1.5px solid #91a8c3;transform:rotate(45deg);flex-shrink:0;margin:0 5px 4px 8px}
+    .section-toggle[aria-expanded="false"]::after{transform:rotate(-45deg);margin-bottom:0}
+    .section-collapsed>:not(.section-header){display:none!important}
+    #my-time.section-collapsed .overview{margin-bottom:0}#records.section-collapsed .records-heading{margin-bottom:0}
+    #shift-section.section-collapsed{padding-top:12px;padding-bottom:12px}
+
   </style>
 </head>
 <body>
@@ -203,7 +213,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
 
   <main id="app" class="hidden">
     <section id="my-time" aria-labelledby="time-title">
-    <div class="overview"><h2 id="time-title">O meu tempo</h2><div class="hidden" id="today-label"></div></div>
+    <div class="overview section-header"><h2 id="time-title"><button id="toggle-time" class="section-toggle" type="button" aria-expanded="true" aria-controls="my-time">O meu tempo</button></h2><div class="hidden" id="today-label"></div></div>
     <div id="app-msg" role="status" aria-live="polite"></div>
     <div class="grid">
       <button id="tips-card" type="button" class="metric primary" aria-pressed="false" aria-controls="records"><span class="metric-top"><span class="metric-title">Gorjetas</span><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M12 3v18m5-14H9a3 3 0 0 0 0 6h6a3 3 0 0 1 0 6H6"/></svg></span><span class="metric-days">Segunda → domingo</span><span id="tips-total" class="total">0h00</span><span id="tips-range" class="metric-range"></span><span class="metric-footer">Horas registadas</span><span class="metric-action">Ver turnos<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></span></button>
@@ -229,7 +239,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
       </details>
     </dialog>
     <section id="shift-section" class="card form-card">
-      <div class="topbar"><h2 id="form-title" class="section-title">Adicionar horário</h2><span id="sync" class="status" role="status" aria-live="polite"></span></div>
+      <div class="topbar section-header"><h2 class="section-title"><button id="toggle-shift" class="section-toggle" type="button" aria-expanded="true" aria-controls="shift-section"><span id="form-title">Adicionar horário</span></button></h2><span id="sync" class="status" role="status" aria-live="polite"></span></div>
     <section id="active-shift" class="hidden" aria-labelledby="timer-title">
       <h2 id="timer-title" class="section-title">Turno em curso</h2>
       <div id="shift-timer" class="shift-timer" aria-label="Tempo trabalhado, sem pausas">00:00:00</div>
@@ -273,7 +283,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
     </section>
 
     <section class="records" id="records" aria-labelledby="records-title">
-      <div class="topbar records-heading"><h2 id="records-title" class="section-title" tabindex="-1">Turnos registados</h2><button id="edit-records" class="secondary" aria-pressed="false" aria-controls="list">Editar</button></div>
+      <div class="topbar records-heading section-header"><h2 id="records-title" class="section-title" tabindex="-1"><button id="toggle-records" class="section-toggle" type="button" aria-expanded="true" aria-controls="records">Turnos</button></h2><button id="edit-records" class="secondary" aria-pressed="false" aria-controls="list">Editar</button></div>
       <div class="history-panel">
         <div id="month-controls" class="month-controls">
           <button id="month-prev" aria-label="Mês anterior"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button>
@@ -467,6 +477,7 @@ function changeMonth(month){
   renderHistory();
 }
 function focusHistory(){
+  setSectionOpen('records',true);
   $('records-title').focus({preventScroll:true});
   $('records').scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
 }
@@ -657,6 +668,7 @@ function updateShiftForm(){
   if(locked)$('form-title').textContent='Turno em curso';
 }
 function resumeShift(record){
+  setSectionOpen('shift-section',true);
   closeVacation();editingId=record.id;openShiftId=record.id;correctingEntry=false;
   $('date').value=record.work_date;$('start').value=record.start_time.slice(0,5);$('end').value='';
   $('duration-override').value='';$('notes').value=record.notes||'';
@@ -724,7 +736,7 @@ $('list').onclick=async e=>{
   if(!editingRecords||savingHours)return;
   const action=e.target.closest('[data-edit],[data-del]');if(!action)return;
   const edit=action.dataset.edit, del=action.dataset.del;
-  if(edit){openShiftId=null;correctingEntry=false;const r=rows.find(x=>x.id===edit);if(!r||r.day_type==='day_off'||r.day_type==='vacation')return;editingId=r.id;$('form-title').textContent='Editar horário';$('cancel').classList.remove('hidden');$('date').value=r.work_date;$('start').value=(r.start_time||'').slice(0,5);$('end').value=(r.end_time||'').slice(0,5);const override=durationOverride(r);$('duration-override').value=override===null?'':durationInput(override);$('notes').value=typeof r.notes==='string'?r.notes:'';$('shift-details').open=override!==null||!!$('notes').value.trim();if(isOpenShift(r))resumeShift(r);else updateShiftForm();setMsg($('form-msg'),'');$('form-title').scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'})}
+  if(edit){setSectionOpen('shift-section',true);openShiftId=null;correctingEntry=false;const r=rows.find(x=>x.id===edit);if(!r||r.day_type==='day_off'||r.day_type==='vacation')return;editingId=r.id;$('form-title').textContent='Editar horário';$('cancel').classList.remove('hidden');$('date').value=r.work_date;$('start').value=(r.start_time||'').slice(0,5);$('end').value=(r.end_time||'').slice(0,5);const override=durationOverride(r);$('duration-override').value=override===null?'':durationInput(override);$('notes').value=typeof r.notes==='string'?r.notes:'';$('shift-details').open=override!==null||!!$('notes').value.trim();if(isOpenShift(r))resumeShift(r);else updateShiftForm();setMsg($('form-msg'),'');$('form-title').scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'})}
   if(del){if(!confirm('Apagar este registo?'))return;const {error}=await supabase.from('personal_work_hours').delete().eq('id',del);if(error)return alert(error.message);if(editingId===del)resetForm();await load()}
 };
 supabase.auth.onAuthStateChange((event)=>{
@@ -860,6 +872,16 @@ $('push-disable').onclick=async()=>{try{await disablePush();$('push-status').tex
 setInterval(updateTimer,1000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){updateTimer();sessionUI().catch(()=>{})}});
 window.addEventListener('pageshow',updateTimer);
+
+
+const sectionToggles={'my-time':'toggle-time','shift-section':'toggle-shift','records':'toggle-records'};
+function setSectionOpen(id,open){
+  $(id).classList.toggle('section-collapsed',!open);
+  $(sectionToggles[id]).setAttribute('aria-expanded',String(open));
+}
+for(const [section,button] of Object.entries(sectionToggles)){
+  $(button).onclick=()=>setSectionOpen(section,$(button).getAttribute('aria-expanded')!=='true');
+}
 
 $('date').value=iso(new Date());
 const today=new Date();

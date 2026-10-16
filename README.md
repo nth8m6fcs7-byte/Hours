@@ -251,3 +251,7 @@ Topo reduzido a HOURS, ícone orbital e definições. Três secções: O meu tem
 (totais semanais), Turno em curso (cronómetro, pausa e saída no mesmo cartão)
 e Turnos registados (histórico). A entrada confirmada é um resumo discreto;
 Corrigir entrada volta a mostrar os campos bloqueados.
+
+As três secções podem ser abertas/recolhidas pelo respetivo título, com indicação
+de estado e suporte de teclado. Recolher preserva os campos e o cronómetro.
+Consultar uma semana abre Turnos; editar ou retomar uma entrada abre o formulário.
