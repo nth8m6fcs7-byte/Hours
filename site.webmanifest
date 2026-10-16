@@ -5,7 +5,7 @@
   "lang": "pt-PT",
   "start_url": "/Hours/",
   "scope": "/Hours/",
-  "display": "browser",
+  "display": "standalone",
   "background_color": "#0b0e13",
   "theme_color": "#0b0e13",
   "icons": [

@@ -176,6 +176,8 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
       <p id="pause-msg" role="status" aria-live="polite"></p>
       <p id="timer-progress" class="field-help"></p>
       <p id="timer-alert" role="status" aria-live="polite"></p>
+      <div class="actions"><button id="push-enable" class="secondary" type="button">Ativar notificações</button><button id="push-disable" class="ghost hidden" type="button">Desativar</button></div>
+      <p id="push-status" class="field-help" role="status" aria-live="polite"></p>
       <button id="calendar-alert" class="secondary" type="button">Lembrete das 8h no Calendário</button>
       <p class="field-help">Adiciona o lembrete ao teu calendário para receber um aviso com a app fechada. O contador desconta as pausas. Depois de cada pausa, atualiza o lembrete no calendário; um lembrete já adicionado não é alterado automaticamente.</p>
     </section>
@@ -319,7 +321,7 @@ async function sessionUI(){
   $('auth').classList.toggle('hidden',!!session||recovering);
   $('app').classList.toggle('hidden',!session||recovering);
   $('logout').classList.toggle('hidden',!session||recovering);
-  if(session&&!recovering) await load();
+  if(session&&!recovering){await load();refreshPushStatus()}
   if(!session){loadVersion++;rows=[];selectedMonth=null;activeWeek=null;editingRecords=false;$('account').open=false;resetForm();render()}
 }
 async function load(){
@@ -517,7 +519,7 @@ $('auth-form').onsubmit=e=>{
   await sessionUI();
   });
 };
-$('logout').onclick=async()=>{await supabase.auth.signOut();await sessionUI()};
+$('logout').onclick=async()=>{await disablePush();await supabase.auth.signOut();await sessionUI()};
 let savingHours=false;
 function setHoursBusy(busy){
   savingHours=busy;
@@ -734,6 +736,60 @@ $('calendar-alert').onclick=()=>{
   const url=URL.createObjectURL(new Blob([content],{type:'text/calendar;charset=utf-8'}));
   const link=document.createElement('a');link.href=url;link.download='hours-lembrete-8h.ics';link.click();setTimeout(()=>URL.revokeObjectURL(url),60000);
 };
+
+const pushSupported=()=>window.isSecureContext&&'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
+const iosDevice=()=>/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const installedApp=()=>navigator.standalone===true||window.matchMedia('(display-mode: standalone)').matches;
+let pushBusy=false;
+async function refreshPushStatus(){
+  const supported=pushSupported();
+  $('push-enable').disabled=!supported||(iosDevice()&&!installedApp());
+  if(iosDevice()&&!installedApp()){$('push-status').textContent='No iPhone: Safari → Partilhar → Adicionar ao ecrã principal. Abre a HOURS pelo novo ícone para ativar os avisos.';return}
+  if(!supported){$('push-status').textContent='Este navegador não permite notificações push. Podes usar o lembrete no Calendário.';return}
+  try{
+    const registration=await navigator.serviceWorker.getRegistration('/Hours/');
+    const subscription=await registration?.pushManager.getSubscription();
+    $('push-disable').classList.toggle('hidden',!subscription);
+    $('push-enable').textContent=subscription?'Confirmar notificações neste dispositivo':'Ativar notificações';
+    $('push-status').textContent=subscription?'Dispositivo subscrito. O aviso chega por volta das 8h trabalhadas, descontando as pausas.':'Ativa para receber o aviso mesmo com a app fechada. A entrega depende da ligação e das definições de notificações do dispositivo.';
+  }catch{$('push-status').textContent='Não foi possível verificar as notificações. Tenta novamente.'}
+}
+function decodePushKey(value){const raw=atob(value.replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(raw,c=>c.charCodeAt(0))}
+$('push-enable').onclick=async()=>{
+  if(pushBusy||!currentUserId)return;
+  if(!pushSupported()||(iosDevice()&&!installedApp()))return refreshPushStatus();
+  pushBusy=true;$('push-enable').disabled=true;
+  try{
+    // Permission is requested directly from the user's tap, before network awaits.
+    const permission=await Notification.requestPermission();
+    if(permission!=='granted')throw new Error('Permissão não concedida. Podes alterá-la nas definições de notificações.');
+    const userId=currentUserId;
+    const registration=await navigator.serviceWorker.register('./push-sw.js',{scope:'./'});
+    await navigator.serviceWorker.ready;
+    const response=await fetch(SUPABASE_URL+'/functions/v1/hours-push');
+    if(!response.ok)throw new Error('O serviço de notificações não está disponível. Tenta novamente.');
+    const {publicKey}=await response.json();
+    const subscription=await registration.pushManager.getSubscription()||await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:decodePushKey(publicKey)});
+    if(currentUserId!==userId){await subscription.unsubscribe();return}
+    const data=subscription.toJSON();
+    const {error}=await supabase.from('hours_push_subscriptions').upsert({user_id:userId,endpoint:data.endpoint,p256dh:data.keys.p256dh,auth:data.keys.auth,time_zone:Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC'},{onConflict:'endpoint'});
+    if(error){await subscription.unsubscribe();throw error}
+    await refreshPushStatus();$('push-status').textContent='Notificações ativadas neste dispositivo. Aviso às 8h trabalhadas, sem contar pausas.';
+  }catch(error){$('push-status').textContent=error.message||'Não foi possível ativar. Tenta novamente.'}
+  finally{pushBusy=false;$('push-enable').disabled=false}
+};
+async function disablePush(){
+ if(!pushSupported())return;
+ const registration=await navigator.serviceWorker.getRegistration('/Hours/');
+ const subscription=await registration?.pushManager.getSubscription();
+ if(!subscription)return;
+ // Stop delivery on the device even if removal from the database fails offline.
+ await subscription.unsubscribe();
+ if(currentUserId)await supabase.from('hours_push_subscriptions').delete().eq('endpoint',subscription.endpoint);
+ await refreshPushStatus();
+}
+$('push-disable').onclick=async()=>{try{await disablePush();$('push-status').textContent='Notificações desativadas neste dispositivo.'}catch{$('push-status').textContent='Não foi possível desativar. Tenta novamente.'}};
+
 setInterval(updateTimer,1000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){updateTimer();sessionUI().catch(()=>{})}});
 window.addEventListener('pageshow',updateTimer);

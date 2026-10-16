@@ -131,7 +131,7 @@ de 0 a 1440 minutos, sem substituir dados ou políticas existentes.
 
 O ícone do ecrã principal é um relógio sage, definido por `apple-touch-icon` com
 PNG opaco de 180×180 e caminho absoluto com ficheiro versionado. `site.webmanifest`
-também declara ícones de 180, 192 e 512 px, mantendo `display: browser`.
+também declara ícones de 180, 192 e 512 px, com `display: standalone` para permitir notificações no iPhone.
 O browser também utiliza o mesmo relógio como favicon.
 Para atualizar um atalho que ainda mostra “M”, abrir a página no Safari e usar
 **Partilhar → Adicionar ao ecrã principal**; remover o atalho antigo se necessário.
@@ -180,7 +180,7 @@ de entrada mais oito horas e as pausas já concluídas. Durante uma pausa o bot�
 fica indisponível, pois ainda não se sabe quando o trabalho será retomado. É necessário adicionar/confirmar o evento no calendário;
 a entrega depende das definições desse calendário. Corrigir ou concluir um turno
 não altera um lembrete já importado: deve ser atualizado/removido no calendário.
-Não existem notificações push automáticas com a HOURS fechada nesta versão.
+As notificações push são opcionais e precisam de ativação neste dispositivo.
 No iPhone isso exige uma web app instalada, permissão e infraestrutura Web Push.
 
 ## Pausas persistentes
@@ -197,4 +197,38 @@ O histórico e os totais descontam as pausas; um total manual continua a prevale
 O lembrete de calendário precisa de atualização manual depois de novas pausas.
 Os testes de interface usam respostas simuladas. O schema e o desconto de pausas
 foram verificados no Supabase com uma tabela temporária, sem alterar registos
-de utilizadores. Não há push automático em segundo plano.
+de utilizadores. O envio push é executado em segundo plano pelo serviço descrito abaixo.
+
+## Notificações push de oito horas
+
+No iPhone (iOS 16.4 ou posterior), abrir no Safari, Partilhar → Adicionar ao ecrã
+principal e abrir pelo ícone. Durante um turno, tocar em “Ativar notificações” e
+aceitar a permissão. A instalação usa `display: standalone`. Não é necessário
+manter a HOURS aberta. Dispositivos sem suporte continuam com o aviso visual e
+com a alternativa de Calendário.
+
+A Edge Function `hours-push` e o job `hours-eight-hour-push` verificam os turnos
+uma vez por minuto. O prazo é entrada + oito horas + pausas concluídas, calculado
+no fuso horário do dispositivo. Durante uma pausa e depois de terminar o turno
+não são enviados avisos. Um aviso entregue fica marcado por turno/dispositivo;
+falhas temporárias têm até cinco tentativas. Cada lote tem no máximo cinco envios.
+Turnos iniciados há mais de 48 horas são ignorados. A entrega pode atrasar por
+rede, serviço push, definições de Foco e poupança de bateria. Uma notificação já
+aceite pelo fornecedor pode chegar depois de uma saída/pausa registada em simultâneo.
+
+As subscrições ficam em `hours_push_subscriptions` com RLS por utilizador.
+`hours_push_config` guarda chaves VAPID e o segredo do agendador: só o servidor
+pode consultar. O endpoint GET devolve apenas a chave pública; o POST valida o
+segredo do agendador. A função de reserva de envios só permite `service_role`.
+Não registar valores de chaves, endpoints ou tokens em logs.
+
+Sair da conta ou escolher “Desativar” remove a subscrição deste dispositivo.
+“Confirmar notificações neste dispositivo” volta a associar a subscrição à conta.
+O fuso segue o dispositivo na ativação; confirmar novamente após mudar de fuso.
+
+Fontes: `sql/hours-push.sql`, `sql/hours-push-schedule.sql`,
+`supabase/functions/hours-push/` e `push-sw.js`. Versões das dependências fixadas.
+`tests/push.cjs` verifica permissão, gravação, desativação e clique no aviso com
+respostas simuladas. `tests/push-scheduler.sql` é um teste opcional para ambiente
+isolado/local; não executar em produção. A receção real exige validar no iPhone
+após a subscrição; os testes simulados não comprovam a entrega da Apple.
