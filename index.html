@@ -128,13 +128,34 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
     #resume-active{margin-top:12px}#hours-settings #calendar-alert{margin-top:8px}
     @media(max-width:360px){.overview-tools{gap:6px}.settings-gear{width:40px}.overview h2{font-size:28px}.today{font-size:9px}.today strong{font-size:10px}}
 
+
+    .masthead{margin-bottom:24px;align-items:center}.masthead .brand-mark{object-fit:cover;padding:0;border-radius:12px;background:none}.masthead .brand h1{font-size:18px;letter-spacing:2.5px}
+    #my-time{margin-bottom:26px}#my-time .overview{margin:0 0 14px}#my-time .overview h2{font-size:17px;letter-spacing:-.3px;font-weight:500;margin:0}#my-time .grid{margin-bottom:0}
+    #shift-section{margin-bottom:28px}#shift-section>.topbar{gap:12px}#shift-section #active-shift{border:0;background:none;padding:18px 0 0;margin:0;text-align:center;box-shadow:none}
+    #shift-section #active-shift .section-title{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+    #shift-section #active-shift.over-limit{background:none}#shift-section:has(.over-limit){border-color:#ff8d8d70}
+    #shift-section.running>.row3{display:block;margin:18px 0 0;border-top:1px solid var(--line);padding-top:16px}
+    #shift-section.running:not(.correcting)>.row3>.field:not(:last-child){display:none}
+    #shift-section.running:not(.correcting)>.row3>.field:last-child{display:flex;align-items:center;justify-content:space-between;gap:14px}
+    #shift-section.running:not(.correcting)>.row3>.field:last-child .field-label{margin:0;font-size:13px}
+    #shift-section.running:not(.correcting) #end{max-width:156px}
+    #shift-section.running.correcting>.row3{display:grid;gap:14px;grid-template-columns:repeat(2,minmax(0,1fr))}
+    .entry-summary{text-align:center;font-size:12px;line-height:1.6;color:#a5b6cd;margin:12px 0 0}
+    #shift-section.running #shift-lock{display:none}
+    #shift-section.running #day-actions{display:none}
+    #shift-section.running #shift-details{margin-top:14px}#shift-section.running .form-actions{margin-top:14px}
+    #shift-section.running #save{max-width:none;flex:1 0 100%;min-height:46px}
+    #shift-section.running #correct-entry{font-size:11px;padding:10px 8px}
+    #shift-section.running:has(#timer-title:not(:empty)) .timer-actions{margin-top:0}
+    .records-heading .section-title{font-size:17px}#app .overview-tools{display:none}
+
   </style>
 </head>
 <body>
 <div class="wrap">
   <header class="masthead">
-    <div class="brand"><span class="brand-mark" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 6.5V12l3.5 2"/><path d="M12 1v1M12 22v1M1 12h1M22 12h1"/></svg></span><div><h1>HOURS</h1><p>O teu dia, em controlo.</p></div></div>
-    <span class="edition">Pessoal</span>
+    <div class="brand"><img class="brand-mark" src="./icons/orbital-180-v3.png" width="38" height="38" alt="" /><div><h1>HOURS</h1></div></div>
+    <button id="settings-open" class="settings-gear" type="button" aria-label="Abrir definições" aria-haspopup="dialog" aria-controls="hours-settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.5 3-.6 2.2-1.7 1L5 5.6 2.5 10l1.6 1.6v1.8L2.5 15 5 19.4l2.2-.6 1.7 1 .6 2.2h5l.6-2.2 1.7-1 2.2.6 2.5-4.4-1.6-1.6v-1.8L21.5 10 19 5.6l-2.2.6-1.7-1L14.5 3Z"/><circle cx="12" cy="12.5" r="3"/></svg></button>
   </header>
 
   <section id="auth">
@@ -181,21 +202,16 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
   </section>
 
   <main id="app" class="hidden">
-    <div class="overview"><div><div class="eyebrow">Painel do dia</div><h2>O teu tempo.</h2></div><div class="overview-tools"><div class="today" id="today-label"></div><button id="settings-open" class="settings-gear" type="button" aria-label="Abrir definições" aria-haspopup="dialog" aria-controls="hours-settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.5 3-.6 2.2-1.7 1L5 5.6 2.5 10l1.6 1.6v1.8L2.5 15 5 19.4l2.2-.6 1.7 1 .6 2.2h5l.6-2.2 1.7-1 2.2.6 2.5-4.4-1.6-1.6v-1.8L21.5 10 19 5.6l-2.2.6-1.7-1L14.5 3Z"/><circle cx="12" cy="12.5" r="3"/></svg></button></div></div>
+    <section id="my-time" aria-labelledby="time-title">
+    <div class="overview"><h2 id="time-title">O meu tempo</h2><div class="hidden" id="today-label"></div></div>
     <div id="app-msg" role="status" aria-live="polite"></div>
     <div class="grid">
       <button id="tips-card" type="button" class="metric primary" aria-pressed="false" aria-controls="records"><span class="metric-top"><span class="metric-title">Gorjetas</span><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M12 3v18m5-14H9a3 3 0 0 0 0 6h6a3 3 0 0 1 0 6H6"/></svg></span><span class="metric-days">Segunda → domingo</span><span id="tips-total" class="total">0h00</span><span id="tips-range" class="metric-range"></span><span class="metric-footer">Horas registadas</span><span class="metric-action">Ver turnos<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></span></button>
       <button id="mine-card" type="button" class="metric" aria-pressed="false" aria-controls="records"><span class="metric-top"><span class="metric-title">Minha semana</span><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 3v4m8-4v4M4 11h16m-11 5 2 2 4-4"/></svg></span><span class="metric-days">Quinta → segunda</span><span id="mine-total" class="total">0h00</span><span id="mine-range" class="metric-range"></span><span class="metric-footer">Horas registadas</span><span class="metric-action">Ver turnos<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></span></button>
     </div>
 
-    <section id="active-shift" class="card hidden" aria-labelledby="timer-title">
-      <h2 id="timer-title" class="section-title">Turno em curso</h2>
-      <div id="shift-timer" class="shift-timer" aria-label="Tempo trabalhado, sem pausas">00:00:00</div>
-      <div class="actions timer-actions"><button id="pause-toggle" type="button">Iniciar pausa</button></div>
-      <p id="pause-msg" class="timer-feedback" role="status" aria-live="polite"></p>
-      <p id="timer-alert" role="status" aria-live="polite"></p>
-
     </section>
+
 
     <dialog id="hours-settings" aria-labelledby="settings-title">
       <div class="settings-heading"><div><p class="settings-eyebrow">HOURS</p><h2 id="settings-title">Definições</h2></div><form method="dialog"><button class="settings-close" aria-label="Fechar definições" autofocus>✕</button></form></div>
@@ -212,8 +228,17 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
       <p class="field-help">Adiciona o lembrete ao teu calendário para receber um aviso com a app fechada. O contador desconta as pausas. Depois de cada pausa, atualiza o lembrete no calendário; um lembrete já adicionado não é alterado automaticamente.</p>
       </details>
     </dialog>
-    <section class="card form-card">
+    <section id="shift-section" class="card form-card">
       <div class="topbar"><h2 id="form-title" class="section-title">Adicionar horário</h2><span id="sync" class="status" role="status" aria-live="polite"></span></div>
+    <section id="active-shift" class="hidden" aria-labelledby="timer-title">
+      <h2 id="timer-title" class="section-title">Turno em curso</h2>
+      <div id="shift-timer" class="shift-timer" aria-label="Tempo trabalhado, sem pausas">00:00:00</div>
+      <div class="actions timer-actions"><button id="pause-toggle" type="button">Iniciar pausa</button></div>
+      <p id="pause-msg" class="timer-feedback" role="status" aria-live="polite"></p>
+      <p id="timer-alert" role="status" aria-live="polite"></p>
+
+    </section>
+      <p id="entry-summary" class="entry-summary hidden"></p>
       <div class="row3">
         <label class="field" for="date"><span class="field-label">Data</span><input id="date" type="date"></label>
         <label class="field" for="start"><span class="field-label">Entrada</span><input id="start" type="time" step="60"></label>
@@ -232,7 +257,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
         <button id="correct-entry" class="ghost hidden" type="button">Corrigir entrada</button>
         <button id="cancel" class="secondary hidden">Cancelar</button>
       </div>
-      <div class="actions form-actions">
+      <div id="day-actions" class="actions form-actions">
         <button id="day-off" class="secondary" type="button">Folga</button>
         <button id="vacation-toggle" class="secondary" type="button" aria-expanded="false" aria-controls="vacation-panel">Férias</button>
       </div>
@@ -248,7 +273,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
     </section>
 
     <section class="records" id="records" aria-labelledby="records-title">
-      <div class="topbar records-heading"><h2 id="records-title" class="section-title" tabindex="-1">Os teus turnos</h2><button id="edit-records" class="secondary" aria-pressed="false" aria-controls="list">Editar</button></div>
+      <div class="topbar records-heading"><h2 id="records-title" class="section-title" tabindex="-1">Turnos registados</h2><button id="edit-records" class="secondary" aria-pressed="false" aria-controls="list">Editar</button></div>
       <div class="history-panel">
         <div id="month-controls" class="month-controls">
           <button id="month-prev" aria-label="Mês anterior"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button>
@@ -352,6 +377,7 @@ async function sessionUI(){
   $('auth').classList.toggle('hidden',!!session||recovering);
   $('app').classList.toggle('hidden',!session||recovering);
   $('logout').classList.toggle('hidden',!session||recovering);
+  $('settings-open').classList.toggle('hidden',!session||recovering);
   if(session&&!recovering){await load();refreshPushStatus()}
   if(!session){loadVersion++;rows=[];selectedMonth=null;activeWeek=null;editingRecords=false;$('account').open=false;resetForm();render()}
 }
@@ -614,12 +640,18 @@ $('day-off').onclick=()=>saveNonWork('day_off',$('date').value,$('date').value);
 $('vacation-save').onclick=()=>saveNonWork('vacation',$('vacation-start').value,$('vacation-end').value);
 function updateShiftForm(){
   const locked=!!openShiftId;
+  $('shift-section').classList.toggle('running',locked);
+  $('shift-section').classList.toggle('correcting',correctingEntry);
+  $('entry-summary').classList.toggle('hidden',!locked);
+  $('entry-summary').textContent=locked?`Entrada · ${$('start').value} · ${new Intl.DateTimeFormat('pt-PT',{day:'numeric',month:'short'}).format(localDate($('date').value))}`:'';
+
   $('date').disabled=locked;
   $('start').disabled=locked&&!correctingEntry;
   $('end').disabled=correctingEntry;
   $('save').textContent=correctingEntry?'Guardar entrada':locked?'Terminar e guardar':editingId||$('end').value||$('duration-override').value.trim()?'Guardar horário':'Iniciar turno';
   $('correct-entry').classList.toggle('hidden',!locked);
   $('correct-entry').textContent=correctingEntry?'Cancelar correção':'Corrigir entrada';
+  $('cancel').textContent=locked?'Outro dia':'Cancelar';
   $('shift-lock').classList.toggle('hidden',!locked&&!$('start').value);
   $('shift-lock').textContent=locked?'Entrada guardada. Indica a saída para concluir o dia.':$('start').value?'Entrada por confirmar — carrega em Iniciar turno para guardar e iniciar o contador.':'';
   if(locked)$('form-title').textContent='Turno em curso';

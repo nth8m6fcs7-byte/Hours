@@ -244,3 +244,10 @@ O painel fecha com o botão Fechar, Escape ou toque fora, e devolve o foco
 Ícone orbital v3: ficheiros PNG opacos de 180, 192 e 512 px, favicon de 32 px
 e caminhos versionados. No iPhone, atalhos já instalados podem manter a imagem
 anterior; adicionar novamente pelo Safari para obter o ícone novo.
+
+## Organização da página
+
+Topo reduzido a HOURS, ícone orbital e definições. Três secções: O meu tempo
+(totais semanais), Turno em curso (cronómetro, pausa e saída no mesmo cartão)
+e Turnos registados (histórico). A entrada confirmada é um resumo discreto;
+Corrigir entrada volta a mostrar os campos bloqueados.
