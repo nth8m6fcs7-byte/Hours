@@ -129,14 +129,14 @@ de 0 a 1440 minutos, sem substituir dados ou políticas existentes.
 
 ## Ícone no iPhone
 
-O ícone do ecrã principal é um relógio sage, definido por `apple-touch-icon` com
+O ícone do ecrã principal é um relógio orbital azul em fundo grafite, definido por `apple-touch-icon` com
 PNG opaco de 180×180 e caminho absoluto com ficheiro versionado. `site.webmanifest`
 também declara ícones de 180, 192 e 512 px, com `display: standalone` para permitir notificações no iPhone.
 O browser também utiliza o mesmo relógio como favicon.
 Para atualizar um atalho que ainda mostra “M”, abrir a página no Safari e usar
 **Partilhar → Adicionar ao ecrã principal**; remover o atalho antigo se necessário.
 Se o Safari ainda apresentar uma versão anterior, usar o endereço
-`https://nth8m6fcs7-byte.github.io/Hours/?icone=2` e confirmar o relógio na
+`https://nth8m6fcs7-byte.github.io/Hours/?icone=3` e confirmar o relógio na
 pré-visualização antes de adicionar. Não é necessário apagar os dados do Safari.
 É um ícone estático: não altera o funcionamento nem os dados da app.
 
@@ -240,3 +240,7 @@ A roda dentada no canto superior abre Definições: resumo das pausas, acesso
 à entrada/saída, notificações e a alternativa de Calendário recolhida.
 O painel fecha com o botão Fechar, Escape ou toque fora, e devolve o foco
 à roda dentada. As definições estão disponíveis mesmo sem turno ativo.
+
+Ícone orbital v3: ficheiros PNG opacos de 180, 192 e 512 px, favicon de 32 px
+e caminhos versionados. No iPhone, atalhos já instalados podem manter a imagem
+anterior; adicionar novamente pelo Safari para obter o ícone novo.

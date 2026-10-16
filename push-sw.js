@@ -3,7 +3,7 @@ self.addEventListener('push',event=>{
  let data={};try{data=event.data?.json()||{}}catch{}
  event.waitUntil(self.registration.showNotification('HOURS · 8 horas trabalhadas',{
   body:'Já completaste 8 horas, descontando as pausas. Confirma a tua saída.',
-  icon:'/Hours/icons/clock-192-v2.png',badge:'/Hours/icons/clock-192-v2.png',
+  icon:'/Hours/icons/orbital-192-v3.png',badge:'/Hours/icons/clock-192-v2.png',
   tag:typeof data.tag==='string'?data.tag.slice(0,100):'hours-eight',
   data:{url:'/Hours/'},renotify:false
  }));
