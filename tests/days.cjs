@@ -132,3 +132,81 @@ test('failed entry save keeps the draft unlocked and failed completion keeps the
   assert.equal(await page.isDisabled('#start'),true);assert.equal(await page.inputValue('#end'),'17:00');
  });
 });
+
+test('unconfirmed entry survives reload and remains visibly unconfirmed',async()=>{
+ await withDays(async page=>{
+  await page.fill('#date','2026-10-16');await page.fill('#start','08:30');
+  await page.reload();await page.waitForFunction(()=>document.getElementById('start').value==='08:30');
+  assert.equal(await page.inputValue('#date'),'2026-10-16');
+  assert.equal(await page.isDisabled('#start'),false);
+  assert.match(await page.textContent('#shift-lock'),/por confirmar/);
+  assert.equal(await page.locator('#active-shift').isVisible(),false);
+  assert.equal(await page.evaluate(()=>window.calls.some(c=>c[0]==='upsert')),false);
+ });
+});
+
+test('timer recalculates overnight elapsed time, turns red at eight hours and resumes the saved entry',async()=>{
+ await withDays(async page=>{
+  await page.clock.setFixedTime(new Date('2026-10-17T05:59:59'));
+  await page.evaluate(()=>{window.records=[{id:'open-timer',user_id:'user',work_date:'2026-10-16',start_time:'22:00:00',end_time:null,duration_minutes:null}];window.authEvent('SIGNED_IN')});
+  await page.waitForFunction(()=>document.getElementById('shift-timer').textContent==='07:59:59');
+  assert.equal(await page.locator('#active-shift').evaluate(e=>e.classList.contains('over-limit')),false);
+  await page.clock.setFixedTime(new Date('2026-10-17T06:00:00'));
+  await page.waitForFunction(()=>document.getElementById('active-shift').classList.contains('over-limit'));
+  assert.match(await page.textContent('#timer-alert'),/8 horas/);
+  await page.click('#cancel');await page.click('#resume-active');
+  assert.equal(await page.inputValue('#date'),'2026-10-16');assert.equal(await page.isDisabled('#start'),true);
+  const downloadPromise=page.waitForEvent('download');await page.click('#calendar-alert');const download=await downloadPromise;
+  assert.equal(download.suggestedFilename(),'hours-lembrete-8h.ics');
+  const calendar=fs.readFileSync(await download.path(),'utf8');assert.match(calendar,/BEGIN:VALARM/);assert.match(calendar,/DTSTART:20261017T060000Z/);
+  await page.fill('#end','06:00');await page.click('#save');
+  await page.waitForFunction(()=>document.getElementById('active-shift').classList.contains('hidden'));
+  assert.equal(await page.textContent('#tips-total'),'8h00');
+ });
+});
+
+test('pauses freeze worked time, survive reopening, shift the eight-hour target and reduce final totals',async()=>{
+ await withDays(async page=>{
+  await page.clock.setFixedTime(new Date('2026-10-16T10:30:00'));
+  await page.fill('#date','2026-10-16');await page.fill('#start','10:30');await page.click('#save');await saved(page);
+  await page.clock.setFixedTime(new Date('2026-10-16T12:30:00'));
+  await page.click('#pause-toggle');await page.waitForFunction(()=>document.getElementById('timer-title').textContent==='Em pausa');
+  await page.clock.setFixedTime(new Date('2026-10-16T13:00:00'));
+  await page.waitForFunction(()=>document.getElementById('shift-timer').textContent==='02:00:00');
+  assert.equal(await page.isDisabled('#calendar-alert'),true);
+  const persisted=await page.evaluate(()=>window.records);
+  await page.unroute('https://hours.test/**');
+  await page.route('https://hours.test/**',route=>route.fulfill({contentType:'text/html',body:html.replace(/^import .*;$/m,()=>stub+'\nwindow.session={user:{id:"user"}};window.records='+JSON.stringify(persisted)+';')}));
+  await page.reload();await page.waitForFunction(()=>document.getElementById('timer-title').textContent==='Em pausa');
+  assert.equal(await page.textContent('#shift-timer'),'02:00:00');
+  await page.click('#pause-toggle');await page.waitForFunction(()=>document.getElementById('timer-title').textContent==='Turno em curso');
+  await page.clock.setFixedTime(new Date('2026-10-16T18:30:00'));
+  await page.waitForFunction(()=>document.getElementById('shift-timer').textContent==='07:30:00');
+  assert.equal(await page.locator('#active-shift').evaluate(e=>e.classList.contains('over-limit')),false);
+  const downloadPromise=page.waitForEvent('download');await page.click('#calendar-alert');const download=await downloadPromise;
+  assert.match(fs.readFileSync(await download.path(),'utf8'),/DTSTART:20261016T190000Z/);
+  await page.clock.setFixedTime(new Date('2026-10-16T19:00:00'));
+  await page.waitForFunction(()=>document.getElementById('active-shift').classList.contains('over-limit'));
+  await page.fill('#end','19:00');await page.click('#save');await page.waitForFunction(()=>document.getElementById('active-shift').classList.contains('hidden'));
+  const row=await page.evaluate(()=>window.records.find(r=>r.work_date==='2026-10-16'));
+  assert.equal(row.break_seconds,1800);assert.equal(row.paused_at,null);
+  assert.equal(await page.textContent('#tips-total'),'8h00');
+ });
+});
+
+test('failed pause write does not stop the timer; finishing during a pause deducts its duration',async()=>{
+ await withDays(async page=>{
+  await page.clock.setFixedTime(new Date('2026-10-16T10:00:00'));
+  await page.fill('#date','2026-10-16');await page.fill('#start','10:00');await page.click('#save');await saved(page);
+  await page.clock.setFixedTime(new Date('2026-10-16T12:00:00'));
+  await page.evaluate(()=>window.saveError='Sem rede');await page.click('#pause-toggle');
+  await page.waitForFunction(()=>document.getElementById('pause-msg').textContent==='Sem rede');
+  assert.equal(await page.textContent('#pause-toggle'),'Iniciar pausa');
+  await page.evaluate(()=>window.saveError=null);await page.click('#pause-toggle');
+  await page.waitForFunction(()=>document.getElementById('timer-title').textContent==='Em pausa');
+  await page.clock.setFixedTime(new Date('2026-10-16T12:30:00'));
+  await page.fill('#end','12:30');await page.click('#save');
+  await page.waitForFunction(()=>document.getElementById('active-shift').classList.contains('hidden'));
+  assert.equal(await page.textContent('#tips-total'),'2h00');
+ });
+});

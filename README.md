@@ -160,3 +160,41 @@ pré-visualização antes de adicionar. Não é necessário apagar os dados do S
 
 O visual grafite mantém os campos compactos, reduz a altura dos cartões semanais
 e aplica a mesma paleta ao login, recuperação, edição e mensagens de estado.
+
+## Turno ativo, contador e limite de oito horas
+
+O painel de turno ativo mostra o tempo efetivamente trabalhado desde a entrada confirmada (descontando
+as pausas registadas) e permite retomar a saída mesmo quando o formulário está noutro dia.
+O contador recalcula a duração pela data/hora guardada; fechar a página não o
+reinicia. A partir de oito horas, o painel fica vermelho e apresenta um aviso.
+Ao regressar à página, a sessão e os registos são novamente consultados.
+
+Uma entrada apenas preenchida, sem carregar em “Iniciar turno”, é um rascunho:
+é preservada neste navegador por utilizador e aparece como “por confirmar”.
+Só a confirmação grava no Supabase, bloqueia a entrada e inicia o contador.
+Rascunhos locais não sincronizam entre dispositivos. Falhas de armazenamento local
+não impedem a gravação normal na conta.
+
+“Lembrete das 8h no Calendário” descarrega um evento ICS com alarme para a hora
+de entrada mais oito horas e as pausas já concluídas. Durante uma pausa o botão
+fica indisponível, pois ainda não se sabe quando o trabalho será retomado. É necessário adicionar/confirmar o evento no calendário;
+a entrega depende das definições desse calendário. Corrigir ou concluir um turno
+não altera um lembrete já importado: deve ser atualizado/removido no calendário.
+Não existem notificações push automáticas com a HOURS fechada nesta versão.
+No iPhone isso exige uma web app instalada, permissão e infraestrutura Web Push.
+
+## Pausas persistentes
+
+A migração `hours_shift_pauses` (SQL em `sql/shift-pauses.sql`) acrescenta
+`break_seconds` e `paused_at` na tabela existente, mantendo dados, grants e RLS.
+Aplicada no projeto Bacalhau, exclusivamente na tabela `personal_work_hours`.
+
+“Iniciar pausa” grava a hora em UTC. “Retomar trabalho” acumula a duração exata
+em segundos. Reabrir a app recupera esse estado da conta. O painel mostra o
+trabalho líquido e o total das pausas; fica vermelho às oito horas trabalhadas.
+Concluir enquanto está em pausa fecha essa pausa à hora de saída indicada.
+O histórico e os totais descontam as pausas; um total manual continua a prevalecer.
+O lembrete de calendário precisa de atualização manual depois de novas pausas.
+Os testes de interface usam respostas simuladas. O schema e o desconto de pausas
+foram verificados no Supabase com uma tabela temporária, sem alterar registos
+de utilizadores. Não há push automático em segundo plano.

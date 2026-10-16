@@ -106,6 +106,9 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
 @supports not (backdrop-filter:blur(18px)){.card{background:#1b222d}}
 @media(min-width:620px){.wrap{padding-top:36px}.form-card{padding:24px}.total{font-size:42px}.overview h2{font-size:38px}}
 
+  #active-shift{border-color:#79baff55}.shift-timer{font-size:42px;font-weight:500;font-variant-numeric:tabular-nums;letter-spacing:-1px;margin-top:12px}
+    #active-shift.over-limit{border-color:#ff8d8d;background:#321e2a}#active-shift.over-limit .shift-timer,#timer-alert{color:#ffb2b2}
+    #timer-alert{font-size:14px;line-height:1.5;margin:12px 0}#calendar-alert{font-size:12px;min-height:44px;margin-top:12px}
   </style>
 </head>
 <body>
@@ -166,6 +169,16 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
       <button id="mine-card" type="button" class="metric" aria-pressed="false" aria-controls="records"><span class="metric-top"><span class="metric-title">Minha semana</span><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 3v4m8-4v4M4 11h16m-11 5 2 2 4-4"/></svg></span><span class="metric-days">Quinta → segunda</span><span id="mine-total" class="total">0h00</span><span id="mine-range" class="metric-range"></span><span class="metric-footer">Horas registadas</span><span class="metric-action">Ver turnos<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></span></button>
     </div>
 
+    <section id="active-shift" class="card hidden" aria-labelledby="timer-title">
+      <div class="topbar"><h2 id="timer-title" class="section-title">Turno em curso</h2><button id="resume-active" class="ghost" type="button">Ver entrada</button></div>
+      <div id="shift-timer" class="shift-timer" aria-label="Tempo desde a entrada">00:00:00</div>
+      <div class="actions"><button id="pause-toggle" type="button">Iniciar pausa</button><span id="pause-total" class="field-help"></span></div>
+      <p id="pause-msg" role="status" aria-live="polite"></p>
+      <p id="timer-progress" class="field-help"></p>
+      <p id="timer-alert" role="status" aria-live="polite"></p>
+      <button id="calendar-alert" class="secondary" type="button">Lembrete das 8h no Calendário</button>
+      <p class="field-help">Adiciona o lembrete ao teu calendário para receber um aviso com a app fechada. O contador desconta as pausas. Depois de cada pausa, atualiza o lembrete no calendário; um lembrete já adicionado não é alterado automaticamente.</p>
+    </section>
     <section class="card form-card">
       <div class="topbar"><h2 id="form-title" class="section-title">Adicionar horário</h2><span id="sync" class="status" role="status" aria-live="polite"></span></div>
       <div class="row3">
@@ -273,14 +286,15 @@ function parseDurationInput(value){
   return minutes;
 }
 const isOpenShift=r=>(!r.day_type||r.day_type==='work')&&!!r.start_time&&!r.end_time&&durationOverride(r)===null;
-let openShiftId=null, correctingEntry=false;
+let openShiftId=null, correctingEntry=false, currentUserId=null;
+const draftKey=()=>currentUserId?'hours-entry-draft:'+currentUserId:null;
 function duration(r){
   if(isOpenShift(r))return 0;
   if(r.day_type==='day_off'||r.day_type==='vacation')return 0;
   const override=durationOverride(r);if(override!==null)return override;
   if(!r.start_time||!r.end_time)return 0;
   const [sh,sm]=r.start_time.split(':').map(Number), [eh,em]=r.end_time.split(':').map(Number);
-  let v=(eh*60+em)-(sh*60+sm); if(v<0)v+=1440; return v;
+  let v=(eh*60+em)-(sh*60+sm); if(v<0)v+=1440; return Math.max(0,Math.floor((v*60-storedBreakSeconds(r))/60));
 }
 function weekMon(d){const x=new Date(d);const wd=(x.getDay()+6)%7;return addDays(x,-wd)}
 function workWeekThu(d){const x=new Date(d);const wd=x.getDay();const back=(wd>=4?wd-4:wd+3);return addDays(x,-back)}
@@ -299,6 +313,7 @@ function setMsg(el,msg,ok=false){el.textContent=msg;el.className=msg?(ok?'ok':'e
 
 async function sessionUI(){
   const {data:{session}}=await supabase.auth.getSession();
+  currentUserId=session?.user.id||null;
   if(!session)setRecovering(false);
   $('recovery').classList.toggle('hidden',!recovering);
   $('auth').classList.toggle('hidden',!!session||recovering);
@@ -326,8 +341,8 @@ async function load(){
     if(version!==loadVersion)return;
     rows=loaded;
     if(selectedMonth===null)selectedMonth=rows.length?rows[0].work_date.slice(0,7):iso(new Date()).slice(0,7);
-    $('sync').textContent='Sincronizado';render();
-    if(!editingId&&!$('start').value){const pending=rows.find(isOpenShift);if(pending)resumeShift(pending)}
+    $('sync').textContent='Sincronizado';render();updateTimer();
+    if(!editingId&&!$('start').value){const pending=rows.find(isOpenShift);if(pending)resumeShift(pending);else restoreEntryDraft()}
   }catch(error){
     if(version!==loadVersion)return;
     $('sync').textContent='Erro de sincronização';
@@ -506,7 +521,7 @@ $('logout').onclick=async()=>{await supabase.auth.signOut();await sessionUI()};
 let savingHours=false;
 function setHoursBusy(busy){
   savingHours=busy;
-  for(const id of ['save','cancel','correct-entry','day-off','vacation-toggle','vacation-save','vacation-cancel'])$(id).disabled=busy;
+  for(const id of ['save','cancel','correct-entry','pause-toggle','day-off','vacation-toggle','vacation-save','vacation-cancel'])$(id).disabled=busy;
 }
 function closeVacation(){
   $('vacation-panel').classList.add('hidden');$('vacation-toggle').setAttribute('aria-expanded','false');
@@ -553,7 +568,7 @@ async function saveNonWork(day_type,first,last){
     }
     $('sync').textContent='A guardar…';
     const updated_at=new Date().toISOString();
-    const records=dates.map(work_date=>({user_id:user.id,work_date,day_type,start_time:null,end_time:null,duration_minutes:null,notes:existing.find(r=>r.work_date===work_date)?.notes??null,updated_at}));
+    const records=dates.map(work_date=>({user_id:user.id,work_date,day_type,start_time:null,end_time:null,duration_minutes:null,break_seconds:0,paused_at:null,notes:existing.find(r=>r.work_date===work_date)?.notes??null,updated_at}));
     const {error}=await supabase.from('personal_work_hours').upsert(records,{onConflict:'user_id,work_date'});
     if(error)throw error;
     if(!activeWeek&&selectedMonth!==''&&selectedMonth!==null)selectedMonth=first.slice(0,7);
@@ -572,8 +587,8 @@ function updateShiftForm(){
   $('save').textContent=correctingEntry?'Guardar entrada':locked?'Terminar e guardar':editingId||$('end').value||$('duration-override').value.trim()?'Guardar horário':'Iniciar turno';
   $('correct-entry').classList.toggle('hidden',!locked);
   $('correct-entry').textContent=correctingEntry?'Cancelar correção':'Corrigir entrada';
-  $('shift-lock').classList.toggle('hidden',!locked);
-  $('shift-lock').textContent=locked?'Entrada guardada. Indica a saída para concluir o dia.':'';
+  $('shift-lock').classList.toggle('hidden',!locked&&!$('start').value);
+  $('shift-lock').textContent=locked?'Entrada guardada. Indica a saída para concluir o dia.':$('start').value?'Entrada por confirmar — carrega em Iniciar turno para guardar e iniciar o contador.':'';
   if(locked)$('form-title').textContent='Turno em curso';
 }
 function resumeShift(record){
@@ -600,12 +615,26 @@ $('save').onclick=async()=>{
   let duration_minutes;
   try{duration_minutes=parseDurationInput($('duration-override').value)}catch(error){$('shift-details').open=true;setMsg($('form-msg'),error.message);$('duration-override').focus();return}
   const notes=$('notes').value.trim()||null;
+  const previous=rows.find(r=>r.id===recordId);
+  let break_seconds=previous?storedBreakSeconds(previous):0;
+  if(previous&&end_time&&!correctingEntry){
+    const timing={...previous,work_date,start_time};
+    let finish=new Date(work_date+'T'+end_time).getTime();
+    if(finish<shiftStart(timing)){const date=new Date(finish);date.setDate(date.getDate()+1);finish=date.getTime()}
+    if(previous.paused_at){
+      const pauseStart=new Date(previous.paused_at).getTime();
+      if(finish<pauseStart)return setMsg($('form-msg'),'A saída não pode ser anterior ao início da pausa.');
+      break_seconds+=Math.max(0,Math.floor((finish-pauseStart)/1000));
+    }
+    if(finish-shiftStart(timing)<break_seconds*1000)return setMsg($('form-msg'),'As pausas não podem ultrapassar a duração do turno.');
+  }
   setHoursBusy(true);
   try{
   const {data:{user}}=await supabase.auth.getUser(); if(!user)return;
   $('sync').textContent='A guardar…';
   let result;
   if(correctingEntry){
+    if(previous?.paused_at&&shiftStart({work_date,start_time})>new Date(previous.paused_at).getTime())throw new Error('A entrada deve ser anterior ao início da pausa.');
     result=await supabase.from('personal_work_hours').update({start_time,updated_at:new Date().toISOString()}).eq('id',recordId);
     if(result.error)throw result.error;
     correctingEntry=false;await load();updateShiftForm();setMsg($('form-msg'),'Entrada corrigida e bloqueada.',true);return;
@@ -615,17 +644,17 @@ $('save').onclick=async()=>{
     if(error)throw error;
     if(data?.length&&!confirm('Este dia já tem um registo. Substituir pelo novo horário?')){$('sync').textContent='Sincronizado';return;}
   }
-  if(recordId) result=await supabase.from('personal_work_hours').update({work_date,start_time,end_time,duration_minutes,notes,day_type:'work',updated_at:new Date().toISOString()}).eq('id',recordId);
-  else result=await supabase.from('personal_work_hours').upsert({user_id:user.id,work_date,start_time,end_time,duration_minutes,notes,day_type:'work',updated_at:new Date().toISOString()},{onConflict:'user_id,work_date'});
+  if(recordId) result=await supabase.from('personal_work_hours').update({work_date,start_time,end_time,duration_minutes,notes,break_seconds,paused_at:null,day_type:'work',updated_at:new Date().toISOString()}).eq('id',recordId);
+  else result=await supabase.from('personal_work_hours').upsert({user_id:user.id,work_date,start_time,end_time,duration_minutes,notes,break_seconds,paused_at:null,day_type:'work',updated_at:new Date().toISOString()},{onConflict:'user_id,work_date'});
   if(result.error){$('sync').textContent='Erro';return setMsg($('form-msg'),result.error.message)}
   if(!activeWeek&&selectedMonth!==''&&selectedMonth!==null)selectedMonth=work_date.slice(0,7);
-  resetForm(); await load();
+  clearEntryDraft();resetForm(); await load();
   if(start_time&&!end_time&&duration_minutes===null)setMsg($('form-msg'),'Entrada guardada e bloqueada.',true);
   }catch(error){$('sync').textContent='Erro';setMsg($('form-msg'),error.message||'Não foi possível guardar. Tenta novamente.')}
   finally{setHoursBusy(false)}
 };
 function resetForm(){closeVacation();openShiftId=null;correctingEntry=false;editingId=null;$('form-title').textContent='Adicionar horário';$('cancel').classList.add('hidden');$('date').value=iso(new Date());$('start').value='';$('end').value='';$('duration-override').value='';$('notes').value='';$('shift-details').open=false;setMsg($('form-msg'),'');updateShiftForm()}
-$('cancel').onclick=resetForm;
+$('cancel').onclick=()=>{clearEntryDraft();resetForm()};
 $('list').onclick=async e=>{
   if(!editingRecords||savingHours)return;
   const action=e.target.closest('[data-edit],[data-del]');if(!action)return;
@@ -639,6 +668,76 @@ supabase.auth.onAuthStateChange((event)=>{
   // Supabase holds its auth lock during this callback: defer SDK calls.
   setTimeout(()=>sessionUI().catch(()=>setMsg($('auth-msg'),'Não foi possível carregar a sessão. Tenta novamente.')),0);
 });
+
+function clearEntryDraft(){try{if(draftKey())localStorage.removeItem(draftKey())}catch{}}
+function saveEntryDraft(){
+  if(!currentUserId||editingId||openShiftId)return;
+  try{localStorage.setItem(draftKey(),JSON.stringify({date:$('date').value,start:$('start').value,end:$('end').value,notes:$('notes').value,duration:$('duration-override').value}))}catch{}
+  updateShiftForm();
+}
+function restoreEntryDraft(){
+  try{const draft=JSON.parse(localStorage.getItem(draftKey())||'null');if(!draft||!draft.start)return;
+    for(const [id,key] of [['date','date'],['start','start'],['end','end'],['notes','notes'],['duration-override','duration']])$(id).value=draft[key]||'';
+    updateShiftForm();
+  }catch{}
+}
+for(const id of ['date','start','end','notes','duration-override'])$(id).addEventListener('input',saveEntryDraft);
+const activeShift=()=>currentUserId?rows.find(isOpenShift):null;
+function shiftStart(record){return new Date(record.work_date+'T'+record.start_time.slice(0,8)).getTime()}
+function storedBreakSeconds(record){return Number.isInteger(record.break_seconds)&&record.break_seconds>0?record.break_seconds:0}
+function totalBreakSeconds(record,now=Date.now()){
+  return storedBreakSeconds(record)+(record.paused_at?Math.max(0,Math.floor((now-new Date(record.paused_at).getTime())/1000)):0);
+}
+function workedSeconds(record,now=Date.now()){
+  return Math.max(0,Math.floor((now-shiftStart(record))/1000)-totalBreakSeconds(record,now));
+}
+$('pause-toggle').onclick=async()=>{
+  if(savingHours)return;
+  const current=activeShift();if(!current)return;
+  setHoursBusy(true);setMsg($('pause-msg'),'');
+  try{
+    // Refresh this row before toggling so another device's pause is respected.
+    const {data,error}=await supabase.from('personal_work_hours').select('*').eq('id',current.id).range(0,0);
+    if(error)throw error;
+    const record=data?.[0];if(!record||!isOpenShift(record))throw new Error('Este turno já não está em curso. Atualiza a página.');
+    const now=Date.now();
+    if(now<shiftStart(record))throw new Error('A entrada está no futuro. Corrige a hora antes de iniciar a pausa.');
+    const changes=record.paused_at?{break_seconds:totalBreakSeconds(record,now),paused_at:null}:{break_seconds:storedBreakSeconds(record),paused_at:new Date(now).toISOString()};
+    const result=await supabase.from('personal_work_hours').update({...changes,updated_at:new Date(now).toISOString()}).eq('id',record.id);
+    if(result.error)throw result.error;
+    Object.assign(record,changes);const index=rows.findIndex(r=>r.id===record.id);if(index>=0)rows[index]=record;
+    updateTimer();setMsg($('pause-msg'),changes.paused_at?'Pausa guardada. O contador está parado.':'Trabalho retomado. Pausa descontada.',true);
+  }catch(error){setMsg($('pause-msg'),error.message||'Não foi possível guardar a pausa. Tenta novamente.')}
+  finally{setHoursBusy(false)}
+};
+function updateTimer(){
+  const record=activeShift();$('active-shift').classList.toggle('hidden',!record);
+  if(!record){$('timer-alert').textContent='';return}
+  const elapsed=workedSeconds(record);
+  $('pause-toggle').textContent=record.paused_at?'Retomar trabalho':'Iniciar pausa';
+  $('timer-title').textContent=record.paused_at?'Em pausa':'Turno em curso';
+  $('pause-total').textContent=`Pausas: ${fmtMins(Math.floor(totalBreakSeconds(record)/60))}`;
+  $('calendar-alert').disabled=!!record.paused_at;
+  const limit=8*60*60,over=elapsed>=limit;
+  $('shift-timer').textContent=`${pad(Math.floor(elapsed/3600))}:${pad(Math.floor(elapsed/60)%60)}:${pad(elapsed%60)}`;
+  $('active-shift').classList.toggle('over-limit',over);
+  $('timer-progress').textContent=over?`${fmtMins(Math.floor((elapsed-limit)/60))} além das 8 horas.`:`Faltam ${fmtMins(Math.ceil((limit-elapsed)/60))} para as 8 horas.`;
+  const warning=over?'Já completaste 8 horas de trabalho, sem contar as pausas. Confirma a saída para evitar horas a mais.':'';
+  if($('timer-alert').textContent!==warning)$('timer-alert').textContent=warning;
+}
+$('resume-active').onclick=()=>{const record=activeShift();if(record){resumeShift(record);$('end').focus()}};
+$('calendar-alert').onclick=()=>{
+  const record=activeShift();if(!record||record.paused_at)return;
+  const target=new Date(shiftStart(record)+8*3600000+storedBreakSeconds(record)*1000);
+  const stamp=date=>date.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z');
+  const content=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//HOURS//Lembrete//PT','BEGIN:VEVENT',`UID:hours-${record.id}@hours`, `DTSTAMP:${stamp(new Date())}`,`DTSTART:${stamp(target)}`,`DTEND:${stamp(new Date(target.getTime()+60000))}`,'SUMMARY:HOURS - Completaste 8 horas','DESCRIPTION:Confirma a hora de saida na HOURS. Oito horas trabalhadas com as pausas registadas descontadas.','BEGIN:VALARM','TRIGGER:PT0S','ACTION:DISPLAY','DESCRIPTION:Completaste 8 horas. Confirma a saida.','END:VALARM','END:VEVENT','END:VCALENDAR'].join('\r\n')+'\r\n';
+  const url=URL.createObjectURL(new Blob([content],{type:'text/calendar;charset=utf-8'}));
+  const link=document.createElement('a');link.href=url;link.download='hours-lembrete-8h.ics';link.click();setTimeout(()=>URL.revokeObjectURL(url),60000);
+};
+setInterval(updateTimer,1000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){updateTimer();sessionUI().catch(()=>{})}});
+window.addEventListener('pageshow',updateTimer);
+
 $('date').value=iso(new Date());
 const today=new Date();
 const todayDay=new Intl.DateTimeFormat('pt-PT',{weekday:'long'}).format(today);
