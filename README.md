@@ -232,3 +232,11 @@ Fontes: `sql/hours-push.sql`, `sql/hours-push-schedule.sql`,
 respostas simuladas. `tests/push-scheduler.sql` é um teste opcional para ambiente
 isolado/local; não executar em produção. A receção real exige validar no iPhone
 após a subscrição; os testes simulados não comprovam a entrega da Apple.
+
+## Definições e cronómetro
+
+O cartão do turno mostra apenas o estado, cronómetro e ação de pausa.
+A roda dentada no canto superior abre Definições: resumo das pausas, acesso
+à entrada/saída, notificações e a alternativa de Calendário recolhida.
+O painel fecha com o botão Fechar, Escape ou toque fora, e devolve o foco
+à roda dentada. As definições estão disponíveis mesmo sem turno ativo.

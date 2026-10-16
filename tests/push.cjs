@@ -17,7 +17,8 @@ test('push permission, subscription persistence and disable work without changin
  await page.goto('https://hours.test/');await page.waitForFunction(()=>document.getElementById('sync').textContent==='Sincronizado');
  // Reveal the controls in this fixture without creating a shift.
  await page.locator('#active-shift').evaluate(e=>e.classList.remove('hidden'));
- await page.click('#push-enable');await page.waitForFunction(()=>window.calls.some(c=>c[0]==='push-subscribe'));
+ assert.equal(await page.locator('#hours-settings').isVisible(),false);
+ await page.click('#settings-open');await page.click('#push-enable');await page.waitForFunction(()=>window.calls.some(c=>c[0]==='push-subscribe'));
  const sub=await page.evaluate(()=>window.calls.find(c=>c[0]==='push-subscribe')[1]);assert.equal(sub.user_id,'user');assert.ok(sub.time_zone);
  assert.match(await page.textContent('#push-status'),/ativadas/);
  await page.click('#push-disable');assert.equal(await page.evaluate(()=>window.savedSub),null);

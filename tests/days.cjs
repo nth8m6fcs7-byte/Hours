@@ -154,9 +154,9 @@ test('timer recalculates overnight elapsed time, turns red at eight hours and re
   await page.clock.setFixedTime(new Date('2026-10-17T06:00:00'));
   await page.waitForFunction(()=>document.getElementById('active-shift').classList.contains('over-limit'));
   assert.match(await page.textContent('#timer-alert'),/8 horas/);
-  await page.click('#cancel');await page.click('#resume-active');
+  await page.click('#cancel');await page.click('#settings-open');await page.click('#resume-active');
   assert.equal(await page.inputValue('#date'),'2026-10-16');assert.equal(await page.isDisabled('#start'),true);
-  const downloadPromise=page.waitForEvent('download');await page.click('#calendar-alert');const download=await downloadPromise;
+  await page.click('#settings-open');await page.locator('.settings-calendar summary').click();const downloadPromise=page.waitForEvent('download');await page.click('#calendar-alert');const download=await downloadPromise;await page.getByRole('button',{name:'Fechar definições'}).click();
   assert.equal(download.suggestedFilename(),'hours-lembrete-8h.ics');
   const calendar=fs.readFileSync(await download.path(),'utf8');assert.match(calendar,/BEGIN:VALARM/);assert.match(calendar,/DTSTART:20261017T060000Z/);
   await page.fill('#end','06:00');await page.click('#save');
@@ -183,7 +183,7 @@ test('pauses freeze worked time, survive reopening, shift the eight-hour target 
   await page.clock.setFixedTime(new Date('2026-10-16T18:30:00'));
   await page.waitForFunction(()=>document.getElementById('shift-timer').textContent==='07:30:00');
   assert.equal(await page.locator('#active-shift').evaluate(e=>e.classList.contains('over-limit')),false);
-  const downloadPromise=page.waitForEvent('download');await page.click('#calendar-alert');const download=await downloadPromise;
+  await page.click('#settings-open');await page.locator('.settings-calendar summary').click();const downloadPromise=page.waitForEvent('download');await page.click('#calendar-alert');const download=await downloadPromise;await page.getByRole('button',{name:'Fechar definições'}).click();
   assert.match(fs.readFileSync(await download.path(),'utf8'),/DTSTART:20261016T190000Z/);
   await page.clock.setFixedTime(new Date('2026-10-16T19:00:00'));
   await page.waitForFunction(()=>document.getElementById('active-shift').classList.contains('over-limit'));
