@@ -159,6 +159,17 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
     #my-time.section-collapsed .overview{margin-bottom:0}#records.section-collapsed .records-heading{margin-bottom:0}
     #shift-section.section-collapsed{padding-top:12px;padding-bottom:12px}
 
+
+    #my-time,#shift-section,#records{padding:0;margin:0 0 24px;border:0;border-radius:0;background:none;box-shadow:none;backdrop-filter:none}
+    #shift-section.section-collapsed{padding:0}
+    #my-time .section-header,#shift-section>.section-header,#records>.section-header{display:flex;align-items:center;margin:0 0 14px;padding:0;min-height:48px}
+    #my-time.section-collapsed .section-header,#shift-section.section-collapsed>.section-header,#records.section-collapsed>.section-header{margin-bottom:0}
+    #my-time .section-header h2,#shift-section>.section-header h2,#records>.section-header h2{font-size:17px;line-height:1.4;letter-spacing:-.3px;font-weight:500;margin:0;width:100%}
+    #my-time .section-toggle,#shift-section .section-toggle,#records .section-toggle{min-height:48px;padding:0;background:none;border:0;border-radius:8px;color:var(--ink);font-size:17px;font-weight:500;letter-spacing:-.3px}
+    #shift-section:has(.over-limit){border:0}
+    #hours-settings #account{margin-top:18px;border-top:1px solid #ffffff12}#hours-settings #account summary{font-size:14px;font-weight:500;color:#edf2fa}
+    #hours-settings #account .account-content p{font-size:12px}
+
   </style>
 </head>
 <body>
@@ -225,7 +236,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
 
     <dialog id="hours-settings" aria-labelledby="settings-title">
       <div class="settings-heading"><div><p class="settings-eyebrow">HOURS</p><h2 id="settings-title">Definições</h2></div><form method="dialog"><button class="settings-close" aria-label="Fechar definições" autofocus>✕</button></form></div>
-      <section class="settings-section"><h3>Turno e pausas</h3>
+      <section class="settings-section"><h3>Turno e pausas</h3><p id="sync" class="field-help" role="status" aria-live="polite"></p>
         <p id="pause-total" class="field-help"></p><p id="timer-progress" class="field-help"></p>
         <button id="resume-active" class="secondary" type="button">Ver entrada e saída</button>
       </section>
@@ -237,9 +248,14 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
       <button id="calendar-alert" class="secondary" type="button">Lembrete das 8h no Calendário</button>
       <p class="field-help">Adiciona o lembrete ao teu calendário para receber um aviso com a app fechada. O contador desconta as pausas. Depois de cada pausa, atualiza o lembrete no calendário; um lembrete já adicionado não é alterado automaticamente.</p>
       </details>
+      <section class="settings-section"><h3>Turnos</h3><button id="edit-records" class="secondary" aria-pressed="false" aria-controls="list">Editar turnos</button></section>
+    <details id="account" class="account">
+      <summary><span><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg>A tua conta</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+      <div class="account-content"><p>Entra mais depressa neste dispositivo com uma passkey.</p><div class="actions"><button id="passkey-register" class="secondary">Ativar Face ID</button><button id="logout" class="ghost hidden">Sair da conta</button></div><div id="passkey-msg" role="status" aria-live="polite"></div></div>
+    </details>
     </dialog>
     <section id="shift-section" class="card form-card">
-      <div class="topbar section-header"><h2 class="section-title"><button id="toggle-shift" class="section-toggle" type="button" aria-expanded="true" aria-controls="shift-section"><span id="form-title">Adicionar horário</span></button></h2><span id="sync" class="status" role="status" aria-live="polite"></span></div>
+      <div class="topbar section-header"><h2 class="section-title"><button id="toggle-shift" class="section-toggle" type="button" aria-expanded="true" aria-controls="shift-section"><span id="form-title">Adicionar horário</span></button></h2></div>
     <section id="active-shift" class="hidden" aria-labelledby="timer-title">
       <h2 id="timer-title" class="section-title">Turno em curso</h2>
       <div id="shift-timer" class="shift-timer" aria-label="Tempo trabalhado, sem pausas">00:00:00</div>
@@ -283,7 +299,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
     </section>
 
     <section class="records" id="records" aria-labelledby="records-title">
-      <div class="topbar records-heading section-header"><h2 id="records-title" class="section-title" tabindex="-1"><button id="toggle-records" class="section-toggle" type="button" aria-expanded="true" aria-controls="records">Turnos</button></h2><button id="edit-records" class="secondary" aria-pressed="false" aria-controls="list">Editar</button></div>
+      <div class="topbar records-heading section-header"><h2 id="records-title" class="section-title" tabindex="-1"><button id="toggle-records" class="section-toggle" type="button" aria-expanded="true" aria-controls="records">Turnos</button></h2></div>
       <div class="history-panel">
         <div id="month-controls" class="month-controls">
           <button id="month-prev" aria-label="Mês anterior"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button>
@@ -301,10 +317,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
       <div id="list"></div>
       <p id="history-coverage" class="history-coverage"></p>
     </section>
-    <details id="account" class="account">
-      <summary><span><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg>A tua conta</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
-      <div class="account-content"><p>Entra mais depressa neste dispositivo com uma passkey.</p><div class="actions"><button id="passkey-register" class="secondary">Ativar Face ID</button><button id="logout" class="ghost hidden">Sair da conta</button></div><div id="passkey-msg" role="status" aria-live="polite"></div></div>
-    </details>
+
   </main>
   <footer class="footer"><span>As Minhas Horas</span><span>Uma hora de cada vez.</span></footer>
 </div>
@@ -456,7 +469,7 @@ function renderHistory(){
   $('record-count').textContent=`${visible.length} ${visible.length===1?'turno':'turnos'}`;
   $('history-total').textContent=fmtMins(visible.reduce((sum,r)=>sum+duration(r),0));
   $('history-total-label').textContent=week?'na semana':current?'no mês':'no total';
-  $('edit-records').textContent=editingRecords?'Concluir':'Editar';
+  $('edit-records').textContent=editingRecords?'Concluir edição':'Editar turnos';
   $('edit-records').setAttribute('aria-pressed',String(editingRecords));
   $('edit-records').disabled=!visible.length&&!editingRecords;
   $('records').classList.toggle('editing',editingRecords);
@@ -492,6 +505,7 @@ $('edit-records').onclick=()=>{
   editingRecords=!editingRecords;
   if(!editingRecords&&editingId)resetForm();
   renderHistory();
+  $('hours-settings').close();focusHistory();
 };
 function authMode(next){
   mode=next;

@@ -107,25 +107,25 @@ test('global edit mode reveals actions, clears edit on conclusion and preserves 
   assert.match(await page.textContent('#edit-records'),/Editar/);
   assert.equal(await page.locator('[data-edit]:visible').count(),0);
   assert.equal(await page.locator('[data-del]:visible').count(),0);
-  await page.click('#edit-records');
+  await editSettings(page);
   assert.equal(await page.getAttribute('#edit-records','aria-pressed'),'true');
   assert.match(await page.textContent('#edit-records'),/Concluir/);
   assert.equal(await page.locator('[data-edit]:visible').count(),2);
   await page.click('[data-edit="jan-night"]');
   assert.equal(await page.inputValue('#start'),'22:00');
   assert.equal(await page.locator('#cancel').isVisible(),true);
-  await page.click('#edit-records');
+  await editSettings(page);
   assert.equal(await page.getAttribute('#edit-records','aria-pressed'),'false');
   assert.equal(await page.locator('#cancel').isVisible(),false);
   assert.equal(await page.inputValue('#start'),'');
   assert.equal(await page.locator('[data-edit]:visible').count(),0);
   await page.fill('#date','2026-01-18');await page.fill('#start','12:00');await page.fill('#end','16:00');
-  await page.click('#edit-records');await page.click('#edit-records');
+  await editSettings(page);await editSettings(page);
   assert.equal(await page.inputValue('#date'),'2026-01-18');
   assert.equal(await page.inputValue('#start'),'12:00');
   assert.equal(await page.inputValue('#end'),'16:00');
   assert.equal(await page.getAttribute('#edit-records','aria-pressed'),'false');
-  await page.selectOption('#month-filter','2025-12');await page.click('#edit-records');
+  await page.selectOption('#month-filter','2025-12');await editSettings(page);
   await page.click('[data-edit="dec-day"]');
   page.once('dialog',dialog=>dialog.accept());await page.click('[data-del="dec-day"]');
   await page.waitForFunction(()=>window.calls.some(call=>call[0]==='delete')&&document.getElementById('sync').textContent==='Sincronizado');
@@ -199,7 +199,7 @@ test('weekly and monthly browsing preserves new drafts and the edited record tar
   for(const control of ['#tips-card','#mine-card','#history-back']){await page.click(control);assert.deepEqual(await values(),draft)}
   assert.equal(await page.inputValue('#month-filter'),'2026-11');
   assert.equal(await page.locator('#cancel').isVisible(),false);
-  await page.click('#edit-records');await page.click('[data-edit="older-month"]');
+  await editSettings(page);await page.click('[data-edit="older-month"]');
   await page.fill('#start','10:30');await page.fill('#end','13:00');
   if(!await page.locator('#shift-details').evaluate(element=>element.open))await page.click('#shift-details summary');
   await page.fill('#duration-override','02:15');await page.fill('#notes','Pausa de 15 minutos. Compras às 10:30.');
@@ -226,7 +226,7 @@ test('weekly history keeps editing and deletion scoped correctly and note times 
  await withHistory(yearBoundaryRecords,async page=>{
   const waitForEdit=async count=>page.waitForFunction(count=>window.calls.filter(call=>call[0]==='edit').length===count&&document.getElementById('sync').textContent==='Sincronizado',count);
   await page.selectOption('#month-filter','2026-11');
-  await page.click('#mine-card');await page.click('#edit-records');
+  await page.click('#mine-card');await editSettings(page);
   assert.equal(await page.locator('[data-edit]:visible').count(),4);
   await page.click('[data-edit="week-sun"]');await page.fill('#notes','Compras às 10:30. Não altera o turno.');await page.click('#save');await waitForEdit(1);
   assert.equal(await page.getAttribute('#mine-card','aria-pressed'),'true');assert.equal(await page.textContent('#history-total'),'18h00');
@@ -262,7 +262,7 @@ test('adjusted duration counts split shifts and zero in monthly and both weekly 
   await page.selectOption('#month-filter','2026-06');assert.equal(await page.textContent('#history-total'),'8h00');
   await page.selectOption('#month-filter','');assert.equal(await page.textContent('#history-total'),'24h10');
   assert.equal(await page.locator('.grid').innerText(),weekly);
-  await page.click('#edit-records');await page.click('[data-edit="zero-shift"]');
+  await editSettings(page);await page.click('[data-edit="zero-shift"]');
   assert.equal(await page.inputValue('#duration-override'),'00:00');
   assert.equal(await page.inputValue('#notes'),'Zero contado');
  });
@@ -272,7 +272,7 @@ test('editing preserves, adjusts and clears recorded duration and notes while es
  await withHistory(adjustedRecords,async page=>{
   const waitForEdit=async count=>page.waitForFunction(count=>window.calls.filter(call=>call[0]==='edit').length===count&&document.getElementById('sync').textContent==='Sincronizado',count);
   const lastEdit=()=>page.evaluate(()=>window.calls.filter(call=>call[0]==='edit').at(-1)[2]);
-  await page.click('#edit-records');
+  await editSettings(page);
   const originalTotals=await page.locator('#history-total,#tips-total,#mine-total').allTextContents();
   await page.click('[data-edit="automatic-shift"]');
   assert.equal(await page.inputValue('#duration-override'),'');
@@ -383,7 +383,7 @@ test('signing out while history loads prevents stale user records from reappeari
   await page.fill('#date','2026-01-09');await page.fill('#start','09:00');await page.fill('#end','10:00');
   await page.evaluate(()=>window.deferNextRange=true);await page.click('#save');
   await page.waitForFunction(()=>typeof window.resumeRange==='function');
-  await page.click('#account summary');await page.click('#logout');
+  await openAccount(page);await openAccount(page);await page.click('#logout');
   await page.waitForSelector('#auth',{state:'visible'});
   await page.evaluate(()=>window.resumeRange());
   // Give the pending query and deferred auth event a chance to settle.
@@ -411,3 +411,6 @@ for(const failure of ['recordErrorAt','recordEmptyAt']){
   });
  });
 }
+
+async function editSettings(page){if(!await page.locator('#hours-settings').isVisible())await page.click('#settings-open');await page.click('#edit-records')}
+async function openAccount(page){if(!await page.locator('#hours-settings').isVisible())await page.click('#settings-open');if(!await page.locator('#account').evaluate(e=>e.open))await page.click('#account summary')}

@@ -255,3 +255,7 @@ Corrigir entrada volta a mostrar os campos bloqueados.
 As três secções podem ser abertas/recolhidas pelo respetivo título, com indicação
 de estado e suporte de teclado. Recolher preserva os campos e o cronómetro.
 Consultar uma semana abre Turnos; editar ou retomar uma entrada abre o formulário.
+
+As três secções usam cabeçalhos idênticos, sem caixa exterior. A tua conta
+e Editar turnos ficam nas definições. Editar abre automaticamente Turnos e
+fecha o painel de definições. O estado de sincronização fica nas definições.

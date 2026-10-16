@@ -80,15 +80,15 @@ test('authentication, recovery, passkeys and hours regression',async()=>{
   await page.click('#passkey-login');await page.waitForSelector('#app',{state:'visible'});
   assert.equal(await page.textContent('#tips-total'),'8h00');assert.equal(await page.textContent('#mine-total'),'17h00');
   assert.equal(await page.locator('#passkey-register').isVisible(),false);
-  await page.click('#account summary');
+  await openAccount(page);
   await page.click('#passkey-register');await page.waitForFunction(()=>window.calls.some(c=>c[0]==='register'));
   assert.equal(await page.locator('[data-edit="two"]').isVisible(),false);
-  await page.click('#edit-records');assert.equal(await page.getAttribute('#edit-records','aria-pressed'),'true');
+  await editSettings(page);assert.equal(await page.getAttribute('#edit-records','aria-pressed'),'true');
   await page.click('[data-edit="two"]');assert.equal(await page.inputValue('#start'),'22:00');
   await page.fill('#end','03:00');await page.click('#save');await page.waitForFunction(()=>window.calls.some(c=>c[0]==='edit'));
   await page.fill('#date','2026-10-06');await page.fill('#start','09:00');await page.fill('#end','18:00');await page.click('#save');
   await page.waitForFunction(()=>window.calls.some(c=>c[0]==='upsert'));
-  if(await page.getAttribute('#edit-records','aria-pressed')!=='true')await page.click('#edit-records');
+  if(await page.getAttribute('#edit-records','aria-pressed')!=='true')await editSettings(page);
   page.once('dialog',dialog=>dialog.accept());await page.click('[data-del="three"]');
   await page.waitForFunction(()=>window.calls.some(c=>c[0]==='delete'));
   await page.evaluate(()=>window.authEvent('PASSWORD_RECOVERY'));
@@ -100,7 +100,7 @@ test('authentication, recovery, passkeys and hours regression',async()=>{
   assert.equal(await page.locator('#recovery').isVisible(),true);
   await page.evaluate(()=>window.authError=null);await page.click('#recovery-submit');
   await page.waitForSelector('#app',{state:'visible'});assert.equal(await page.evaluate(()=>sessionStorage.getItem('hours-password-recovery')),null);
-  await page.click('#logout');await page.waitForSelector('#auth',{state:'visible'});
+  await openAccount(page);await page.click('#logout');await page.waitForSelector('#auth',{state:'visible'});
   await page.fill('#email','person@example.com');await page.fill('#password','example-password');await page.click('#auth-submit');
   await page.waitForSelector('#app',{state:'visible'});
   await page.evaluate(()=>window.authEvent('PASSWORD_RECOVERY'));await page.waitForSelector('#recovery',{state:'visible'});
@@ -127,3 +127,6 @@ test('authentication, recovery, passkeys and hours regression',async()=>{
   assert.equal(await page.locator('#auth-submit').isDisabled(),false);
  }finally{await browser.close()}
 });
+
+async function editSettings(page){if(!await page.locator('#hours-settings').isVisible())await page.click('#settings-open');await page.click('#edit-records')}
+async function openAccount(page){if(!await page.locator('#hours-settings').isVisible())await page.click('#settings-open');if(!await page.locator('#account').evaluate(e=>e.open))await page.click('#account summary')}

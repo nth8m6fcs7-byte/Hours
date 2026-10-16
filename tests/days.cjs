@@ -29,7 +29,7 @@ test('Folga confirms replacement, cancels safely, clears hours and supports dele
   assert.equal(row.day_type,'day_off');for(const key of ['start_time','end_time','duration_minutes'])assert.equal(row[key],null);
   assert.match(await page.locator('#list .shift').first().innerText(),/Folga.*0h00/s);
   assert.equal(await page.textContent('#tips-total'),'0h00');assert.equal(await page.textContent('#mine-total'),'9h00');
-  await page.click('#edit-records');assert.equal(await page.locator('[data-edit="one"]').count(),0);assert.equal(await page.locator('[data-del="one"]').count(),1);
+  await editSettings(page);assert.equal(await page.locator('[data-edit="one"]').count(),0);assert.equal(await page.locator('[data-del="one"]').count(),1);
   await page.fill('#date','2026-10-05');await page.fill('#start','09:00');await page.fill('#end','17:00');await page.click('#save');
   await page.waitForFunction(()=>window.records.find(r=>r.id==='one').day_type==='work'&&document.getElementById('sync').textContent==='Sincronizado');
   await page.click('[data-edit="one"]');await page.click('#save');
@@ -56,7 +56,7 @@ test('Férias validates dates, confirms all conflicts and saves inclusively acro
   assert.equal(await page.inputValue('#month-filter'),'2026-09');
   await page.selectOption('#month-filter','');assert.equal(await page.locator('#list .shift').count(),6);
   assert.equal(await page.textContent('#history-total'),'0h00');assert.equal(await page.textContent('#tips-total'),'0h00');assert.equal(await page.textContent('#mine-total'),'0h00');
-  await page.click('#edit-records');assert.equal(await page.locator('[data-edit]').count(),0);assert.equal(await page.locator('[data-del]').count(),6);
+  await editSettings(page);assert.equal(await page.locator('[data-edit]').count(),0);assert.equal(await page.locator('[data-del]').count(),6);
   await page.click('#vacation-toggle');
   for(const width of [320,375,390,430,780]){await page.setViewportSize({width,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true)}
   if(process.env.DAYS_PREVIEW_PATH){await page.setViewportSize({width:390,height:844});await page.screenshot({path:process.env.DAYS_PREVIEW_PATH,fullPage:true})}
@@ -210,3 +210,6 @@ test('failed pause write does not stop the timer; finishing during a pause deduc
   assert.equal(await page.textContent('#tips-total'),'2h00');
  });
 });
+
+async function editSettings(page){if(!await page.locator('#hours-settings').isVisible())await page.click('#settings-open');await page.click('#edit-records')}
+async function openAccount(page){if(!await page.locator('#hours-settings').isVisible())await page.click('#settings-open');if(!await page.locator('#account').evaluate(e=>e.open))await page.click('#account summary')}
