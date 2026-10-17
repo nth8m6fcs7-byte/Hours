@@ -234,3 +234,43 @@ test('starting an empty form records the current local time and locks entry with
   assert.equal(await page.textContent('#tips-total'),'0h30');
  });
 });
+
+test('clicking the timer corrects a forgotten pause, adjusts worked time and persists the final total',async()=>{
+ await withDays(async page=>{
+  await page.clock.setFixedTime(new Date('2026-10-17T10:00:00'));
+  await page.click('#save');await saved(page);
+  await page.clock.setFixedTime(new Date('2026-10-17T12:00:00'));await page.click('#pause-toggle');
+  await page.waitForFunction(()=>document.getElementById('timer-title').textContent==='Em pausa');
+  await page.clock.setFixedTime(new Date('2026-10-17T14:00:00'));
+  await page.click('#shift-timer');await page.fill('#adjust-resume','2026-10-17T13:00');await page.click('#adjust-save');
+  await page.waitForFunction(()=>document.getElementById('shift-timer').textContent==='03:00:00');
+  assert.equal(await page.textContent('#pause-toggle'),'Iniciar pausa');
+  for(const [mode,value,expected] of [['add','00:30','03:30:00'],['subtract','00:15','03:15:00'],['total','08:00','08:00:00'],['total','04:00','04:00:00']]){
+   await page.click('#shift-timer');await page.selectOption('#adjust-mode',mode);await page.fill('#adjust-amount',value);await page.click('#adjust-save');
+   await page.waitForFunction(value=>document.getElementById('shift-timer').textContent===value,expected);
+   assert.equal(await page.locator('#active-shift').evaluate(e=>e.classList.contains('over-limit')),expected==='08:00:00');
+  }
+  const persisted=await page.evaluate(()=>window.records);
+  await page.unroute('https://hours.test/**');
+  await page.route('https://hours.test/**',route=>route.fulfill({contentType:'text/html',body:html.replace(/^import .*;$/m,()=>stub+'\nwindow.session={user:{id:"user"}};window.records='+JSON.stringify(persisted)+';')}));
+  await page.reload();await page.waitForFunction(()=>document.getElementById('shift-timer').textContent==='04:00:00');
+  await page.clock.setFixedTime(new Date('2026-10-17T14:30:00'));await page.click('#save');
+  await page.waitForFunction(()=>document.getElementById('active-shift').classList.contains('hidden'));
+  assert.equal(await page.textContent('#tips-total'),'4h30');
+ });
+});
+
+test('invalid and failed timer corrections preserve the running shift',async()=>{
+ await withDays(async page=>{
+  await page.clock.setFixedTime(new Date('2026-10-17T10:00:00'));await page.click('#save');await saved(page);
+  await page.clock.setFixedTime(new Date('2026-10-17T11:00:00'));
+  await page.click('#shift-timer');await page.selectOption('#adjust-mode','subtract');await page.fill('#adjust-amount','02:00');await page.click('#adjust-save');
+  await page.waitForFunction(()=>document.getElementById('adjust-msg').textContent.includes('entre 00:00'));
+  assert.equal(await page.locator('#adjust-time-dialog').isVisible(),true);
+  await page.selectOption('#adjust-mode','add');await page.fill('#adjust-amount','00:30');await page.evaluate(()=>window.saveError='Sem rede');await page.click('#adjust-save');
+  await page.waitForFunction(()=>document.getElementById('adjust-msg').textContent==='Sem rede');
+  await page.waitForFunction(()=>document.getElementById('shift-timer').textContent==='01:00:00');
+  await page.getByRole('button',{name:'Fechar ajuste'}).click();
+  assert.equal(await page.textContent('#save'),'Parar');
+ });
+});

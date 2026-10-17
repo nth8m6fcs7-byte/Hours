@@ -37,7 +37,7 @@ begin
  where w.day_type='work' and w.start_time is not null and w.end_time is null
  and w.duration_minutes is null and w.paused_at is null
  and ((w.work_date+w.start_time) at time zone s.time_zone)>=now()-interval '48 hours'
- and now()>=((w.work_date+w.start_time) at time zone s.time_zone)+interval '8 hours'+make_interval(secs=>w.break_seconds)
+ and now()>=((w.work_date+w.start_time) at time zone s.time_zone)+interval '8 hours'+make_interval(secs=>w.break_seconds-w.work_adjustment_seconds)
  on conflict do nothing;
  return query
  with candidates as (
@@ -49,7 +49,7 @@ begin
  and w.day_type='work' and w.end_time is null and w.start_time is not null
  and w.duration_minutes is null and w.paused_at is null
  and ((w.work_date+w.start_time) at time zone s.time_zone)>=now()-interval '48 hours'
- and now()>=((w.work_date+w.start_time) at time zone s.time_zone)+interval '8 hours'+make_interval(secs=>w.break_seconds)
+ and now()>=((w.work_date+w.start_time) at time zone s.time_zone)+interval '8 hours'+make_interval(secs=>w.break_seconds-w.work_adjustment_seconds)
  order by d.next_attempt limit 5 for update of d skip locked
  ), claimed as (
  update public.hours_push_deliveries d set attempts=d.attempts+1,next_attempt=now()+interval '2 minutes'

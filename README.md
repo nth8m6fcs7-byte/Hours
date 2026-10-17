@@ -270,3 +270,18 @@ Iniciar turno num formulário vazio guarda automaticamente a data e hora locais
 atuais e bloqueia a entrada. Não é necessário preencher uma hora antes de iniciar.
 A hora guardada continua clicável para correção; registos históricos com horários
 preenchidos manualmente mantêm os valores escolhidos.
+
+## Ajustar tempo pelo cronómetro
+
+Tocar no cronómetro abre um painel para acrescentar/retirar HH:MM ou definir
+o total trabalhado nesse momento. O contador continua a partir do valor corrigido.
+Durante uma pausa, “Retomei às…” permite escolher a data e hora reais de regresso,
+fechando a pausa nessa hora e retomando a contagem. O ajuste não altera a entrada.
+A correção é guardada em `work_adjustment_seconds`, separada das pausas. Ao parar,
+o total líquido inclui a correção. Calendário e prazo do push também a incluem;
+um push já entregue não é repetido e lembretes já importados exigem atualização.
+
+A migração `hours_worked_time_adjustments` foi aplicada no projeto Bacalhau
+(SQL em `sql/worked-time-adjustments.sql`). Acrescenta o campo e atualiza a função de elegibilidade do push, sem
+alterar registos ou RLS. O campo, a fórmula das oito horas e as permissões do agendador foram verificados
+no Supabase sem alterar registos dos utilizadores.
