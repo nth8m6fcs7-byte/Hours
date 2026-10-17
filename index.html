@@ -208,6 +208,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
     #pause-editor{margin:8px auto 16px;max-width:340px;text-align:center}
     .pause-interval{display:flex;align-items:center;justify-content:center;gap:8px;margin:10px 0;font-size:13px;color:var(--muted)}
     .pause-interval input{width:100px;min-width:0;height:36px;padding:4px;background:transparent;border:0;border-bottom:1px solid #79baff70;border-radius:0;color:#cde6ff;font-size:16px}
+    #pause-legacy{gap:4px}#pause-legacy input{width:2.5ch;padding:4px 0;text-align:center;appearance:textfield;-moz-appearance:textfield}#pause-legacy input::-webkit-inner-spin-button,#pause-legacy input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
     #pause-error{font-size:13px}
     #timer-editor{margin:12px 0 14px;text-align:center}
     .timer-digits{display:flex;align-items:center;justify-content:center;gap:2px;font-size:clamp(30px,9vw,48px);font-weight:500;letter-spacing:-1px;line-height:1.15;font-variant-numeric:tabular-nums}
@@ -317,7 +318,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
       <button id="pause-summary" type="button" class="ghost hidden" aria-expanded="false" aria-controls="pause-editor"></button>
       <form id="pause-editor" class="hidden" novalidate>
         <div id="pause-intervals"></div>
-        <label id="pause-legacy" class="pause-interval hidden"><span>Pausas anteriores · total</span><input id="pause-legacy-total" type="text" inputmode="numeric" placeholder="HH:MM" aria-label="Total das pausas anteriores" autocomplete="off"></label>
+        <div id="pause-legacy" class="pause-interval hidden" role="group" aria-label="Total das pausas anteriores"><span>Pausas anteriores · total</span><input id="pause-legacy-hours" type="number" inputmode="numeric" min="0" max="24" aria-label="Horas de pausa"><span aria-hidden="true">:</span><input id="pause-legacy-minutes" type="number" inputmode="numeric" min="0" max="59" aria-label="Minutos de pausa"></div>
         <div class="timer-edit-actions"><button id="pause-cancel" type="button" class="ghost" aria-label="Cancelar pausas">✕</button><button id="pause-save" type="submit" class="ghost" aria-label="Guardar pausas">✓</button></div>
         <p id="pause-error" role="status" aria-live="polite"></p>
       </form>
@@ -940,7 +941,7 @@ $('pause-summary').onclick=()=>{
  });
  const legacy=Math.max(0,storedBreakSeconds(record)-pauseEditSnapshot.intervals.reduce((sum,p)=>sum+pauseSeconds(p),0));
  $('pause-legacy').classList.toggle('hidden',!legacy);
- $('pause-legacy-total').value=pad(Math.floor(legacy/3600))+':'+pad(Math.floor(legacy/60)%60);
+ $('pause-legacy-hours').value=pad(Math.floor(legacy/3600));$('pause-legacy-minutes').value=pad(Math.floor(legacy/60)%60);
  setMsg($('pause-error'),'');$('pause-editor').classList.remove('hidden');$('pause-summary').setAttribute('aria-expanded','true');
 };
 $('pause-cancel').onclick=()=>{if(!savingHours)closePauseEditor()};
@@ -965,10 +966,9 @@ $('pause-editor').onsubmit=async event=>{
   }
   let legacy=Math.max(0,snapshot.break_seconds-snapshot.intervals.reduce((sum,p)=>sum+pauseSeconds(p),0));
   if(legacy){
-   const value=$('pause-legacy-total').value.trim(),match=/^(\d{1,2}):(\d{2})$/.exec(value);
-   if(!match||Number(match[2])>59||Number(match[1])*60+Number(match[2])>1440)throw new Error('Indica o total das pausas em HH:MM, entre 00:00 e 24:00.');
-   const original=pad(Math.floor(legacy/3600))+':'+pad(Math.floor(legacy/60)%60);
-   if(value!==original)legacy=Number(match[1])*3600+Number(match[2])*60;
+   const hours=$('pause-legacy-hours').value,minutes=$('pause-legacy-minutes').value;
+   if(![hours,minutes].every(v=>/^\d{1,2}$/.test(v))||Number(minutes)>59||Number(hours)*60+Number(minutes)>1440)throw new Error('Indica as horas e os minutos, entre 00:00 e 24:00.');
+   if(Number(hours)!==Math.floor(legacy/3600)||Number(minutes)!==Math.floor(legacy/60)%60)legacy=Number(hours)*3600+Number(minutes)*60;
   }
   const changes={pause_intervals:intervals,paused_at,break_seconds:legacy+intervals.reduce((sum,p)=>sum+pauseSeconds(p),0)};
   if(totalBreakSeconds({...record,...changes},now)>(now-shiftStart(record))/1000)throw new Error('As pausas não podem ultrapassar a duração do turno.');

@@ -323,9 +323,10 @@ test('older pauses without intervals can be corrected by total without inventing
   await page.unroute('https://hours.test/**');
   await page.route('https://hours.test/**',route=>route.fulfill({contentType:'text/html',body:html.replace(/^import .*;$/m,()=>stub+'\nwindow.session={user:{id:"user"}};window.records='+JSON.stringify(persisted)+';')}));
   await page.reload();await page.waitForFunction(()=>document.getElementById('shift-timer').textContent==='06:11:00');
-  await page.click('#pause-summary');assert.equal(await page.inputValue('#pause-legacy-total'),'04:49');
-  await page.fill('#pause-legacy-total','03:99');await page.click('#pause-save');await page.waitForFunction(()=>document.getElementById('pause-error').textContent.includes('HH:MM'));
-  await page.fill('#pause-legacy-total','03:49');await page.click('#pause-save');await page.waitForFunction(()=>document.getElementById('shift-timer').textContent==='07:11:00');
+  await page.click('#pause-summary');assert.equal(await page.inputValue('#pause-legacy-hours'),'04');assert.equal(await page.inputValue('#pause-legacy-minutes'),'49');
+  assert.equal(await page.locator('#pause-legacy [aria-hidden]').textContent(),':');
+  await page.fill('#pause-legacy-hours','03');await page.fill('#pause-legacy-minutes','99');await page.click('#pause-save');await page.waitForFunction(()=>document.getElementById('pause-error').textContent.includes('horas e os minutos'));
+  await page.fill('#pause-legacy-minutes','49');await page.click('#pause-save');await page.waitForFunction(()=>document.getElementById('shift-timer').textContent==='07:11:00');
   const row=await page.evaluate(()=>window.records.find(r=>r.work_date==='2026-10-17'));assert.equal(row.break_seconds,13740);assert.deepEqual(row.pause_intervals,[]);
  });
 });
