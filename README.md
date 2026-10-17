@@ -275,8 +275,7 @@ preenchidos manualmente mantêm os valores escolhidos.
 
 Tocar no cronómetro transforma os próprios números em campos de horas, minutos
 e segundos, sem abrir uma caixa. ✓ guarda o total corrigido; ✕ ou Escape cancela. O contador continua a partir do valor corrigido.
-Durante uma pausa, “Retomei às…” permite escolher a data e hora reais de regresso,
-fechando a pausa nessa hora e retomando a contagem. O ajuste não altera a entrada.
+As correções da pausa ficam em Pausas e Regresso, separadas da edição do cronómetro. O ajuste do total não altera a entrada.
 A correção é guardada em `work_adjustment_seconds`, separada das pausas. Ao parar,
 o total líquido inclui a correção. Calendário e prazo do push também a incluem;
 um push já entregue não é repetido e lembretes já importados exigem atualização.
@@ -287,3 +286,5 @@ alterar registos ou RLS. O campo, a fórmula das oito horas e as permissões do 
 no Supabase sem alterar registos dos utilizadores.
 
 As pausas aparecem por baixo do cronómetro. Ao tocar, os intervalos «das … às …» podem ser corrigidos no próprio ecrã; preencher o fim de uma pausa em curso retoma o trabalho. São guardados vários intervalos, incluindo pausas que passam da meia-noite. Os totais antigos sem intervalos são preservados. Requer `sql/pause-intervals.sql`.
+
+Fluxo diário: Começar turno usa a hora atual; tocar em Entrada permite corrigi-la com ✓/✕. Fazer pausa congela o cronómetro; Retomar assume o regresso atual e a ligação Regresso permite corrigir a hora depois (por exemplo, retomar às 14:00 mas indicar que o regresso real foi às 13:00). Parar assume a saída atual e guarda o turno. O cronómetro continua editável diretamente; os turnos guardados continuam editáveis nas definições.

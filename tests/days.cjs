@@ -202,7 +202,7 @@ test('failed pause write does not stop the timer; finishing during a pause deduc
   await page.clock.setFixedTime(new Date('2026-10-16T12:00:00'));
   await page.evaluate(()=>window.saveError='Sem rede');await page.click('#pause-toggle');
   await page.waitForFunction(()=>document.getElementById('pause-msg').textContent==='Sem rede');
-  assert.equal(await page.textContent('#pause-toggle'),'Iniciar pausa');
+  assert.equal(await page.textContent('#pause-toggle'),'Fazer pausa');
   await page.evaluate(()=>window.saveError=null);await page.click('#pause-toggle');
   await page.waitForFunction(()=>document.getElementById('timer-title').textContent==='Em pausa');
   await page.clock.setFixedTime(new Date('2026-10-16T12:30:00'));
@@ -235,16 +235,16 @@ test('starting an empty form records the current local time and locks entry with
  });
 });
 
-test('clicking the timer corrects a forgotten pause, adjusts worked time and persists the final total',async()=>{
+test('pause correction and timer adjustment persist the final worked total',async()=>{
  await withDays(async page=>{
   await page.clock.setFixedTime(new Date('2026-10-17T10:00:00'));
   await page.click('#save');await saved(page);
   await page.clock.setFixedTime(new Date('2026-10-17T12:00:00'));await page.click('#pause-toggle');
   await page.waitForFunction(()=>document.getElementById('timer-title').textContent==='Em pausa');
   await page.clock.setFixedTime(new Date('2026-10-17T14:00:00'));
-  await page.click('#shift-timer');await page.click('#adjust-resume-toggle');await page.fill('#adjust-resume','2026-10-17T13:00');await page.click('#adjust-save');
+  await page.click('#pause-summary');await page.fill('[data-pause-end="0"]','13:00');await page.click('#pause-save');
   await page.waitForFunction(()=>document.getElementById('shift-timer').textContent==='03:00:00');
-  assert.equal(await page.textContent('#pause-toggle'),'Iniciar pausa');
+  assert.equal(await page.textContent('#pause-toggle'),'Fazer pausa');
   for(const [mode,value,expected] of [['total','03:30','03:30:00'],['total','03:15','03:15:00'],['total','08:00','08:00:00'],['total','04:00','04:00:00']]){
    await page.click('#shift-timer');await page.fill('#adjust-hours',value.split(':')[0]);await page.fill('#adjust-minutes',value.split(':')[1]);await page.fill('#adjust-seconds','00');await page.click('#adjust-save');
    await page.waitForFunction(value=>document.getElementById('shift-timer').textContent===value,expected);
@@ -280,7 +280,9 @@ test('pause intervals edit inline, resume forgotten pauses and persist across re
   await page.clock.setFixedTime(new Date('2026-10-17T10:00:00'));await page.click('#save');await saved(page);
   await page.clock.setFixedTime(new Date('2026-10-17T12:00:00'));await page.click('#pause-toggle');
   await page.waitForFunction(()=>document.getElementById('timer-title').textContent==='Em pausa');
-  await page.clock.setFixedTime(new Date('2026-10-17T14:00:00'));await page.click('#pause-summary');
+  await page.clock.setFixedTime(new Date('2026-10-17T14:00:00'));await page.click('#pause-toggle');
+  await page.waitForFunction(()=>document.getElementById('timer-title').textContent==='Turno em curso');
+  await page.click('#return-summary');
   await page.fill('[data-pause-start="0"]','12:15');await page.fill('[data-pause-end="0"]','13:00');await page.click('#pause-save');
   await page.waitForFunction(()=>document.getElementById('shift-timer').textContent==='03:15:00');
   assert.equal(await page.textContent('#pause-summary'),'Pausas · 0h45');

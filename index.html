@@ -195,6 +195,15 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
 
 
   
+    #return-summary{display:block;margin:0 auto;padding:4px 8px;min-height:36px;font-size:12px;color:#9dc7ef}
+    #shift-section.running #shift-details{display:none}
+    #shift-section.running.correcting>.row3{display:inline-flex;vertical-align:middle;width:auto;padding:0;margin:8px 0}
+    #shift-section.running.correcting>.row3 .field{margin:0}
+    #shift-section.running.correcting #start{width:100px;height:38px;padding:4px 8px;background:transparent;border:0;border-bottom:1px solid #79baff70;border-radius:0}
+    #shift-section.running.correcting #entry-summary{display:none}
+    #shift-section.running.correcting #shift-form-actions{display:inline-flex;vertical-align:middle;width:auto;flex-wrap:nowrap;gap:4px;margin:8px 0 8px 10px}
+    #shift-section.running.correcting #shift-form-actions button{width:38px;min-width:38px;height:38px;min-height:38px;padding:4px;font-size:18px;flex:0 0 38px;background:transparent;border:0;box-shadow:none}
+    #shift-section.running.correcting #shift-lock{display:none}
     #pause-summary{display:block;margin:0 auto 12px;padding:6px 10px;font-size:13px;color:var(--muted)}
     #pause-editor{margin:8px auto 16px;max-width:340px;text-align:center}
     .pause-interval{display:flex;align-items:center;justify-content:center;gap:8px;margin:10px 0;font-size:13px;color:var(--muted)}
@@ -205,7 +214,6 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
     .timer-digits input{appearance:textfield;-moz-appearance:textfield;box-sizing:content-box;width:2.1ch;min-width:0;height:1.2em;padding:4px 1px;font:inherit;letter-spacing:inherit;text-align:center;background:transparent;color:#cde6ff;border:0;border-bottom:1px solid #79baff70;border-radius:0;box-shadow:none}
     .timer-digits input::-webkit-inner-spin-button,.timer-digits input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
     .timer-edit-actions{display:flex;gap:14px;justify-content:center;margin-top:8px}.timer-edit-actions button{min-height:40px;min-width:40px;padding:4px;font-size:20px}
-    #adjust-resume-toggle{font-size:11px;min-height:36px;padding:4px 8px}#adjust-resume-field input{max-width:250px;height:44px;font-size:16px;margin:0 auto}
     #active-shift:has(#timer-editor:not(.hidden)) .timer-actions{display:none}
 
   </style>
@@ -301,12 +309,11 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
       <button id="shift-timer" class="shift-timer" type="button" aria-label="Ajustar tempo trabalhado" aria-expanded="false" aria-controls="timer-editor">00:00:00</button>
       <form id="timer-editor" class="hidden" novalidate>
         <div id="timer-digits" class="timer-digits"><input id="adjust-hours" type="number" min="0" max="24" inputmode="numeric" aria-label="Horas"><span aria-hidden="true">:</span><input id="adjust-minutes" type="number" min="0" max="59" inputmode="numeric" aria-label="Minutos"><span aria-hidden="true">:</span><input id="adjust-seconds" type="number" min="0" max="59" inputmode="numeric" aria-label="Segundos"></div>
-        <div id="adjust-resume-field" class="hidden"><input id="adjust-resume" type="datetime-local" aria-label="Data e hora reais de regresso"></div>
         <div class="timer-edit-actions"><button id="adjust-cancel" type="button" class="ghost" aria-label="Cancelar ajuste">✕</button><button id="adjust-save" type="submit" class="ghost" aria-label="Guardar ajuste">✓</button></div>
-        <button id="adjust-resume-toggle" type="button" class="ghost hidden">Retomei às…</button>
         <div id="adjust-msg" role="status" aria-live="polite"></div>
       </form>
       <div class="actions timer-actions"><button id="pause-toggle" type="button">Iniciar pausa</button></div>
+      <button id="return-summary" type="button" class="ghost hidden" aria-controls="pause-editor"></button>
       <button id="pause-summary" type="button" class="ghost hidden" aria-expanded="false" aria-controls="pause-editor"></button>
       <form id="pause-editor" class="hidden" novalidate>
         <div id="pause-intervals"></div>
@@ -326,14 +333,14 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
       </div>
       <p id="shift-lock" class="shift-lock hidden" role="status"></p>
       <details id="shift-details" class="shift-details">
-        <summary><span>Pausas e notas <small>opcional</small></span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+        <summary><span>Total e notas <small>opcional</small></span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
         <div class="shift-detail-fields">
           <div class="field"><label class="field-label" for="duration-override">Total de horas trabalhadas</label><input id="duration-override" type="text" placeholder="Automático" autocomplete="off" aria-describedby="duration-hint"><p id="duration-hint" class="field-help">Deixa vazio para calcular pela entrada e saída. Para descontar uma pausa, indica o total em HH:MM, por exemplo 08:30. Máximo: 24:00.</p></div>
           <div class="field"><label class="field-label" for="notes">Notas</label><textarea id="notes" rows="3" placeholder="Uma pausa ou observação…" aria-describedby="notes-hint"></textarea><p id="notes-hint" class="field-help">As notas não alteram as horas.</p></div>
         </div>
       </details>
       <div id="shift-form-actions" class="actions form-actions">
-        <button id="save">Iniciar turno</button>
+        <button id="save">Começar turno</button>
         <button id="correct-entry" class="ghost hidden" type="button">Corrigir entrada</button>
         <button id="cancel" class="secondary hidden">Cancelar</button>
       </div>
@@ -732,12 +739,14 @@ function updateShiftForm(){
   $('date').disabled=locked;
   $('start').disabled=locked&&!correctingEntry;
   $('end').disabled=correctingEntry;
-  $('save').textContent=correctingEntry?'Guardar entrada':locked?'Parar':editingId||$('end').value||$('duration-override').value.trim()?'Guardar horário':'Iniciar turno';
+  $('save').textContent=correctingEntry?'✓':locked?'Parar':editingId||$('end').value||$('duration-override').value.trim()?'Guardar horário':'Começar turno';
   $('correct-entry').classList.toggle('hidden',!locked||!correctingEntry);
-  $('correct-entry').textContent=correctingEntry?'Cancelar correção':'Corrigir entrada';
+  $('correct-entry').textContent=correctingEntry?'✕':'Corrigir entrada';
+  $('save').setAttribute('aria-label',correctingEntry?'Guardar entrada':$('save').textContent);
+  $('correct-entry').setAttribute('aria-label',correctingEntry?'Cancelar correção':'Corrigir entrada');
   $('cancel').textContent=locked?'Outro dia':'Cancelar';
   $('shift-lock').classList.toggle('hidden',!locked&&!$('start').value);
-  $('shift-lock').textContent=locked?'Entrada guardada. Indica a saída para concluir o dia.':$('start').value?'Entrada por confirmar — carrega em Iniciar turno para guardar e iniciar o contador.':'';
+  $('shift-lock').textContent=locked?'Entrada guardada. Carrega em Parar para terminar.':$('start').value?'Entrada por confirmar — carrega em Iniciar turno para guardar e iniciar o contador.':'';
   if(locked)$('form-title').textContent='Turno em curso';
 }
 function resumeShift(record){
@@ -751,7 +760,7 @@ $('entry-summary').onclick=()=>{if(!savingHours)$('correct-entry').onclick()};
 $('correct-entry').onclick=()=>{
   correctingEntry=!correctingEntry;
   if(!correctingEntry)$('start').value=rows.find(r=>r.id===openShiftId)?.start_time.slice(0,5)||'';
-  updateShiftForm();if(correctingEntry)$('start').focus();
+  updateShiftForm();if(correctingEntry){closePauseEditor();closeTimerEditor(false);$('start').focus()}
 };
 $('date').onchange=()=>{const pending=rows.find(r=>r.work_date===$('date').value&&isOpenShift(r));if(pending)resumeShift(pending)};
 $('end').oninput=updateShiftForm;
@@ -861,33 +870,24 @@ function workedSeconds(record,now=Date.now()){
   return Math.max(0,Math.floor((now-shiftStart(record))/1000)-totalBreakSeconds(record,now)+adjustmentSeconds(record));
 }
 
-let editingResume=false;
 function closeTimerEditor(focus=true){
  $('timer-editor').classList.add('hidden');$('shift-timer').classList.remove('hidden');$('shift-timer').setAttribute('aria-expanded','false');
  if(focus&&activeShift())$('shift-timer').focus();
 }
 $('shift-timer').onclick=()=>{
  const record=activeShift();if(!record||savingHours)return;
- updateTimer();editingResume=false;setMsg($('adjust-msg'),'');
+ closePauseEditor();if(correctingEntry)$('correct-entry').onclick();
+ updateTimer();setMsg($('adjust-msg'),'');
  const seconds=workedSeconds(record);
  $('adjust-hours').value=pad(Math.floor(seconds/3600));$('adjust-minutes').value=pad(Math.floor(seconds/60)%60);$('adjust-seconds').value=pad(seconds%60);
- const now=new Date();$('adjust-resume').value=iso(now)+'T'+pad(now.getHours())+':'+pad(now.getMinutes());
- $('timer-digits').classList.remove('hidden');$('adjust-resume-field').classList.add('hidden');
- $('adjust-resume-toggle').classList.toggle('hidden',!record.paused_at);$('adjust-resume-toggle').textContent='Retomei às…';
  $('shift-timer').classList.add('hidden');$('shift-timer').setAttribute('aria-expanded','true');$('timer-editor').classList.remove('hidden');
  $('adjust-hours').focus();$('adjust-hours').select();
 };
 $('adjust-cancel').onclick=()=>{if(!savingHours)closeTimerEditor()};
 $('timer-editor').onkeydown=event=>{if(event.key==='Escape'&&!savingHours){event.preventDefault();closeTimerEditor()}};
-$('adjust-resume-toggle').onclick=()=>{
- if(savingHours)return;editingResume=!editingResume;
- $('timer-digits').classList.toggle('hidden',editingResume);$('adjust-resume-field').classList.toggle('hidden',!editingResume);
- $('adjust-resume-toggle').textContent=editingResume?'Ajustar tempo':'Retomei às…';
-};
 $('timer-editor').onsubmit=async event=>{
  event.preventDefault();if(savingHours)return;
  const current=activeShift();if(!current)return;
- const resumeValue=$('adjust-resume').value;
  const digits=['adjust-hours','adjust-minutes','adjust-seconds'].map(id=>$(id).value);
  const numbers=digits.map(Number);
  setHoursBusy(true);$('adjust-save').disabled=true;setMsg($('adjust-msg'),'');
@@ -896,18 +896,11 @@ $('timer-editor').onsubmit=async event=>{
   if(error)throw error;
   const record=data?.[0];if(!record||!isOpenShift(record))throw new Error('O turno já terminou. Atualiza a página.');
   const now=Date.now();let changes;
-  if(editingResume){
-   if(!record.paused_at)throw new Error('Este turno já não está em pausa.');
-   const resumed=new Date(resumeValue).getTime(),paused=new Date(record.paused_at).getTime();
-   if(!Number.isFinite(resumed)||resumed<paused||resumed>now)throw new Error('O regresso deve ficar entre o início da pausa e agora.');
-   changes={break_seconds:storedBreakSeconds(record)+Math.floor((resumed-paused)/1000),pause_intervals:[...completedPauses(record),{start:record.paused_at,end:new Date(resumed).toISOString()}],paused_at:null};
-  }else{
    const target=numbers[0]*3600+numbers[1]*60+numbers[2];
    if(!digits.every(value=>/^\d{1,2}$/.test(value))||numbers[0]>24||numbers[1]>59||numbers[2]>59||target>86400)throw new Error('O tempo trabalhado deve ficar entre 00:00 e 24:00.');
    const currentSeconds=workedSeconds(record,now),delta=target-currentSeconds;
    changes={work_adjustment_seconds:adjustmentSeconds(record)+delta};
    if(Math.abs(changes.work_adjustment_seconds)>172800)throw new Error('Este ajuste é demasiado grande. Corrige primeiro a entrada.');
-  }
   const result=await supabase.from('personal_work_hours').update({...changes,updated_at:new Date(now).toISOString()}).eq('id',record.id);
   if(result.error)throw result.error;
   Object.assign(record,changes);const index=rows.findIndex(r=>r.id===record.id);if(index>=0)rows[index]=record;
@@ -924,10 +917,17 @@ function closePauseEditor(){
  $('pause-editor').classList.add('hidden');$('pause-summary').setAttribute('aria-expanded','false');pauseEditSnapshot=null;
 }
 function pauseClock(value){const d=new Date(value);return pad(d.getHours())+':'+pad(d.getMinutes())}
+$('return-summary').onclick=()=>{
+ if(savingHours)return;
+ if(!$('pause-editor').classList.contains('hidden'))closePauseEditor();
+ $('pause-summary').onclick();
+ const fields=$('pause-intervals').querySelectorAll('[data-pause-end]');fields[fields.length-1]?.focus();
+};
 $('pause-summary').onclick=()=>{
  if(savingHours)return;
  if(!$('pause-editor').classList.contains('hidden'))return closePauseEditor();
  const record=activeShift();if(!record)return;
+ if(correctingEntry)$('correct-entry').onclick();closeTimerEditor(false);
  pauseEditSnapshot={id:record.id,paused_at:record.paused_at,break_seconds:storedBreakSeconds(record),intervals:completedPauses(record)};
  const intervals=[...pauseEditSnapshot.intervals,...(record.paused_at?[{start:record.paused_at,end:null}]:[])];
  $('pause-intervals').replaceChildren();
@@ -993,12 +993,15 @@ $('pause-toggle').onclick=async()=>{
 };
 function updateTimer(){
   const record=activeShift();$('active-shift').classList.toggle('hidden',!record);
-  if(!record){closePauseEditor();$('pause-summary').classList.add('hidden');$('timer-alert').textContent='';$('timer-progress').textContent='Sem turno em curso.';$('pause-total').textContent='';$('resume-active').disabled=true;$('calendar-alert').disabled=true;return}
+  if(!record){closePauseEditor();$('return-summary').classList.add('hidden');$('pause-summary').classList.add('hidden');$('timer-alert').textContent='';$('timer-progress').textContent='Sem turno em curso.';$('pause-total').textContent='';$('resume-active').disabled=true;$('calendar-alert').disabled=true;return}
   $('resume-active').disabled=false;
   $('pause-summary').classList.toggle('hidden',!record.paused_at&&!storedBreakSeconds(record));
-  $('pause-summary').textContent=`${record.paused_at?'Em pausa':'Pausas'} · ${fmtMins(Math.floor(totalBreakSeconds(record)/60))}`;
+  $('pause-summary').textContent=record.paused_at?`Pausa desde ${pauseClock(record.paused_at)} · corrigir`:`Pausas · ${fmtMins(Math.floor(totalBreakSeconds(record)/60))}`;
+  const lastPause=completedPauses(record).at(-1);
+  $('return-summary').classList.toggle('hidden',!!record.paused_at||!lastPause);
+  $('return-summary').textContent=lastPause?`Regresso · ${pauseClock(lastPause.end)} · corrigir`:'';
   const elapsed=workedSeconds(record);
-  $('pause-toggle').textContent=record.paused_at?'Retomar trabalho':'Iniciar pausa';
+  $('pause-toggle').textContent=record.paused_at?'Retomar':'Fazer pausa';
   $('timer-title').textContent=record.paused_at?'Em pausa':'Turno em curso';
   $('pause-total').textContent=`Pausas: ${fmtMins(Math.floor(totalBreakSeconds(record)/60))}`;
   $('calendar-alert').disabled=!!record.paused_at;
