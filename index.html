@@ -195,6 +195,11 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
 
 
   
+    #pause-summary{display:block;margin:0 auto 12px;padding:6px 10px;font-size:13px;color:var(--muted)}
+    #pause-editor{margin:8px auto 16px;max-width:340px;text-align:center}
+    .pause-interval{display:flex;align-items:center;justify-content:center;gap:8px;margin:10px 0;font-size:13px;color:var(--muted)}
+    .pause-interval input{width:100px;min-width:0;height:36px;padding:4px;background:transparent;border:0;border-bottom:1px solid #79baff70;border-radius:0;color:#cde6ff;font-size:16px}
+    #pause-error{font-size:13px}
     #timer-editor{margin:12px 0 14px;text-align:center}
     .timer-digits{display:flex;align-items:center;justify-content:center;gap:2px;font-size:clamp(30px,9vw,48px);font-weight:500;letter-spacing:-1px;line-height:1.15;font-variant-numeric:tabular-nums}
     .timer-digits input{appearance:textfield;-moz-appearance:textfield;box-sizing:content-box;width:2.1ch;min-width:0;height:1.2em;padding:4px 1px;font:inherit;letter-spacing:inherit;text-align:center;background:transparent;color:#cde6ff;border:0;border-bottom:1px solid #79baff70;border-radius:0;box-shadow:none}
@@ -302,6 +307,13 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
         <div id="adjust-msg" role="status" aria-live="polite"></div>
       </form>
       <div class="actions timer-actions"><button id="pause-toggle" type="button">Iniciar pausa</button></div>
+      <button id="pause-summary" type="button" class="ghost hidden" aria-expanded="false" aria-controls="pause-editor"></button>
+      <form id="pause-editor" class="hidden" novalidate>
+        <div id="pause-intervals"></div>
+        <p id="pause-legacy" class="field-help"></p>
+        <div class="timer-edit-actions"><button id="pause-cancel" type="button" class="ghost" aria-label="Cancelar pausas">✕</button><button id="pause-save" type="submit" class="ghost" aria-label="Guardar pausas">✓</button></div>
+        <p id="pause-error" role="status" aria-live="polite"></p>
+      </form>
       <p id="pause-msg" class="timer-feedback" role="status" aria-live="polite"></p>
       <p id="timer-alert" role="status" aria-live="polite"></p>
 
@@ -647,7 +659,7 @@ $('logout').onclick=async()=>{await disablePush();await supabase.auth.signOut();
 let savingHours=false;
 function setHoursBusy(busy){
   savingHours=busy;
-  for(const id of ['save','cancel','correct-entry','entry-summary','pause-toggle','day-off','vacation-toggle','vacation-save','vacation-cancel'])$(id).disabled=busy;
+  for(const id of ['save','cancel','correct-entry','entry-summary','pause-toggle','pause-save','pause-summary','day-off','vacation-toggle','vacation-save','vacation-cancel'])$(id).disabled=busy;
 }
 function closeVacation(){
   $('vacation-panel').classList.add('hidden');$('vacation-toggle').setAttribute('aria-expanded','false');
@@ -694,7 +706,7 @@ async function saveNonWork(day_type,first,last){
     }
     $('sync').textContent='A guardar…';
     const updated_at=new Date().toISOString();
-    const records=dates.map(work_date=>({user_id:user.id,work_date,day_type,start_time:null,end_time:null,duration_minutes:null,break_seconds:0,work_adjustment_seconds:0,paused_at:null,notes:existing.find(r=>r.work_date===work_date)?.notes??null,updated_at}));
+    const records=dates.map(work_date=>({user_id:user.id,work_date,day_type,start_time:null,end_time:null,duration_minutes:null,break_seconds:0,work_adjustment_seconds:0,pause_intervals:[],paused_at:null,notes:existing.find(r=>r.work_date===work_date)?.notes??null,updated_at}));
     const {error}=await supabase.from('personal_work_hours').upsert(records,{onConflict:'user_id,work_date'});
     if(error)throw error;
     if(!activeWeek&&selectedMonth!==''&&selectedMonth!==null)selectedMonth=first.slice(0,7);
@@ -764,6 +776,7 @@ $('save').onclick=async()=>{
   const notes=$('notes').value.trim()||null;
   const previous=rows.find(r=>r.id===recordId);
   let break_seconds=previous?storedBreakSeconds(previous):0;
+  let pause_intervals=completedPauses(previous);
   const work_adjustment_seconds=previous?adjustmentSeconds(previous):0;
   if(automaticStop&&previous){
     if(stopNow<shiftStart(previous))return setMsg($('form-msg'),'A entrada está no futuro. Toca na hora para a corrigir.');
@@ -778,6 +791,7 @@ $('save').onclick=async()=>{
       const pauseStart=new Date(previous.paused_at).getTime();
       if(finish<pauseStart)return setMsg($('form-msg'),'A saída não pode ser anterior ao início da pausa.');
       break_seconds+=Math.max(0,Math.floor((finish-pauseStart)/1000));
+      pause_intervals.push({start:previous.paused_at,end:new Date(finish).toISOString()});
     }
     if(finish-shiftStart(timing)<break_seconds*1000)return setMsg($('form-msg'),'As pausas não podem ultrapassar a duração do turno.');
   }
@@ -788,6 +802,7 @@ $('save').onclick=async()=>{
   let result;
   if(correctingEntry){
     if(previous?.paused_at&&shiftStart({work_date,start_time})>new Date(previous.paused_at).getTime())throw new Error('A entrada deve ser anterior ao início da pausa.');
+    if(completedPauses(previous).some(p=>new Date(p.start).getTime()<shiftStart({work_date,start_time})))throw new Error('A entrada deve ser anterior às pausas registadas.');
     result=await supabase.from('personal_work_hours').update({start_time,updated_at:new Date().toISOString()}).eq('id',recordId);
     if(result.error)throw result.error;
     correctingEntry=false;await load();updateShiftForm();setMsg($('form-msg'),'Entrada corrigida e bloqueada.',true);return;
@@ -797,8 +812,8 @@ $('save').onclick=async()=>{
     if(error)throw error;
     if(data?.length&&!confirm('Este dia já tem um registo. Substituir pelo novo horário?')){$('sync').textContent='Sincronizado';return;}
   }
-  if(recordId) result=await supabase.from('personal_work_hours').update({work_date,start_time,end_time,duration_minutes,notes,break_seconds,work_adjustment_seconds,paused_at:null,day_type:'work',updated_at:new Date().toISOString()}).eq('id',recordId);
-  else result=await supabase.from('personal_work_hours').upsert({user_id:user.id,work_date,start_time,end_time,duration_minutes,notes,break_seconds,work_adjustment_seconds,paused_at:null,day_type:'work',updated_at:new Date().toISOString()},{onConflict:'user_id,work_date'});
+  if(recordId) result=await supabase.from('personal_work_hours').update({work_date,start_time,end_time,duration_minutes,notes,break_seconds,work_adjustment_seconds,pause_intervals,paused_at:null,day_type:'work',updated_at:new Date().toISOString()}).eq('id',recordId);
+  else result=await supabase.from('personal_work_hours').upsert({user_id:user.id,work_date,start_time,end_time,duration_minutes,notes,break_seconds,work_adjustment_seconds,pause_intervals,paused_at:null,day_type:'work',updated_at:new Date().toISOString()},{onConflict:'user_id,work_date'});
   if(result.error){$('sync').textContent='Erro';return setMsg($('form-msg'),result.error.message)}
   if(!activeWeek&&selectedMonth!==''&&selectedMonth!==null)selectedMonth=work_date.slice(0,7);
   clearEntryDraft();resetForm(); await load();
@@ -885,7 +900,7 @@ $('timer-editor').onsubmit=async event=>{
    if(!record.paused_at)throw new Error('Este turno já não está em pausa.');
    const resumed=new Date(resumeValue).getTime(),paused=new Date(record.paused_at).getTime();
    if(!Number.isFinite(resumed)||resumed<paused||resumed>now)throw new Error('O regresso deve ficar entre o início da pausa e agora.');
-   changes={break_seconds:storedBreakSeconds(record)+Math.floor((resumed-paused)/1000),paused_at:null};
+   changes={break_seconds:storedBreakSeconds(record)+Math.floor((resumed-paused)/1000),pause_intervals:[...completedPauses(record),{start:record.paused_at,end:new Date(resumed).toISOString()}],paused_at:null};
   }else{
    const target=numbers[0]*3600+numbers[1]*60+numbers[2];
    if(!digits.every(value=>/^\d{1,2}$/.test(value))||numbers[0]>24||numbers[1]>59||numbers[2]>59||target>86400)throw new Error('O tempo trabalhado deve ficar entre 00:00 e 24:00.');
@@ -902,6 +917,61 @@ $('timer-editor').onsubmit=async event=>{
 };
 
 
+function completedPauses(record){return Array.isArray(record?.pause_intervals)?record.pause_intervals.map(p=>({...p})):[]}
+function pauseSeconds(interval){return Math.max(0,Math.floor((new Date(interval.end)-new Date(interval.start))/1000))}
+let pauseEditSnapshot=null;
+function closePauseEditor(){
+ $('pause-editor').classList.add('hidden');$('pause-summary').setAttribute('aria-expanded','false');pauseEditSnapshot=null;
+}
+function pauseClock(value){const d=new Date(value);return pad(d.getHours())+':'+pad(d.getMinutes())}
+$('pause-summary').onclick=()=>{
+ if(savingHours)return;
+ if(!$('pause-editor').classList.contains('hidden'))return closePauseEditor();
+ const record=activeShift();if(!record)return;
+ pauseEditSnapshot={id:record.id,paused_at:record.paused_at,break_seconds:storedBreakSeconds(record),intervals:completedPauses(record)};
+ const intervals=[...pauseEditSnapshot.intervals,...(record.paused_at?[{start:record.paused_at,end:null}]:[])];
+ $('pause-intervals').replaceChildren();
+ intervals.forEach((interval,i)=>{
+  const line=document.createElement('div');line.className='pause-interval';
+  const startLabel=document.createElement('span');startLabel.textContent=interval.end?'Das':'Desde as';line.append(startLabel);
+  const start=document.createElement('input');start.type='time';start.value=pauseClock(interval.start);start.dataset.pauseStart=i;start.setAttribute('aria-label','Início da pausa '+(i+1));line.append(start);
+  const endLabel=document.createElement('span');endLabel.textContent='às';line.append(endLabel);
+  const end=document.createElement('input');end.type='time';end.value=interval.end?pauseClock(interval.end):'';end.dataset.pauseEnd=i;end.setAttribute('aria-label',interval.end?'Fim da pausa '+(i+1):'Retomei às');line.append(end);$('pause-intervals').append(line);
+ });
+ const legacy=Math.max(0,storedBreakSeconds(record)-pauseEditSnapshot.intervals.reduce((sum,p)=>sum+pauseSeconds(p),0));
+ $('pause-legacy').textContent=legacy?`${fmtMins(Math.floor(legacy/60))} de pausas anteriores sem intervalo registado.`:'';
+ setMsg($('pause-error'),'');$('pause-editor').classList.remove('hidden');$('pause-summary').setAttribute('aria-expanded','true');
+};
+$('pause-cancel').onclick=()=>{if(!savingHours)closePauseEditor()};
+$('pause-editor').onkeydown=e=>{if(e.key==='Escape'&&!savingHours){e.preventDefault();closePauseEditor()}};
+$('pause-editor').onsubmit=async event=>{
+ event.preventDefault();if(savingHours||!pauseEditSnapshot)return;
+ const snapshot=pauseEditSnapshot;setHoursBusy(true);setMsg($('pause-error'),'');
+ try{
+  const {data,error}=await supabase.from('personal_work_hours').select('*').eq('id',snapshot.id).range(0,0);if(error)throw error;
+  const record=data?.[0];
+  if(!record||!isOpenShift(record)||record.paused_at!==snapshot.paused_at||storedBreakSeconds(record)!==snapshot.break_seconds||JSON.stringify(completedPauses(record))!==JSON.stringify(snapshot.intervals))throw new Error('A pausa mudou noutro dispositivo. Atualiza a página antes de corrigir.');
+  const source=[...snapshot.intervals,...(record.paused_at?[{start:record.paused_at,end:null}]:[])],intervals=[];
+  let paused_at=null,lastEnd=shiftStart(record),now=Date.now();
+  for(let i=0;i<source.length;i++){
+   const from=$('pause-intervals').querySelector(`[data-pause-start="${i}"]`).value,to=$('pause-intervals').querySelector(`[data-pause-end="${i}"]`).value;
+   if(!from||(!to&&source[i].end))throw new Error('Indica o início e o fim da pausa.');
+   const start=new Date(source[i].start);if(from!==pauseClock(source[i].start))start.setHours(...from.split(':').map(Number),0,0);
+   let end=null;
+   if(to){if(source[i].end&&to===pauseClock(source[i].end))end=new Date(source[i].end);else{end=new Date(start);end.setHours(...to.split(':').map(Number),0,0)}if(end<start)end.setDate(end.getDate()+1)}
+   if(start.getTime()<lastEnd||start.getTime()>now||(end&&(end<start||end.getTime()>now)))throw new Error('As pausas devem ficar dentro do turno, sem sobreposição e sem horas futuras.');
+   if(end){intervals.push({start:start.toISOString(),end:end.toISOString()});lastEnd=end.getTime()}else paused_at=start.toISOString();
+  }
+  const legacy=Math.max(0,snapshot.break_seconds-snapshot.intervals.reduce((sum,p)=>sum+pauseSeconds(p),0));
+  const changes={pause_intervals:intervals,paused_at,break_seconds:legacy+intervals.reduce((sum,p)=>sum+pauseSeconds(p),0)};
+  if(totalBreakSeconds({...record,...changes},now)>(now-shiftStart(record))/1000)throw new Error('As pausas não podem ultrapassar a duração do turno.');
+  const result=await supabase.from('personal_work_hours').update({...changes,updated_at:new Date(now).toISOString()}).eq('id',record.id);if(result.error)throw result.error;
+  Object.assign(record,changes);const index=rows.findIndex(r=>r.id===record.id);if(index>=0)rows[index]=record;
+  closePauseEditor();updateTimer();setMsg($('pause-msg'),'Pausa corrigida e guardada.',true);
+ }catch(error){setMsg($('pause-error'),error.message||'Não foi possível guardar a pausa.')}
+ finally{setHoursBusy(false)}
+};
+
 $('pause-toggle').onclick=async()=>{
   if(savingHours)return;
   const current=activeShift();if(!current)return;
@@ -913,18 +983,20 @@ $('pause-toggle').onclick=async()=>{
     const record=data?.[0];if(!record||!isOpenShift(record))throw new Error('Este turno já não está em curso. Atualiza a página.');
     const now=Date.now();
     if(now<shiftStart(record))throw new Error('A entrada está no futuro. Corrige a hora antes de iniciar a pausa.');
-    const changes=record.paused_at?{break_seconds:totalBreakSeconds(record,now),paused_at:null}:{break_seconds:storedBreakSeconds(record),paused_at:new Date(now).toISOString()};
+    const changes=record.paused_at?{break_seconds:totalBreakSeconds(record,now),pause_intervals:[...completedPauses(record),{start:record.paused_at,end:new Date(now).toISOString()}],paused_at:null}:{break_seconds:storedBreakSeconds(record),paused_at:new Date(now).toISOString()};
     const result=await supabase.from('personal_work_hours').update({...changes,updated_at:new Date(now).toISOString()}).eq('id',record.id);
     if(result.error)throw result.error;
     Object.assign(record,changes);const index=rows.findIndex(r=>r.id===record.id);if(index>=0)rows[index]=record;
-    updateTimer();setMsg($('pause-msg'),changes.paused_at?'Pausa guardada. O contador está parado.':'Trabalho retomado. Pausa descontada.',true);
+    closePauseEditor();updateTimer();setMsg($('pause-msg'),changes.paused_at?'Pausa guardada. O contador está parado.':'Trabalho retomado. Pausa descontada.',true);
   }catch(error){setMsg($('pause-msg'),error.message||'Não foi possível guardar a pausa. Tenta novamente.')}
   finally{setHoursBusy(false)}
 };
 function updateTimer(){
   const record=activeShift();$('active-shift').classList.toggle('hidden',!record);
-  if(!record){$('timer-alert').textContent='';$('timer-progress').textContent='Sem turno em curso.';$('pause-total').textContent='';$('resume-active').disabled=true;$('calendar-alert').disabled=true;return}
+  if(!record){closePauseEditor();$('pause-summary').classList.add('hidden');$('timer-alert').textContent='';$('timer-progress').textContent='Sem turno em curso.';$('pause-total').textContent='';$('resume-active').disabled=true;$('calendar-alert').disabled=true;return}
   $('resume-active').disabled=false;
+  $('pause-summary').classList.toggle('hidden',!record.paused_at&&!storedBreakSeconds(record));
+  $('pause-summary').textContent=`${record.paused_at?'Em pausa':'Pausas'} · ${fmtMins(Math.floor(totalBreakSeconds(record)/60))}`;
   const elapsed=workedSeconds(record);
   $('pause-toggle').textContent=record.paused_at?'Retomar trabalho':'Iniciar pausa';
   $('timer-title').textContent=record.paused_at?'Em pausa':'Turno em curso';

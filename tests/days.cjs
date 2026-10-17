@@ -274,3 +274,40 @@ test('invalid and failed timer corrections preserve the running shift',async()=>
   assert.equal(await page.textContent('#save'),'Parar');
  });
 });
+
+test('pause intervals edit inline, resume forgotten pauses and persist across reopening',async()=>{
+ await withDays(async page=>{
+  await page.clock.setFixedTime(new Date('2026-10-17T10:00:00'));await page.click('#save');await saved(page);
+  await page.clock.setFixedTime(new Date('2026-10-17T12:00:00'));await page.click('#pause-toggle');
+  await page.waitForFunction(()=>document.getElementById('timer-title').textContent==='Em pausa');
+  await page.clock.setFixedTime(new Date('2026-10-17T14:00:00'));await page.click('#pause-summary');
+  await page.fill('[data-pause-start="0"]','12:15');await page.fill('[data-pause-end="0"]','13:00');await page.click('#pause-save');
+  await page.waitForFunction(()=>document.getElementById('shift-timer').textContent==='03:15:00');
+  assert.equal(await page.textContent('#pause-summary'),'Pausas · 0h45');
+  const persisted=await page.evaluate(()=>window.records);
+  await page.unroute('https://hours.test/**');
+  await page.route('https://hours.test/**',route=>route.fulfill({contentType:'text/html',body:html.replace(/^import .*;$/m,()=>stub+'\nwindow.session={user:{id:"user"}};window.records='+JSON.stringify(persisted)+';')}));
+  await page.reload();await page.waitForFunction(()=>document.getElementById('shift-timer').textContent==='03:15:00');
+  await page.click('#pause-summary');assert.equal(await page.inputValue('[data-pause-start="0"]'),'12:15');assert.equal(await page.inputValue('[data-pause-end="0"]'),'13:00');
+  await page.fill('[data-pause-end="0"]','15:00');await page.click('#pause-save');await page.waitForFunction(()=>document.getElementById('pause-error').textContent.includes('futuras'));
+  assert.equal(await page.evaluate(()=>window.records.find(r=>r.work_date==='2026-10-17').break_seconds),2700);
+  await page.fill('[data-pause-end="0"]','13:15');await page.evaluate(()=>window.saveError='Sem rede');await page.click('#pause-save');
+  await page.waitForFunction(()=>document.getElementById('pause-error').textContent==='Sem rede');
+  await page.evaluate(()=>window.saveError=null);await page.click('#pause-save');await page.waitForFunction(()=>document.getElementById('shift-timer').textContent==='03:00:00');
+  await page.click('#pause-toggle');await page.waitForFunction(()=>document.getElementById('timer-title').textContent==='Em pausa');
+  await page.clock.setFixedTime(new Date('2026-10-17T14:30:00'));await page.click('#pause-toggle');await page.waitForFunction(()=>document.getElementById('timer-title').textContent==='Turno em curso');
+  await page.click('#pause-summary');assert.equal(await page.locator('.pause-interval').count(),2);
+  await page.fill('[data-pause-start="1"]','13:00');await page.click('#pause-save');await page.waitForFunction(()=>document.getElementById('pause-error').textContent.includes('sobreposição'));
+  await page.click('#pause-cancel');await page.click('#save');await page.waitForFunction(()=>document.getElementById('active-shift').classList.contains('hidden'));
+  const row=await page.evaluate(()=>window.records.find(r=>r.work_date==='2026-10-17'));assert.equal(row.duration_minutes,180);assert.equal(row.pause_intervals.length,2);
+ });
+});
+test('pause interval correction handles midnight',async()=>{
+ await withDays(async page=>{
+  await page.clock.setFixedTime(new Date('2026-10-17T22:00:00'));await page.click('#save');await saved(page);
+  await page.clock.setFixedTime(new Date('2026-10-17T23:45:00'));await page.click('#pause-toggle');await page.waitForFunction(()=>document.getElementById('timer-title').textContent==='Em pausa');
+  await page.clock.setFixedTime(new Date('2026-10-18T01:00:00'));await page.click('#pause-summary');await page.fill('[data-pause-end="0"]','00:15');await page.click('#pause-save');
+  await page.waitForFunction(()=>document.getElementById('shift-timer').textContent==='02:30:00');
+  const row=await page.evaluate(()=>window.records.find(r=>r.work_date==='2026-10-17'));assert.equal(row.break_seconds,1800);
+ });
+});

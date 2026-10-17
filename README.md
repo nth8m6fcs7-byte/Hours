@@ -285,3 +285,5 @@ A migração `hours_worked_time_adjustments` foi aplicada no projeto Bacalhau
 (SQL em `sql/worked-time-adjustments.sql`). Acrescenta o campo e atualiza a função de elegibilidade do push, sem
 alterar registos ou RLS. O campo, a fórmula das oito horas e as permissões do agendador foram verificados
 no Supabase sem alterar registos dos utilizadores.
+
+As pausas aparecem por baixo do cronómetro. Ao tocar, os intervalos «das … às …» podem ser corrigidos no próprio ecrã; preencher o fim de uma pausa em curso retoma o trabalho. São guardados vários intervalos, incluindo pausas que passam da meia-noite. Os totais antigos sem intervalos são preservados. Requer `sql/pause-intervals.sql`.
