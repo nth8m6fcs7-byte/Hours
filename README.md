@@ -273,8 +273,8 @@ preenchidos manualmente mantêm os valores escolhidos.
 
 ## Ajustar tempo pelo cronómetro
 
-Tocar no cronómetro abre um painel para acrescentar/retirar HH:MM ou definir
-o total trabalhado nesse momento. O contador continua a partir do valor corrigido.
+Tocar no cronómetro transforma os próprios números em campos de horas, minutos
+e segundos, sem abrir uma caixa. ✓ guarda o total corrigido; ✕ ou Escape cancela. O contador continua a partir do valor corrigido.
 Durante uma pausa, “Retomei às…” permite escolher a data e hora reais de regresso,
 fechando a pausa nessa hora e retomando a contagem. O ajuste não altera a entrada.
 A correção é guardada em `work_adjustment_seconds`, separada das pausas. Ao parar,

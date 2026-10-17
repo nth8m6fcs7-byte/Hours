@@ -192,10 +192,16 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
 
     button.shift-timer{display:block;min-height:60px;padding:4px 8px;margin-left:auto!important;margin-right:auto!important;background:none;color:var(--ink);font-weight:500;border-radius:12px;font-variant-numeric:tabular-nums;line-height:1.15}
     button.shift-timer:hover{background:#ffffff05;color:#cde6ff}
-    .adjust-dialog{width:min(420px,calc(100% - 28px));max-height:85dvh;overflow:auto;margin:auto;padding:22px;border:1px solid #ffffff20;border-radius:24px;background:#17212e;color:#edf2fa}
-    .adjust-dialog::backdrop{background:#050a12bb;backdrop-filter:blur(8px)}
-    .adjust-dialog select{width:100%;min-height:44px;padding:10px;border:1px solid #ffffff20;border-radius:12px;background:#101620;color:#edf2fa;font:inherit;margin-bottom:18px}
-    .adjust-dialog .field-label{margin-top:12px}.adjust-dialog input{max-width:100%;font-size:16px}.adjust-dialog #adjust-save{margin-top:18px;font-size:13px}
+
+
+  
+    #timer-editor{margin:12px 0 14px;text-align:center}
+    .timer-digits{display:flex;align-items:center;justify-content:center;gap:2px;font-size:clamp(30px,9vw,48px);font-weight:500;letter-spacing:-1px;line-height:1.15;font-variant-numeric:tabular-nums}
+    .timer-digits input{appearance:textfield;-moz-appearance:textfield;box-sizing:content-box;width:2.1ch;min-width:0;height:1.2em;padding:4px 1px;font:inherit;letter-spacing:inherit;text-align:center;background:transparent;color:#cde6ff;border:0;border-bottom:1px solid #79baff70;border-radius:0;box-shadow:none}
+    .timer-digits input::-webkit-inner-spin-button,.timer-digits input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+    .timer-edit-actions{display:flex;gap:14px;justify-content:center;margin-top:8px}.timer-edit-actions button{min-height:40px;min-width:40px;padding:4px;font-size:20px}
+    #adjust-resume-toggle{font-size:11px;min-height:36px;padding:4px 8px}#adjust-resume-field input{max-width:250px;height:44px;font-size:16px;margin:0 auto}
+    #active-shift:has(#timer-editor:not(.hidden)) .timer-actions{display:none}
 
   </style>
 </head>
@@ -282,22 +288,19 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
     </details>
     </dialog>
 
-    <dialog id="adjust-time-dialog" class="adjust-dialog" aria-labelledby="adjust-title">
-      <div class="settings-heading"><h2 id="adjust-title">Ajustar tempo</h2><form method="dialog"><button class="settings-close" aria-label="Fechar ajuste">✕</button></form></div>
-      <form id="adjust-form">
-        <label class="field-label" for="adjust-mode">O que queres corrigir?</label>
-        <select id="adjust-mode"><option value="add">Acrescentar tempo</option><option value="subtract">Retirar tempo</option><option value="total">Definir total trabalhado</option><option id="adjust-resume-option" value="resume">Retomei às…</option></select>
-        <div id="adjust-amount-field"><label class="field-label" for="adjust-amount">Tempo (HH:MM)</label><input id="adjust-amount" type="text" inputmode="text" placeholder="00:30" autocomplete="off"><p class="field-help">O ajuste conta nos totais e no aviso das 8 horas. Não altera a entrada.</p></div>
-        <div id="adjust-resume-field" class="hidden"><label class="field-label" for="adjust-resume">Data e hora de regresso</label><input id="adjust-resume" type="datetime-local"><p class="field-help">Desconta a pausa só até esta hora e retoma o contador.</p></div>
-        <p id="adjust-current" class="field-help"></p>
-        <button id="adjust-save" type="submit">Guardar ajuste</button>
-      </form><div id="adjust-msg" role="status" aria-live="polite"></div>
-    </dialog>
+
     <section id="shift-section" class="card form-card">
       <div class="topbar section-header"><h2 class="section-title"><button id="toggle-shift" class="section-toggle" type="button" aria-expanded="true" aria-controls="shift-section"><span id="form-title">Adicionar horário</span></button></h2></div>
     <section id="active-shift" class="hidden" aria-labelledby="timer-title">
       <h2 id="timer-title" class="section-title">Turno em curso</h2>
-      <button id="shift-timer" class="shift-timer" type="button" aria-label="Ajustar tempo trabalhado" aria-haspopup="dialog" aria-controls="adjust-time-dialog">00:00:00</button>
+      <button id="shift-timer" class="shift-timer" type="button" aria-label="Ajustar tempo trabalhado" aria-expanded="false" aria-controls="timer-editor">00:00:00</button>
+      <form id="timer-editor" class="hidden" novalidate>
+        <div id="timer-digits" class="timer-digits"><input id="adjust-hours" type="number" min="0" max="24" inputmode="numeric" aria-label="Horas"><span aria-hidden="true">:</span><input id="adjust-minutes" type="number" min="0" max="59" inputmode="numeric" aria-label="Minutos"><span aria-hidden="true">:</span><input id="adjust-seconds" type="number" min="0" max="59" inputmode="numeric" aria-label="Segundos"></div>
+        <div id="adjust-resume-field" class="hidden"><input id="adjust-resume" type="datetime-local" aria-label="Data e hora reais de regresso"></div>
+        <div class="timer-edit-actions"><button id="adjust-cancel" type="button" class="ghost" aria-label="Cancelar ajuste">✕</button><button id="adjust-save" type="submit" class="ghost" aria-label="Guardar ajuste">✓</button></div>
+        <button id="adjust-resume-toggle" type="button" class="ghost hidden">Retomei às…</button>
+        <div id="adjust-msg" role="status" aria-live="polite"></div>
+      </form>
       <div class="actions timer-actions"><button id="pause-toggle" type="button">Iniciar pausa</button></div>
       <p id="pause-msg" class="timer-feedback" role="status" aria-live="polite"></p>
       <p id="timer-alert" role="status" aria-live="polite"></p>
@@ -434,7 +437,7 @@ function setMsg(el,msg,ok=false){el.textContent=msg;el.className=msg?(ok?'ok':'e
 async function sessionUI(){
   const {data:{session}}=await supabase.auth.getSession();
   currentUserId=session?.user.id||null;
-  if(!session){setRecovering(false);$('hours-settings').close();$('adjust-time-dialog').close()}
+  if(!session){setRecovering(false);$('hours-settings').close();closeTimerEditor(false)}
   $('recovery').classList.toggle('hidden',!recovering);
   $('auth').classList.toggle('hidden',!!session||recovering);
   $('app').classList.toggle('hidden',!session||recovering);
@@ -843,53 +846,61 @@ function workedSeconds(record,now=Date.now()){
   return Math.max(0,Math.floor((now-shiftStart(record))/1000)-totalBreakSeconds(record,now)+adjustmentSeconds(record));
 }
 
-function refreshAdjustFields(){
- const resume=$('adjust-mode').value==='resume';
- $('adjust-amount-field').classList.toggle('hidden',resume);$('adjust-resume-field').classList.toggle('hidden',!resume);
- $('adjust-amount').required=!resume;$('adjust-resume').required=resume;
+let editingResume=false;
+function closeTimerEditor(focus=true){
+ $('timer-editor').classList.add('hidden');$('shift-timer').classList.remove('hidden');$('shift-timer').setAttribute('aria-expanded','false');
+ if(focus&&activeShift())$('shift-timer').focus();
 }
-$('adjust-mode').onchange=refreshAdjustFields;
 $('shift-timer').onclick=()=>{
  const record=activeShift();if(!record||savingHours)return;
- updateTimer();
- $('adjust-form').reset();setMsg($('adjust-msg'),'');
- $('adjust-resume-option').disabled=!record.paused_at;
- $('adjust-mode').value=record.paused_at?'resume':'add';
+ updateTimer();editingResume=false;setMsg($('adjust-msg'),'');
+ const seconds=workedSeconds(record);
+ $('adjust-hours').value=pad(Math.floor(seconds/3600));$('adjust-minutes').value=pad(Math.floor(seconds/60)%60);$('adjust-seconds').value=pad(seconds%60);
  const now=new Date();$('adjust-resume').value=iso(now)+'T'+pad(now.getHours())+':'+pad(now.getMinutes());
- $('adjust-current').textContent='Tempo trabalhado: '+fmtMins(Math.floor(workedSeconds(record)/60))+(record.paused_at?' · Em pausa':'');
- refreshAdjustFields();$('adjust-time-dialog').showModal();
+ $('timer-digits').classList.remove('hidden');$('adjust-resume-field').classList.add('hidden');
+ $('adjust-resume-toggle').classList.toggle('hidden',!record.paused_at);$('adjust-resume-toggle').textContent='Retomei às…';
+ $('shift-timer').classList.add('hidden');$('shift-timer').setAttribute('aria-expanded','true');$('timer-editor').classList.remove('hidden');
+ $('adjust-hours').focus();$('adjust-hours').select();
 };
-$('adjust-form').onsubmit=async event=>{
+$('adjust-cancel').onclick=()=>{if(!savingHours)closeTimerEditor()};
+$('timer-editor').onkeydown=event=>{if(event.key==='Escape'&&!savingHours){event.preventDefault();closeTimerEditor()}};
+$('adjust-resume-toggle').onclick=()=>{
+ if(savingHours)return;editingResume=!editingResume;
+ $('timer-digits').classList.toggle('hidden',editingResume);$('adjust-resume-field').classList.toggle('hidden',!editingResume);
+ $('adjust-resume-toggle').textContent=editingResume?'Ajustar tempo':'Retomei às…';
+};
+$('timer-editor').onsubmit=async event=>{
  event.preventDefault();if(savingHours)return;
  const current=activeShift();if(!current)return;
- const mode=$('adjust-mode').value,value=$('adjust-amount').value,resumeValue=$('adjust-resume').value;
+ const resumeValue=$('adjust-resume').value;
+ const digits=['adjust-hours','adjust-minutes','adjust-seconds'].map(id=>$(id).value);
+ const numbers=digits.map(Number);
  setHoursBusy(true);$('adjust-save').disabled=true;setMsg($('adjust-msg'),'');
  try{
   const {data,error}=await supabase.from('personal_work_hours').select('*').eq('id',current.id).range(0,0);
   if(error)throw error;
   const record=data?.[0];if(!record||!isOpenShift(record))throw new Error('O turno já terminou. Atualiza a página.');
   const now=Date.now();let changes;
-  if(mode==='resume'){
+  if(editingResume){
    if(!record.paused_at)throw new Error('Este turno já não está em pausa.');
    const resumed=new Date(resumeValue).getTime(),paused=new Date(record.paused_at).getTime();
    if(!Number.isFinite(resumed)||resumed<paused||resumed>now)throw new Error('O regresso deve ficar entre o início da pausa e agora.');
    changes={break_seconds:storedBreakSeconds(record)+Math.floor((resumed-paused)/1000),paused_at:null};
   }else{
-   const minutes=parseDurationInput(value);if(minutes===null)throw new Error('Indica o tempo em HH:MM.');
-   const currentSeconds=workedSeconds(record,now);
-   const delta=mode==='total'?minutes*60-currentSeconds:(mode==='subtract'?-1:1)*minutes*60;
-   if(currentSeconds+delta<0||currentSeconds+delta>86400)throw new Error('O tempo trabalhado deve ficar entre 00:00 e 24:00.');
+   const target=numbers[0]*3600+numbers[1]*60+numbers[2];
+   if(!digits.every(value=>/^\d{1,2}$/.test(value))||numbers[0]>24||numbers[1]>59||numbers[2]>59||target>86400)throw new Error('O tempo trabalhado deve ficar entre 00:00 e 24:00.');
+   const currentSeconds=workedSeconds(record,now),delta=target-currentSeconds;
    changes={work_adjustment_seconds:adjustmentSeconds(record)+delta};
    if(Math.abs(changes.work_adjustment_seconds)>172800)throw new Error('Este ajuste é demasiado grande. Corrige primeiro a entrada.');
   }
   const result=await supabase.from('personal_work_hours').update({...changes,updated_at:new Date(now).toISOString()}).eq('id',record.id);
   if(result.error)throw result.error;
   Object.assign(record,changes);const index=rows.findIndex(r=>r.id===record.id);if(index>=0)rows[index]=record;
-  render();updateTimer();$('adjust-time-dialog').close();setMsg($('pause-msg'),'Tempo corrigido e guardado.',true);
+  render();updateTimer();closeTimerEditor();setMsg($('pause-msg'),'Tempo corrigido e guardado.',true);
  }catch(error){setMsg($('adjust-msg'),error.message||'Não foi possível guardar. Tenta novamente.')}
  finally{setHoursBusy(false);$('adjust-save').disabled=false}
 };
-$('adjust-time-dialog').addEventListener('close',()=>{if(activeShift())$('shift-timer').focus()});
+
 
 $('pause-toggle').onclick=async()=>{
   if(savingHours)return;
