@@ -285,6 +285,6 @@ A migração `hours_worked_time_adjustments` foi aplicada no projeto Bacalhau
 alterar registos ou RLS. O campo, a fórmula das oito horas e as permissões do agendador foram verificados
 no Supabase sem alterar registos dos utilizadores.
 
-As pausas aparecem por baixo do cronómetro. Ao tocar, os intervalos «das … às …» podem ser corrigidos no próprio ecrã; preencher o fim de uma pausa em curso retoma o trabalho. São guardados vários intervalos, incluindo pausas que passam da meia-noite. Os totais antigos sem intervalos são preservados. Requer `sql/pause-intervals.sql`.
+As pausas aparecem por baixo do cronómetro. Ao tocar, os intervalos «das … às …» podem ser corrigidos no próprio ecrã; preencher o fim de uma pausa em curso retoma o trabalho. São guardados vários intervalos, incluindo pausas que passam da meia-noite. Os totais antigos sem intervalos são preservados e podem ser corrigidos no campo «Pausas anteriores · total» (HH:MM), sem inventar horas de início/fim. Requer `sql/pause-intervals.sql`.
 
 Fluxo diário: Começar turno usa a hora atual; tocar em Entrada permite corrigi-la com ✓/✕. Fazer pausa congela o cronómetro; Retomar assume o regresso atual e a ligação Regresso permite corrigir a hora depois (por exemplo, retomar às 14:00 mas indicar que o regresso real foi às 13:00). Parar assume a saída atual e guarda o turno. O cronómetro continua editável diretamente; os turnos guardados continuam editáveis nas definições.

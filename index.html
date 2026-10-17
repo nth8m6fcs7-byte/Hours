@@ -317,7 +317,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
       <button id="pause-summary" type="button" class="ghost hidden" aria-expanded="false" aria-controls="pause-editor"></button>
       <form id="pause-editor" class="hidden" novalidate>
         <div id="pause-intervals"></div>
-        <p id="pause-legacy" class="field-help"></p>
+        <label id="pause-legacy" class="pause-interval hidden"><span>Pausas anteriores · total</span><input id="pause-legacy-total" type="text" inputmode="numeric" placeholder="HH:MM" aria-label="Total das pausas anteriores" autocomplete="off"></label>
         <div class="timer-edit-actions"><button id="pause-cancel" type="button" class="ghost" aria-label="Cancelar pausas">✕</button><button id="pause-save" type="submit" class="ghost" aria-label="Guardar pausas">✓</button></div>
         <p id="pause-error" role="status" aria-live="polite"></p>
       </form>
@@ -939,7 +939,8 @@ $('pause-summary').onclick=()=>{
   const end=document.createElement('input');end.type='time';end.value=interval.end?pauseClock(interval.end):'';end.dataset.pauseEnd=i;end.setAttribute('aria-label',interval.end?'Fim da pausa '+(i+1):'Retomei às');line.append(end);$('pause-intervals').append(line);
  });
  const legacy=Math.max(0,storedBreakSeconds(record)-pauseEditSnapshot.intervals.reduce((sum,p)=>sum+pauseSeconds(p),0));
- $('pause-legacy').textContent=legacy?`${fmtMins(Math.floor(legacy/60))} de pausas anteriores sem intervalo registado.`:'';
+ $('pause-legacy').classList.toggle('hidden',!legacy);
+ $('pause-legacy-total').value=pad(Math.floor(legacy/3600))+':'+pad(Math.floor(legacy/60)%60);
  setMsg($('pause-error'),'');$('pause-editor').classList.remove('hidden');$('pause-summary').setAttribute('aria-expanded','true');
 };
 $('pause-cancel').onclick=()=>{if(!savingHours)closePauseEditor()};
@@ -962,7 +963,13 @@ $('pause-editor').onsubmit=async event=>{
    if(start.getTime()<lastEnd||start.getTime()>now||(end&&(end<start||end.getTime()>now)))throw new Error('As pausas devem ficar dentro do turno, sem sobreposição e sem horas futuras.');
    if(end){intervals.push({start:start.toISOString(),end:end.toISOString()});lastEnd=end.getTime()}else paused_at=start.toISOString();
   }
-  const legacy=Math.max(0,snapshot.break_seconds-snapshot.intervals.reduce((sum,p)=>sum+pauseSeconds(p),0));
+  let legacy=Math.max(0,snapshot.break_seconds-snapshot.intervals.reduce((sum,p)=>sum+pauseSeconds(p),0));
+  if(legacy){
+   const value=$('pause-legacy-total').value.trim(),match=/^(\d{1,2}):(\d{2})$/.exec(value);
+   if(!match||Number(match[2])>59||Number(match[1])*60+Number(match[2])>1440)throw new Error('Indica o total das pausas em HH:MM, entre 00:00 e 24:00.');
+   const original=pad(Math.floor(legacy/3600))+':'+pad(Math.floor(legacy/60)%60);
+   if(value!==original)legacy=Number(match[1])*3600+Number(match[2])*60;
+  }
   const changes={pause_intervals:intervals,paused_at,break_seconds:legacy+intervals.reduce((sum,p)=>sum+pauseSeconds(p),0)};
   if(totalBreakSeconds({...record,...changes},now)>(now-shiftStart(record))/1000)throw new Error('As pausas não podem ultrapassar a duração do turno.');
   const result=await supabase.from('personal_work_hours').update({...changes,updated_at:new Date(now).toISOString()}).eq('id',record.id);if(result.error)throw result.error;

@@ -298,7 +298,7 @@ test('pause intervals edit inline, resume forgotten pauses and persist across re
   await page.evaluate(()=>window.saveError=null);await page.click('#pause-save');await page.waitForFunction(()=>document.getElementById('shift-timer').textContent==='03:00:00');
   await page.click('#pause-toggle');await page.waitForFunction(()=>document.getElementById('timer-title').textContent==='Em pausa');
   await page.clock.setFixedTime(new Date('2026-10-17T14:30:00'));await page.click('#pause-toggle');await page.waitForFunction(()=>document.getElementById('timer-title').textContent==='Turno em curso');
-  await page.click('#pause-summary');assert.equal(await page.locator('.pause-interval').count(),2);
+  await page.click('#pause-summary');assert.equal(await page.locator('#pause-intervals .pause-interval').count(),2);
   await page.fill('[data-pause-start="1"]','13:00');await page.click('#pause-save');await page.waitForFunction(()=>document.getElementById('pause-error').textContent.includes('sobreposição'));
   await page.click('#pause-cancel');await page.click('#save');await page.waitForFunction(()=>document.getElementById('active-shift').classList.contains('hidden'));
   const row=await page.evaluate(()=>window.records.find(r=>r.work_date==='2026-10-17'));assert.equal(row.duration_minutes,180);assert.equal(row.pause_intervals.length,2);
@@ -311,5 +311,21 @@ test('pause interval correction handles midnight',async()=>{
   await page.clock.setFixedTime(new Date('2026-10-18T01:00:00'));await page.click('#pause-summary');await page.fill('[data-pause-end="0"]','00:15');await page.click('#pause-save');
   await page.waitForFunction(()=>document.getElementById('shift-timer').textContent==='02:30:00');
   const row=await page.evaluate(()=>window.records.find(r=>r.work_date==='2026-10-17'));assert.equal(row.break_seconds,1800);
+ });
+});
+
+
+test('older pauses without intervals can be corrected by total without inventing times',async()=>{
+ await withDays(async page=>{
+  await page.clock.setFixedTime(new Date('2026-10-17T10:00:00'));await page.click('#save');await saved(page);
+  await page.clock.setFixedTime(new Date('2026-10-17T21:00:00'));
+  const persisted=await page.evaluate(()=>{const r=window.records.find(r=>r.work_date==='2026-10-17');r.break_seconds=17340;return window.records});
+  await page.unroute('https://hours.test/**');
+  await page.route('https://hours.test/**',route=>route.fulfill({contentType:'text/html',body:html.replace(/^import .*;$/m,()=>stub+'\nwindow.session={user:{id:"user"}};window.records='+JSON.stringify(persisted)+';')}));
+  await page.reload();await page.waitForFunction(()=>document.getElementById('shift-timer').textContent==='06:11:00');
+  await page.click('#pause-summary');assert.equal(await page.inputValue('#pause-legacy-total'),'04:49');
+  await page.fill('#pause-legacy-total','03:99');await page.click('#pause-save');await page.waitForFunction(()=>document.getElementById('pause-error').textContent.includes('HH:MM'));
+  await page.fill('#pause-legacy-total','03:49');await page.click('#pause-save');await page.waitForFunction(()=>document.getElementById('shift-timer').textContent==='07:11:00');
+  const row=await page.evaluate(()=>window.records.find(r=>r.work_date==='2026-10-17'));assert.equal(row.break_seconds,13740);assert.deepEqual(row.pause_intervals,[]);
  });
 });
