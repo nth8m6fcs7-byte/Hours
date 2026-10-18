@@ -226,6 +226,12 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
     #document-review label{display:block;font-size:12px;color:var(--muted);margin:12px 0}
     #document-review input{display:block;width:100%;height:40px;min-height:40px;max-height:40px;box-sizing:border-box;line-height:22px;appearance:none;-webkit-appearance:none;margin-top:6px;background:#101620;border:1px solid #ffffff12;border-radius:10px;color:var(--ink);font-size:16px;min-width:0;padding:8px;color-scheme:dark}
     #document-review label small{display:block;font-size:10px;margin-top:5px;line-height:1.5;overflow-wrap:anywhere}
+    #document-review .document-month-row,#document-primary-values label{display:grid;grid-template-columns:minmax(0,1fr) minmax(110px,45%);align-items:center;gap:8px;margin:0;min-height:58px;border-bottom:1px solid #ffffff0b;font-size:14px}
+    #document-primary-values input,#document-review .document-month-row input{margin:0;text-align:right;background:transparent;border:0;border-radius:0;padding:8px 0}
+    #document-review .document-month-row input{font-size:14px}
+    #document-review .document-warning{grid-column:1/-1;margin:-4px 0 8px;color:#e8bd85;font-size:11px}
+    #document-review h3{margin:0 0 4px}#document-review #document-name:empty,#document-progress:empty{display:none}
+    #finances:has(#document-review:not(.hidden)) .finance-stats,#finances:has(#document-review:not(.hidden))>#finance-detail,#finances:has(#document-review:not(.hidden))>#finance-documents,#finances:has(#document-review:not(.hidden))>#finance-manual{display:none}
     .finance-document-row{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 0;font-size:12px;border-bottom:1px solid #ffffff10}
     .finance-document-row span{overflow-wrap:anywhere;min-width:0}.finance-document-row button{font-size:12px;min-height:36px;padding:6px 10px}
     .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
@@ -434,15 +440,14 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
       <input id="document-file" type="file" class="hidden" accept="application/pdf,image/jpeg,image/png,image/webp">
       <p id="document-progress" class="finance-note" role="status" aria-live="polite"></p>
       <form id="document-review" class="hidden" novalidate>
-        <h3>Confirmar documento</h3><p id="document-name" class="finance-note"></p>
-        <label>Mês dos ganhos<input id="document-income-month" type="month" min="1900-01" max="2100-12"></label>
+        <h3 id="document-heading">Recibo</h3><p id="document-name" class="finance-note"></p>
+        <label class="document-month-row">Mês<input id="document-income-month" type="month" min="1900-01" max="2100-12"></label>
         <div id="document-primary-values"></div>
-        <details><summary>Mais detalhes (opcional)</summary><div id="document-other-values"></div>
+        <details id="document-details"><summary>Ver detalhes</summary><div id="document-other-values"></div>
           <label>Mês do resgate<input id="document-movement-month" type="month" min="1900-01" max="2100-12"></label>
           <label>Mês do prémio resgatado (se souberes)<input id="document-origin-month" type="month" min="1900-01" max="2100-12"></label>
         </details>
-        <p class="finance-note">Confirma os valores. Não serão somados novamente se já estiverem registados.</p>
-        <div class="finance-actions"><button id="document-cancel" type="button" class="ghost">Cancelar</button><button id="document-confirm" type="submit">Confirmar e guardar</button></div>
+        <div class="finance-actions"><button id="document-cancel" type="button" class="ghost">Cancelar</button><button id="document-confirm" type="submit">Guardar</button></div>
         <div id="document-msg" role="status" aria-live="polite"></div>
       </form>
       <div class="finance-stats">
@@ -1325,19 +1330,21 @@ for(const [id,kind] of [['add-payroll','payroll'],['add-coverflex','coverflex']]
  documentKind=kind;$('document-file').value='';$('document-file').click();
 };
 function showDocumentReview(result){
- const primary=documentKind==='payroll'?['salary','food']:['food','bonus'];if(result.values.ppr!==undefined)primary.push('ppr');
+ const primary=documentKind==='payroll'?['salary','food']:['food','bonus'];
+ $('document-details').open=false;$('document-heading').textContent=documentKind==='payroll'?'Recibo':'Coverflex';
  $('document-primary-values').replaceChildren();$('document-other-values').replaceChildren();
  for(const key of Object.keys(documentLabels)){
   if(documentKind==='payroll'&&key==='bonus')continue;
   if(documentKind==='coverflex'&&['salary','gross','irs','ss','net'].includes(key))continue;
-  const label=document.createElement('label'),span=document.createElement('span'),input=document.createElement('input');span.textContent=documentLabels[key]+' (€)';
+  const label=document.createElement('label'),span=document.createElement('span'),input=document.createElement('input');span.textContent=({salary:'Salário líquido',food:'Alimentação',bonus:'Prémio Coverflex'})[key]||documentLabels[key]+' (€)';
   input.type='text';input.inputMode='decimal';input.autocomplete='off';input.placeholder='Não identificado';input.value=financeInput(result.values[key]);input.dataset.documentValue=key;input.setAttribute('aria-label',documentLabels[key]);label.append(span,input);
+  if(primary.includes(key)&&result.values[key]===undefined){const warning=document.createElement('small');warning.className='document-warning';warning.textContent='Não reconhecido · preenche o valor';label.append(warning)}
   if(result.evidence[key])input.title=result.evidence[key].slice(0,220);
   $(primary.includes(key)?'document-primary-values':'document-other-values').append(label);
  }
  $('document-income-month').value=result.month||financeMonth;$('document-movement-month').value=result.paymentMonth||result.month||financeMonth;$('document-origin-month').value='';
- $('document-name').textContent=documentState.file.name+(documentKind==='coverflex'?(result.paymentMonth?' · Recebido em '+result.paymentMonth.split('-').reverse().join('/')+'. Referente ao mês anterior.':' · Indica o mês a que os créditos dizem respeito.'):'');$('document-review').classList.remove('hidden');
- $('document-progress').textContent=result.hasValues?'Leitura concluída. Confirma os valores e o mês.':'Não consegui reconhecer valores com segurança. Podes preencher os campos ou escolher outra imagem.';
+ $('document-name').textContent=documentKind==='coverflex'?(result.paymentMonth?'Recebido em '+new Intl.DateTimeFormat('pt-PT',{month:'long',timeZone:'UTC'}).format(new Date(result.paymentMonth+'-01T12:00:00Z')):'Referente ao mês indicado'):'';$('document-name').title=documentState.file.name;$('document-review').classList.remove('hidden');
+ $('document-progress').textContent=result.hasValues?'':'Não consegui ler os valores. Preenche-os abaixo.';
 }
 $('document-file').onchange=async()=>{
  const file=$('document-file').files[0];if(!file)return;

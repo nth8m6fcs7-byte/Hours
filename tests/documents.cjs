@@ -34,10 +34,11 @@ test('simple document-first view confirms payroll and Coverflex without counting
  await withDocs(async p=>{
   assert.equal(await p.locator('#finance-form').isVisible(),false);assert.equal(await p.locator('#finance-breakdown').isVisible(),false);
   await choose(p,'payroll',{salary:84000,food:10000,ppr:30000,gross:100000,net:124000});
+  assert.equal(await p.locator('[data-document-value="ppr"]').isVisible(),false);assert.equal(await p.locator('.finance-stats').isVisible(),false);assert.equal(await p.locator('#document-confirm').textContent(),'Guardar');
   assert.equal(await p.evaluate(()=>window.documents.length),0);await p.locator('#document-review details summary').click();await p.fill('#document-origin-month','2026-09');await confirm(p);
   let row=await p.evaluate(()=>window.financeRecords[0]);assert.equal(row.entries.reduce((s,e)=>s+e.received_cents,0),94000);assert.equal(row.ppr_redemption_cents,30000);assert.equal(row.ppr_origin_month,'2026-09-01');
   assert.match(await p.textContent('#finance-ppr'),/não entra novamente/);
-  await choose(p,'coverflex',{food:10000,bonus:20000},'coverflex.pdf');await confirm(p);
+  await choose(p,'coverflex',{food:10000,bonus:20000},'coverflex.pdf');assert.equal(await p.locator('#document-details').getAttribute('open'),null);await confirm(p);
   row=await p.evaluate(()=>window.financeRecords[0]);assert.equal(row.entries.reduce((s,e)=>s+e.received_cents,0),114000);assert.equal(row.entries.filter(e=>e.category==='food').length,1);assert.equal(row.ppr_redemption_cents,30000);
   await choose(p,'coverflex',{food:10000,bonus:20000},'coverflex.pdf');await p.click('#document-confirm');await p.waitForFunction(()=>document.getElementById('document-msg').textContent.includes('já está guardado'));
   assert.equal(await p.evaluate(()=>window.documents.length),2);await p.click('#document-cancel');
