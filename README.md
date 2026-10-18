@@ -288,3 +288,47 @@ no Supabase sem alterar registos dos utilizadores.
 As pausas aparecem por baixo do cronómetro. Ao tocar, os intervalos «das … às …» podem ser corrigidos no próprio ecrã; preencher o fim de uma pausa em curso retoma o trabalho. São guardados vários intervalos, incluindo pausas que passam da meia-noite. Os totais antigos sem intervalos são preservados e podem ser corrigidos no campo «Pausas anteriores · total» (HH:MM), sem inventar horas de início/fim. Requer `sql/pause-intervals.sql`.
 
 Fluxo diário: Começar turno usa a hora atual; tocar em Entrada permite corrigi-la com ✓/✕. Fazer pausa congela o cronómetro; Retomar assume o regresso atual e a ligação Regresso permite corrigir a hora depois (por exemplo, retomar às 14:00 mas indicar que o regresso real foi às 13:00). Parar assume a saída atual e guarda o turno. O cronómetro continua editável diretamente; os turnos guardados continuam editáveis nas definições.
+
+## Finanças pessoais — primeira versão
+
+A secção **Finanças**, fechada por defeito, regista valores líquidos por mês de
+referência. Inclui vencimento, alimentação, prémios, prémio Coverflex, gorjetas
+pessoais e outros pagamentos. Cada parcela tem valor esperado, recebido e destino
+(conta, dinheiro, cartão de alimentação ou Coverflex). É possível adicionar outras
+parcelas da mesma categoria para repartir um pagamento por destinos diferentes.
+Cada montante deve ser registado uma só vez. Vazio significa desconhecido; zero
+significa nenhum valor. Não há distribuição de gorjetas nem ligação à TIPS.
+
+Os resumos distinguem dinheiro de benefícios, comparam esperado/recebido quando
+as parcelas preenchidas têm ambos os valores e calculam médias sobre as horas dos
+turnos concluídos do mesmo mês. Turnos abertos não entram na comparação. O valor
+por hora é uma média dos registos, não uma validação do contrato ou do recibo.
+Recibos, anexos, despesas e leitura automática de documentos ficam para fases
+seguintes.
+
+Os dados usam `hours_finance_months`, uma linha por utilizador e mês, com valores
+em cêntimos inteiros. A gravação do mês é atómica. RLS restringe leitura e escrita
+ao próprio utilizador, incluindo a verificação do proprietário em atualizações.
+As finanças não são guardadas em localStorage. Alterações por guardar pedem
+confirmação antes de mudar de mês; falhas de rede preservam os campos editados.
+
+Antes de publicar a interface, aplicar `sql/personal-finances.sql` **no projeto
+Bacalhau (`ecxbujytmufnkevddohv`)**, verificar políticas e permissões e confirmar
+a existência da tabela. A migração só cria recursos com prefixo `hours_`.
+
+Verificação de navegador:
+
+```sh
+PLAYWRIGHT_PATH=/workspace/hours-tools/playwright-system.cjs node --test tests/finance.cjs tests/auth.cjs tests/days.cjs tests/history.cjs
+```
+
+Verificação PostgreSQL local (Docker necessário, sem dados reais nem portas
+expostas; nunca executar a fixture de teste na base de produção):
+
+```sh
+bash tests/finance-db.sh
+```
+
+Este teste aplica o esquema numa base descartável, simula dois utilizadores e
+verifica validação dos montantes, gravação atómica, isolamento entre contas e
+recusa de acesso anónimo. A imagem usada é PostgreSQL 17 Alpine.
