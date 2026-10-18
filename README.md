@@ -303,8 +303,7 @@ Os resumos distinguem dinheiro de benefícios, comparam esperado/recebido quando
 as parcelas preenchidas têm ambos os valores e calculam médias sobre as horas dos
 turnos concluídos do mesmo mês. Turnos abertos não entram na comparação. O valor
 por hora é uma média dos registos, não uma validação do contrato ou do recibo.
-Recibos, anexos, despesas e leitura automática de documentos ficam para fases
-seguintes.
+A importação de recibos e comprovativos está descrita na secção seguinte; despesas ficam para uma fase posterior.
 
 Os dados usam `hours_finance_months`, uma linha por utilizador e mês, com valores
 em cêntimos inteiros. A gravação do mês é atómica. RLS restringe leitura e escrita
@@ -332,3 +331,64 @@ bash tests/finance-db.sh
 Este teste aplica o esquema numa base descartável, simula dois utilizadores e
 verifica validação dos montantes, gravação atómica, isolamento entre contas e
 recusa de acesso anónimo. A imagem usada é PostgreSQL 17 Alpine.
+
+## Recibos e Coverflex: importar, confirmar e resumir
+
+Finanças passa a abrir com dois botões, **Recibo** e **Coverflex**, e o resumo dos
+ganhos/horas. As parcelas manuais, a distribuição por destino, comparações e
+movimentos PPR ficam em detalhes fechados. Os valores já existentes são mantidos.
+
+São aceites PDF, JPG, PNG e WebP até 10 MB. O leitor suporta PDF com texto e PDF
+ou fotografia com OCR português. Limite: cinco páginas por PDF. As dependências
+são carregadas apenas quando se escolhe um ficheiro: PDF.js 4.10.38, Tesseract.js
+6.0.1, core 6.0.0 e dados portugueses 1.0.0, com versões fixas no jsDelivr.
+O reconhecimento ocorre no navegador, sem enviar imagens para um serviço de OCR
+ou IA. Precisa de ligação para carregar as bibliotecas/modelo na primeira leitura.
+HEIC não é suportado: escolher uma imagem JPG/PNG ou PDF.
+
+A leitura preenche candidatos, nunca confirma valores automaticamente. O utilizador
+revê o mês, salário líquido sem alimentação/PPR, alimentação, prémio Coverflex e
+resgate PPR. Bruto, descontos e líquido total ficam na revisão detalhada. Campos
+não reconhecidos ficam vazios; erros de leitura permitem corrigir manualmente ou
+escolher outro ficheiro. O leitor não soma Original e Duplicado e não trata um
+saldo da Coverflex como novo rendimento. Um comprovativo de crédito/carregamento
+é mais adequado do que uma captura só do saldo.
+
+O prémio pertence ao mês em que foi atribuído. O resgate pelo PPR é um movimento
+de dinheiro já ganho, registado no mês do resgate e opcionalmente ligado ao mês
+de origem. Não entra novamente nos ganhos nem na média por hora. O recibo pode
+incluir esse resgate no líquido total; o leitor propõe a separação para confirmar.
+O total mensal de resgates e o mês de origem podem ser corrigidos manualmente.
+
+Após confirmação, o original vai para o bucket **privado** `hours-receipts`, sob
+`<user_id>/<sha256>.<ext>`. Metadados ficam em `hours_finance_documents`, com RLS
+por proprietário. Uma política restritiva limita o novo bucket ao proprietário
+mesmo que outras apps tenham políticas Storage amplas. Não são publicados URLs
+permanentes. A abertura de um documento usa download autenticado.
+
+`hours_confirm_finance_document` usa SECURITY INVOKER, exige a conta autenticada
+e confirma o documento e os valores numa transação. As categorias preenchidas
+substituem as do mesmo tipo no mês, preservando gorjetas e outras parcelas. Assim,
+alimentação visível no recibo e na Coverflex não é somada duas vezes. O resgate
+mensal também é substituído, não somado a cada importação. Ficheiros com o mesmo
+SHA-256 e documentos já confirmados não são importados novamente. Rever valores
+antes de confirmar continua essencial: layouts e qualidade de imagem variam.
+
+Migração: `sql/finance-documents.sql` (aplicada em Bacalhau). Só acrescenta recursos
+HOURS; não altera dados nem permissões das outras aplicações. Políticas restritivas
+são condicionadas ao novo bucket. A TIPS permanece independente.
+
+Verificações adicionais:
+
+```sh
+node --test tests/receipt-reader.test.mjs
+PLAYWRIGHT_PATH=/workspace/hours-tools/playwright-system.cjs node --test tests/documents.cjs tests/finance.cjs
+PLAYWRIGHT_PATH=/workspace/hours-tools/playwright-system.cjs node tests/receipt-runtime.cjs
+bash tests/finance-db.sh
+```
+
+O teste de runtime gera fotografia e PDF sintéticos e executa o OCR e a leitura
+PDF reais. O teste PostgreSQL descartável verifica permissões de documentos e
+ficheiros entre contas (mesmo com outra política Storage ampla), importação atómica,
+preservação de gorjetas e não duplicação da alimentação e do resgate. Os testes
+não incluem documentos ou dados pessoais reais.

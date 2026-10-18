@@ -33,13 +33,13 @@ async function withFinance(run){
   assert.deepEqual(errors,[]);
  }finally{await b.close()}
 }
-const line=(p,i)=>p.locator('.finance-line').nth(i);
-async function open(page){await page.click('#toggle-finance');await page.waitForFunction(()=>!document.getElementById('finance-fields').disabled)}
+const line=(p,i)=>p.locator('#finance-lines .finance-line').nth(i);
+async function open(page){await page.click('#toggle-finance');await page.waitForFunction(()=>!document.getElementById('finance-fields').disabled);await page.locator('#finance-manual summary').click();await page.locator('#finance-detail summary').click()}
 async function amount(page,i,expected,received){await line(page,i).locator('[data-finance="expected_cents"]').fill(expected);await line(page,i).locator('[data-finance="received_cents"]').fill(received)}
 test('monthly finances persist exact cents, distinguish cash and benefits, and compare with completed hours',async()=>{
  await withFinance(async(p,reopen)=>{
   assert.equal(await p.locator('#finance-form').isVisible(),false);assert.equal(await p.evaluate(()=>window.calls.some(c=>c[0]==='finance-load')),false);
-  await open(p);assert.equal(await p.inputValue('#finance-month'),'2026-10');assert.equal(await p.locator('.finance-line').count(),6);
+  await open(p);assert.equal(await p.inputValue('#finance-month'),'2026-10');assert.equal(await p.locator('#finance-lines .finance-line').count(),6);
   assert.equal(await p.textContent('#finance-total'),'—');assert.equal(await p.textContent('#finance-rate'),'—');assert.equal(await p.textContent('#finance-hours'),'17h00');
   await amount(p,0,'1.000,00','1000');await p.click('#finance-save');assert.match(await p.textContent('#finance-msg'),/separadores de milhares/);
   await amount(p,0,'1000,10','1000,10');await amount(p,1,'150','150');await amount(p,3,'200','200');await amount(p,4,'50,25','50,25');
@@ -72,12 +72,12 @@ test('months isolate records, errors preserve edits, and discard confirmation pr
 test('multiple payment destinations, removal, invalid amounts and account isolation',async()=>{
  await withFinance(async p=>{
   await open(p);await p.click('#finance-add');const i=6;await line(p,i).locator('[data-finance="category"]').selectOption('tips');await line(p,i).locator('[data-finance="destination"]').selectOption('bank');await amount(p,i,'10','10');await amount(p,4,'20','20');
-  await line(p,1).locator('.finance-remove').click();assert.equal(await p.locator('.finance-line').count(),6);
+  await line(p,1).locator('.finance-remove').click();assert.equal(await p.locator('#finance-lines .finance-line').count(),6);
   await line(p,0).locator('[data-finance="received_cents"]').fill('-1');await p.click('#finance-save');assert.equal(await p.evaluate(()=>window.financeRecords.length),0);
   await amount(p,0,'','');await p.click('#finance-save');await p.waitForFunction(()=>document.getElementById('finance-state').textContent==='Guardado na tua conta');
   assert.equal(await p.evaluate(()=>window.financeRecords[0].entries.filter(e=>e.category==='tips').length),2);
   await p.evaluate(()=>{window.session={user:{id:'second-user'}};window.authEvent('SIGNED_IN')});await p.waitForFunction(()=>document.getElementById('finance-lines').children.length===0);
   await p.click('#toggle-finance');await p.click('#toggle-finance');await p.waitForFunction(()=>!document.getElementById('finance-fields').disabled);assert.equal(await p.textContent('#finance-total'),'—');
-  await p.evaluate(()=>{window.session=null;window.authEvent('SIGNED_OUT')});await p.waitForSelector('#app',{state:'hidden'});assert.equal(await p.locator('.finance-line').count(),0);
+  await p.evaluate(()=>{window.session=null;window.authEvent('SIGNED_OUT')});await p.waitForSelector('#app',{state:'hidden'});assert.equal(await p.locator('#finance-lines .finance-line').count(),0);
  });
 });

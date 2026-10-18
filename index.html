@@ -218,6 +218,16 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
     #active-shift:has(#timer-editor:not(.hidden)) .timer-actions{display:none}
 
 
+    .document-actions{display:flex;gap:10px;margin:12px 0 8px}.document-actions button{flex:1;min-height:44px;font-size:13px;padding:10px}
+    #finances details{border-top:1px solid #ffffff10;margin-top:14px;padding-top:12px}
+    #finances summary{font-size:12px;color:var(--muted);cursor:pointer;min-height:34px}
+    #document-review{padding:16px 0;margin:8px 0;border-block:1px solid #ffffff15}
+    #document-review h3{font-size:16px;font-weight:500}
+    #document-review label{display:block;font-size:12px;color:var(--muted);margin:12px 0}
+    #document-review input{display:block;width:100%;height:40px;margin-top:6px;background:#101620;border:1px solid #ffffff12;border-radius:10px;color:var(--ink);font-size:16px;min-width:0;padding:8px;color-scheme:dark}
+    #document-review label small{display:block;font-size:10px;margin-top:5px;line-height:1.5;overflow-wrap:anywhere}
+    .finance-document-row{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 0;font-size:12px;border-bottom:1px solid #ffffff10}
+    .finance-document-row span{overflow-wrap:anywhere;min-width:0}.finance-document-row button{font-size:12px;min-height:36px;padding:6px 10px}
     .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
     #finances{margin:32px 0}
     #finances>.section-header{margin:0 0 14px;min-height:48px}
@@ -420,22 +430,44 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
         <input id="finance-month" type="month" min="1900-01" max="2100-12" aria-label="Mês das finanças">
         <button id="finance-next" type="button" aria-label="Mês financeiro seguinte">›</button>
       </div>
+      <div class="document-actions"><button id="add-payroll" type="button">+ Recibo</button><button id="add-coverflex" type="button" class="secondary">+ Coverflex</button></div>
+      <input id="document-file" type="file" class="hidden" accept="application/pdf,image/jpeg,image/png,image/webp">
+      <p id="document-progress" class="finance-note" role="status" aria-live="polite"></p>
+      <form id="document-review" class="hidden" novalidate>
+        <h3>Confirmar documento</h3><p id="document-name" class="finance-note"></p>
+        <label>Mês dos ganhos<input id="document-income-month" type="month" min="1900-01" max="2100-12"></label>
+        <div id="document-primary-values"></div>
+        <details><summary>Outros valores e resgate PPR</summary><div id="document-other-values"></div>
+          <label>Mês do resgate<input id="document-movement-month" type="month" min="1900-01" max="2100-12"></label>
+          <label>Mês do prémio resgatado (se souberes)<input id="document-origin-month" type="month" min="1900-01" max="2100-12"></label>
+        </details>
+        <p class="finance-note">Confirma antes de guardar. As parcelas preenchidas substituem as do mesmo tipo no mês; não são somadas outra vez. O resgate PPR fica separado dos ganhos.</p>
+        <div class="finance-actions"><button id="document-cancel" type="button" class="ghost">Cancelar</button><button id="document-confirm" type="submit">Confirmar e guardar</button></div>
+        <div id="document-msg" role="status" aria-live="polite"></div>
+      </form>
       <div class="finance-stats">
-        <div class="finance-stat"><span>Recebido no mês · dinheiro e benefícios</span><strong id="finance-total">—</strong></div>
+        <div class="finance-stat"><span>Ganhos do mês · dinheiro e benefícios</span><strong id="finance-total">—</strong></div>
         <div class="finance-stat"><span>Horas concluídas</span><strong id="finance-hours">—</strong></div>
         <div class="finance-stat"><span>Dinheiro por hora</span><strong id="finance-rate">—</strong></div>
       </div>
+      <details id="finance-detail"><summary>Ver detalhe</summary>
       <p id="finance-comparison" class="finance-note"></p>
       <div id="finance-breakdown"></div>
       <p id="finance-hour-note" class="finance-note"></p>
       <p class="finance-note">Valores líquidos do mês a que dizem respeito. Regista cada parcela uma só vez; separa o vencimento das gorjetas e dos benefícios. Vazio = ainda não indicado; 0 = nenhum valor.</p>
+      <p id="finance-ppr" class="finance-note"></p>
+      </details>
+      <details id="finance-documents"><summary>Documentos do mês</summary><div id="finance-document-list"></div><p id="finance-document-msg" class="finance-note" role="status"></p></details>
+      <details id="finance-manual"><summary>Ajustar valores manualmente</summary>
       <form id="finance-form" novalidate>
         <fieldset id="finance-fields" style="border:0;padding:0;margin:0" disabled>
           <legend class="sr-only">Valores mensais em euros</legend>
           <div id="finance-lines"></div>
+          <div class="finance-line ppr-manual"><label><span>Resgate PPR do mês (€) · fora dos ganhos</span><input id="finance-ppr-amount" type="text" inputmode="decimal" placeholder="—" aria-label="Resgate PPR do mês"></label><label><span>Mês do prémio (opcional)</span><input id="finance-ppr-origin" type="month" min="1900-01" max="2100-12" aria-label="Mês de origem do resgate"></label></div>
           <div class="finance-actions"><button id="finance-add" class="ghost" type="button">+ Adicionar parcela</button><button id="finance-save" type="submit">Guardar mês</button></div>
         </fieldset>
       </form>
+      </details>
       <p id="finance-state" role="status" aria-live="polite"></p>
       <div id="finance-msg" role="status" aria-live="polite"></div>
       <button id="finance-retry" type="button" class="ghost hidden">Tentar novamente</button>
@@ -1158,7 +1190,7 @@ window.addEventListener('pageshow',updateTimer);
 const financeCategories={salary:'Vencimento líquido',food:'Alimentação',bonus:'Prémios',coverflex:'Prémio Coverflex',tips:'Gorjetas pessoais',other:'Outros pagamentos'};
 const financeDestinations={bank:'Conta bancária',cash:'Dinheiro',meal_card:'Cartão de alimentação',coverflex:'Coverflex'};
 const financeMoney=cents=>new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'}).format(cents/100);
-let financeLoaded=false,financeBusy=false,financeDirty=false,financeVersion=0,financeMonth=iso(new Date()).slice(0,7);
+let financeLoaded=false,financeBusy=false,financeDirty=false,financeVersion=0,financeMonth=iso(new Date()).slice(0,7),financePpr=null;
 function financeDefaultEntries(){return Object.keys(financeCategories).map(category=>({category,destination:category==='food'?'meal_card':category==='coverflex'?'coverflex':category==='tips'?'cash':'bank',expected_cents:null,received_cents:null}))}
 function financeAmount(value){
  const text=value.trim();if(!text)return null;
@@ -1171,6 +1203,7 @@ function setFinanceBusy(value){
  for(const id of ['finance-prev','finance-next','finance-month','finance-retry'])$(id).disabled=value;
 }
 function resetFinance(){
+ resetDocumentReview();financePpr=null;$('finance-ppr-amount').value='';$('finance-ppr-origin').value='';$('finance-document-list').replaceChildren();$('finance-ppr').textContent='';
  financeVersion++;financeLoaded=false;financeDirty=false;financeBusy=false;financeMonth=iso(new Date()).slice(0,7);
  $('finance-month').value=financeMonth;$('finance-lines').replaceChildren();$('finance-fields').disabled=true;
  $('finance-state').textContent='';setMsg($('finance-msg'),'');$('finance-retry').classList.add('hidden');setFinanceBusy(false);renderFinanceSummary();
@@ -1203,6 +1236,10 @@ function readFinanceEntries(){
  });
 }
 function markFinanceDirty(){financeDirty=true;$('finance-state').textContent='Alterações por guardar';setMsg($('finance-msg'),'');renderFinanceSummary()}
+function renderPprSummary(){
+ $('finance-ppr').textContent=financePpr===null?'':`Resgate PPR neste mês: ${financeMoney(financePpr)}. Movimento de dinheiro já ganho; não entra novamente nos ganhos nem no valor por hora. ${$('finance-ppr-origin').value?'Prémio de '+monthLabel($('finance-ppr-origin').value)+'.':'Mês do prémio por confirmar.'}`;
+}
+$('finance-ppr-amount').oninput=markFinanceDirty;$('finance-ppr-origin').onchange=markFinanceDirty;
 function renderFinanceSummary(){
  if(!$('finance-total'))return;
  for(const id of ['finance-total','finance-hours','finance-rate'])$(id).textContent='—';
@@ -1230,24 +1267,25 @@ function renderFinanceSummary(){
 }
 async function loadFinance(){
  if(!currentUserId)return;
- const version=++financeVersion,owner=currentUserId,month=financeMonth;financeLoaded=false;setFinanceBusy(true);renderFinanceSummary();$('finance-lines').replaceChildren();setMsg($('finance-msg'),'');$('finance-state').textContent='A carregar…';$('finance-retry').classList.add('hidden');
+ const version=++financeVersion,owner=currentUserId,month=financeMonth;financeLoaded=false;financePpr=null;$('finance-ppr').textContent='';$('finance-ppr-amount').value='';$('finance-ppr-origin').value='';setFinanceBusy(true);renderFinanceSummary();$('finance-lines').replaceChildren();setMsg($('finance-msg'),'');$('finance-state').textContent='A carregar…';$('finance-retry').classList.add('hidden');
  try{
-  const {data,error}=await supabase.from('hours_finance_months').select('entries,updated_at').eq('user_id',owner).eq('month',month+'-01').range(0,0);
+  const {data,error}=await supabase.from('hours_finance_months').select('entries,updated_at,ppr_redemption_cents,ppr_origin_month').eq('user_id',owner).eq('month',month+'-01').range(0,0);
   if(version!==financeVersion||owner!==currentUserId)return;
   if(error)throw error;
   const entries=data?.[0]?.entries??financeDefaultEntries();
   if(!Array.isArray(entries)||entries.length>32)throw new Error('Não foi possível ler os valores deste mês.');
   for(const entry of entries){if(!Object.hasOwn(financeCategories,entry.category)||!Object.hasOwn(financeDestinations,entry.destination)||['expected_cents','received_cents'].some(k=>entry[k]!==null&&(!Number.isInteger(entry[k])||entry[k]<0||entry[k]>99999999)))throw new Error('Há um valor inválido neste mês.');}
-  entries.forEach(appendFinanceLine);financeLoaded=true;financeDirty=false;$('finance-state').textContent=data?.length?'Valores guardados na tua conta':'Novo mês · ainda sem valores guardados';renderFinanceSummary();
+  entries.forEach(appendFinanceLine);financePpr=data?.[0]?.ppr_redemption_cents??null;$('finance-ppr-amount').value=financeInput(financePpr);$('finance-ppr-origin').value=data?.[0]?.ppr_origin_month?.slice(0,7)||'';renderPprSummary();financeLoaded=true;financeDirty=false;$('finance-state').textContent=data?.length?'Valores guardados na tua conta':'Novo mês · ainda sem valores guardados';renderFinanceSummary();
  }catch(error){if(version!==financeVersion)return;$('finance-state').textContent='';setMsg($('finance-msg'),'Não foi possível carregar as finanças. Tenta novamente.');$('finance-retry').classList.remove('hidden')}
  finally{if(version===financeVersion)setFinanceBusy(false)}
 }
 async function changeFinanceMonth(month){
+ if(documentBusy||documentState){$('finance-month').value=financeMonth;return}
  if(financeBusy){$('finance-month').value=financeMonth;return}
  if(!/^(19\d{2}|20\d{2}|2100)-(0[1-9]|1[0-2])$/.test(month)){$('finance-month').value=financeMonth;return}
  if(month===financeMonth)return;
  if(financeDirty&&!confirm('Há alterações por guardar. Mudar de mês e descartá-las?')){$('finance-month').value=financeMonth;return}
- financeMonth=month;financeDirty=false;$('finance-month').value=month;await loadFinance();
+ resetDocumentReview();$('finance-document-list').replaceChildren();$('finance-documents').open=false;financeMonth=month;financeDirty=false;$('finance-month').value=month;await loadFinance();
 }
 $('finance-month').value=financeMonth;
 $('finance-month').onchange=()=>changeFinanceMonth($('finance-month').value);
@@ -1256,19 +1294,114 @@ $('finance-retry').onclick=loadFinance;
 $('finance-add').onclick=()=>{if(financeBusy||!financeLoaded)return;if($('finance-lines').children.length>=32)return setMsg($('finance-msg'),'Podes registar até 32 parcelas por mês.');appendFinanceLine({category:'other',destination:'bank',expected_cents:null,received_cents:null});markFinanceDirty();$('finance-lines').lastElementChild.querySelector('select').focus()};
 $('finance-form').onsubmit=async event=>{
  event.preventDefault();if(financeBusy||!financeLoaded||!currentUserId)return;
- let entries;try{entries=readFinanceEntries()}catch(error){return setMsg($('finance-msg'),error.message)}
+ let entries,ppr,origin;try{
+  entries=readFinanceEntries();ppr=financeAmount($('finance-ppr-amount').value);origin=$('finance-ppr-origin').value;
+  if(origin&&(!/^(19\d{2}|20\d{2}|2100)-(0[1-9]|1[0-2])$/.test(origin)||origin>financeMonth))throw new Error('O mês do prémio não pode ser posterior ao resgate.');
+ }catch(error){return setMsg($('finance-msg'),error.message)}
  const owner=currentUserId,month=financeMonth,version=financeVersion;setFinanceBusy(true);setMsg($('finance-msg'),'');$('finance-state').textContent='A guardar…';
  try{
   const {data:{user},error:authError}=await supabase.auth.getUser();if(authError)throw authError;
   if(user?.id!==owner||currentUserId!==owner)throw new Error('A sessão mudou. Volta a entrar antes de guardar.');
-  const {error}=await supabase.from('hours_finance_months').upsert({user_id:owner,month:month+'-01',entries,updated_at:new Date().toISOString()},{onConflict:'user_id,month'});
+  const {error}=await supabase.from('hours_finance_months').upsert({user_id:owner,month:month+'-01',entries,ppr_redemption_cents:ppr,ppr_origin_month:ppr!==null&&origin?origin+'-01':null,updated_at:new Date().toISOString()},{onConflict:'user_id,month'});
   if(version!==financeVersion||currentUserId!==owner)return;
   if(error)throw error;
-  financeDirty=false;$('finance-state').textContent='Guardado na tua conta';setMsg($('finance-msg'),'Mês guardado.',true);renderFinanceSummary();
+  financeDirty=false;financePpr=ppr;renderPprSummary();$('finance-state').textContent='Guardado na tua conta';setMsg($('finance-msg'),'Mês guardado.',true);renderFinanceSummary();
  }catch(error){if(version===financeVersion){$('finance-state').textContent='Alterações por guardar';setMsg($('finance-msg'),error.message||'Não foi possível guardar. Tenta novamente.')}}
  finally{if(version===financeVersion)setFinanceBusy(false)}
 };
-window.addEventListener('beforeunload',event=>{if(financeDirty){event.preventDefault();event.returnValue=''}});
+window.addEventListener('beforeunload',event=>{if(financeDirty||documentState){event.preventDefault();event.returnValue=''}});
+
+const documentLabels={salary:'Salário líquido · sem alimentação e resgate',food:'Alimentação',bonus:'Prémio atribuído na Coverflex',ppr:'Resgate PPR · total do mês',gross:'Vencimento bruto',irs:'IRS',ss:'Segurança Social',net:'Líquido total do recibo'};
+let documentState=null,documentBusy=false,documentKind='payroll',documentTask=0;
+function setDocumentBusy(value){
+ documentBusy=value;for(const id of ['add-payroll','add-coverflex','document-confirm','document-cancel','finance-prev','finance-next','finance-month'])$(id).disabled=value||financeBusy;
+ $('finance-fields').disabled=value||financeBusy||!financeLoaded;
+ for(const input of $('document-review').querySelectorAll('input'))input.disabled=value;
+}
+function resetDocumentReview(){documentTask++;documentState=null;documentBusy=false;$('document-review').classList.add('hidden');$('document-file').value='';$('document-progress').textContent='';setMsg($('document-msg'),'');setDocumentBusy(false)}
+for(const [id,kind] of [['add-payroll','payroll'],['add-coverflex','coverflex']])$(id).onclick=()=>{
+ if(documentBusy||financeBusy)return;
+ if(documentState&&!confirm('Descartar a revisão deste documento e escolher outro?'))return;
+ documentKind=kind;$('document-file').value='';$('document-file').click();
+};
+function showDocumentReview(result){
+ const primary=documentKind==='payroll'?['salary','food']:['food','bonus'];if(result.values.ppr!==undefined)primary.push('ppr');
+ $('document-primary-values').replaceChildren();$('document-other-values').replaceChildren();
+ for(const key of Object.keys(documentLabels)){
+  if(documentKind==='payroll'&&key==='bonus')continue;
+  if(documentKind==='coverflex'&&['salary','gross','irs','ss','net'].includes(key))continue;
+  const label=document.createElement('label'),span=document.createElement('span'),input=document.createElement('input');span.textContent=documentLabels[key]+' (€)';
+  input.type='text';input.inputMode='decimal';input.autocomplete='off';input.placeholder='Não identificado';input.value=financeInput(result.values[key]);input.dataset.documentValue=key;input.setAttribute('aria-label',documentLabels[key]);label.append(span,input);
+  if(result.evidence[key]){const small=document.createElement('small');small.textContent=result.evidence[key].slice(0,220);label.append(small)}
+  $(primary.includes(key)?'document-primary-values':'document-other-values').append(label);
+ }
+ $('document-income-month').value=result.month||financeMonth;$('document-movement-month').value=result.month||financeMonth;$('document-origin-month').value='';
+ $('document-name').textContent=documentState.file.name+(documentKind==='coverflex'?' · Confirma os créditos do mês, não o saldo disponível.':'');$('document-review').classList.remove('hidden');
+ $('document-progress').textContent=result.hasValues?'Leitura concluída. Confirma os valores e o mês.':'Não consegui reconhecer valores com segurança. Podes preencher os campos ou escolher outra imagem.';
+}
+$('document-file').onchange=async()=>{
+ const file=$('document-file').files[0];if(!file)return;
+ if(!['application/pdf','image/jpeg','image/png','image/webp'].includes(file.type)||file.size>10485760){$('document-progress').textContent='Escolhe um PDF, JPG, PNG ou WebP até 10 MB.';return}
+ if(financeDirty){if(!confirm('Há valores manuais por guardar. Descartá-los para importar o documento?'))return;await loadFinance();if(!financeLoaded)return}
+ const owner=currentUserId,task=++documentTask;documentState={file,kind:documentKind,owner};setDocumentBusy(true);setMsg($('document-msg'),'');
+ try{
+  const reader=await import('./receipt-reader.mjs');
+  const result=await reader.recognizeDocument(file,documentKind,message=>{if(task===documentTask)$('document-progress').textContent=message});
+  if(task!==documentTask||owner!==currentUserId)return;
+  showDocumentReview(result);
+ }catch(error){if(task!==documentTask)return;showDocumentReview({values:{},evidence:{},month:null,hasValues:false});$('document-progress').textContent='A leitura automática não foi concluída. Podes preencher os valores ou escolher outro documento.';}
+ finally{if(task===documentTask)setDocumentBusy(false)}
+};
+$('document-cancel').onclick=()=>{if(!documentBusy)resetDocumentReview()};
+function documentMonth(id,required=true){const value=$(id).value;if(!value&&!required)return null;if(!/^(19\d{2}|20\d{2}|2100)-(0[1-9]|1[0-2])$/.test(value))throw new Error('Indica um mês válido.');return value+'-01'}
+$('document-review').onsubmit=async event=>{
+ event.preventDefault();if(documentBusy||!documentState)return;
+ const state=documentState,owner=currentUserId,task=documentTask;let values={},incomeMonth,movementMonth,originMonth;
+ try{
+  if(state.owner!==owner||!owner)throw new Error('A sessão mudou. Volta a entrar.');
+  for(const input of $('document-review').querySelectorAll('[data-document-value]')){const amount=financeAmount(input.value);if(amount!==null)values[input.dataset.documentValue]=amount}
+  if(!['salary','food','bonus','ppr'].some(key=>Object.hasOwn(values,key)))throw new Error('Indica pelo menos um valor a importar.');
+  if(Object.hasOwn(values,'net')&&Object.hasOwn(values,'salary')&&values.salary+(values.food||0)+(values.ppr||0)!==values.net)throw new Error('O salário, alimentação e resgate não correspondem ao líquido total do recibo. Confirma os valores e a separação.');
+  incomeMonth=documentMonth('document-income-month');movementMonth=Object.hasOwn(values,'ppr')?documentMonth('document-movement-month'):null;originMonth=Object.hasOwn(values,'ppr')?documentMonth('document-origin-month',false):null;
+ }catch(error){return setMsg($('document-msg'),error.message)}
+ setDocumentBusy(true);setMsg($('document-msg'),'');$('document-progress').textContent='A guardar o documento privado…';
+ try{
+  const {data:{user},error:authError}=await supabase.auth.getUser();if(authError)throw authError;if(user?.id!==owner||owner!==currentUserId)throw new Error('A sessão mudou.');
+  const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await state.file.arrayBuffer())),b=>b.toString(16).padStart(2,'0')).join('');
+  const prior=await supabase.from('hours_finance_documents').select('*').eq('user_id',owner).eq('sha256',hash).range(0,0);if(prior.error)throw prior.error;
+  if(prior.data?.[0]?.status==='confirmed')throw new Error('Este documento já está guardado. Não foi contado outra vez.');
+  let doc=prior.data?.[0];
+  if(!doc){
+   const extension={'application/pdf':'pdf','image/jpeg':'jpg','image/png':'png','image/webp':'webp'}[state.file.type],objectPath=owner+'/'+hash+'.'+extension;
+   const uploaded=await supabase.storage.from('hours-receipts').upload(objectPath,state.file,{contentType:state.file.type,upsert:false});
+   if(uploaded.error&&String(uploaded.error.statusCode)!=='409')throw uploaded.error;
+   if(task!==documentTask||owner!==currentUserId)return;
+   doc={id:crypto.randomUUID(),user_id:owner,sha256:hash,kind:state.kind,filename:state.file.name.slice(0,255),object_path:objectPath,income_month:incomeMonth,status:'draft'};
+   const inserted=await supabase.from('hours_finance_documents').insert(doc);if(inserted.error)throw inserted.error;
+  }
+  if(task!==documentTask||owner!==currentUserId)return;
+  const saved=await supabase.rpc('hours_confirm_finance_document',{p_id:doc.id,p_income_month:incomeMonth,p_movement_month:movementMonth,p_origin_month:originMonth,p_values:values,p_received:true});if(saved.error)throw saved.error;
+  if(task!==documentTask||owner!==currentUserId)return;
+  resetDocumentReview();financeMonth=incomeMonth.slice(0,7);$('finance-month').value=financeMonth;financeDirty=false;await loadFinance();
+  $('document-progress').textContent='Documento confirmado e guardado.';if(movementMonth&&movementMonth!==incomeMonth)$('document-progress').textContent+=' O resgate fica em '+monthLabel(movementMonth.slice(0,7))+'.';
+  if($('finance-documents').open)loadFinanceDocuments();
+ }catch(error){if(task===documentTask){setMsg($('document-msg'),error.message||'Não foi possível guardar. Podes tentar novamente.');$('document-progress').textContent='Documento ainda por confirmar.'}}
+ finally{if(task===documentTask)setDocumentBusy(false)}
+};
+async function loadFinanceDocuments(){
+ const owner=currentUserId,month=financeMonth,version=financeVersion;$('finance-document-list').replaceChildren();$('finance-document-msg').textContent='A carregar…';
+ try{
+  const {data,error}=await supabase.from('hours_finance_documents').select('id,filename,object_path,status').eq('user_id',owner).eq('income_month',month+'-01').eq('status','confirmed').order('created_at',{ascending:false}).range(0,49);
+  if(owner!==currentUserId||version!==financeVersion)return;if(error)throw error;
+  $('finance-document-msg').textContent=data?.length?'':'Ainda sem documentos neste mês.';
+  for(const doc of data||[]){
+   const row=document.createElement('div'),name=document.createElement('span'),button=document.createElement('button');row.className='finance-document-row';name.textContent=doc.filename;button.type='button';button.className='ghost';button.textContent='Abrir';
+   button.onclick=async()=>{button.disabled=true;try{const {data,error}=await supabase.storage.from('hours-receipts').download(doc.object_path);if(error)throw error;if(owner!==currentUserId)return;const url=URL.createObjectURL(data),a=document.createElement('a');a.href=url;a.download=doc.filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),60000)}catch{$('finance-document-msg').textContent='Não foi possível abrir o documento.'}finally{button.disabled=false}};
+   row.append(name,button);$('finance-document-list').append(row);
+  }
+ }catch{if(owner===currentUserId&&version===financeVersion)$('finance-document-msg').textContent='Não foi possível carregar os documentos.'}
+}
+$('finance-documents').ontoggle=()=>{if($('finance-documents').open&&currentUserId)loadFinanceDocuments()};
 
 const sectionToggles={'my-time':'toggle-time','shift-section':'toggle-shift','records':'toggle-records','finances':'toggle-finance'};
 function setSectionOpen(id,open){
