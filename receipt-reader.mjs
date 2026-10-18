@@ -11,20 +11,27 @@ export function parseReceipt(text,kind){
  const lines=String(text).split(/\r?\n/).map(s=>s.trim()).filter(Boolean),evidence={},values={};
  if(kind==='coverflex'&&/\bsaldo\b/.test(normalize(text))&&!/carregamento|creditad|atribu[ií]d|movimento|transac/.test(normalize(text)))return {values,evidence,month:null,hasValues:false};
  // Pick a labelled value, never sum repeated Original/Duplicado copies or card balances.
- const find=(key,pattern)=>{for(let i=0;i<lines.length;i++){if(!pattern.test(normalize(lines[i]))||/saldo|disponivel|compra|despesa/.test(normalize(lines[i]))||/[-−]\s*\d/.test(lines[i]))continue;const numbers=amounts(lines[i]);if(numbers.length){values[key]=numbers.at(-1);evidence[key]=lines[i];return}if(i+1<lines.length&&/^\s*[\d.,\s€]+$/.test(lines[i+1])){const next=amounts(lines[i+1]);if(next.length){values[key]=next.at(-1);evidence[key]=lines[i]+' '+lines[i+1];return}}}};
+ const find=(key,pattern)=>{for(let i=0;i<lines.length;i++){if(!pattern.test(normalize(lines[i]))||/saldo|disponivel|compra|despesa/.test(normalize(lines[i]))||/[-−]\s*\d/.test(lines[i]))continue;const numbers=amounts(lines[i]);if(numbers.length){values[key]=numbers.at(-1);evidence[key]=lines[i];return}if(kind==='coverflex'){for(let j=i+1;j<=Math.min(i+3,lines.length-1);j++){if(/carregamento|premio|alimentacao|resgate/.test(normalize(lines[j])))break;if(/^\s*\+?[\d.,\s€]+$/.test(lines[j])&&!/\d[/.]\d{2}[/.]\d{4}/.test(lines[j])){const a=amounts(lines[j]);if(a.length){values[key]=a.at(-1);evidence[key]=lines[i];return}}}}if(i+1<lines.length&&/^\s*[\d.,\s€]+$/.test(lines[i+1])){const next=amounts(lines[i+1]);if(next.length){values[key]=next.at(-1);evidence[key]=lines[i]+' '+lines[i+1];return}}}};
  if(kind==='payroll'){
   find('gross',/vencimento (?:base|bruto)|salario (?:base|bruto)/);find('food',/subs[ií]dio.*alimenta|subsidio.*refeicao/);
-  find('ppr',/plano poupanca reforma|resgate.*ppr|ppr.*resgat/);find('irs',/^irs\b/);find('ss',/seguranca social/);find('net',/vencimento liquido|liquido (?:a receber|do recibo)|total liquido/);
+  find('ppr',/plano poupanca reforma|resgate.*ppr|ppr.*resgat/);find('irs',/^irs\b/);find('ss',/seguranca social/);find('net',/valor a receber|vencimento liquido|liquido (?:a receber|do recibo)|total liquido/);
+  find('ppr',/^coverflex poupanca e reforma/);
+  const deduction={};for(const line of lines){if(/^desconto coverflex poupanca e reforma/.test(normalize(line))){const a=amounts(line);if(a.length)deduction.ppr=a.at(-1)}}
+  if(values.ppr!==undefined&&deduction.ppr!==undefined)values.ppr=Math.max(0,values.ppr-deduction.ppr);
   if(values.net!==undefined){const salary=values.net-(values.food??0)-(values.ppr??0);if(salary>=0){values.salary=salary;evidence.salary='Líquido do recibo menos alimentação e resgate PPR reconhecidos. Confirma a separação.'}}
  }else{
-  find('food',/alimentacao|refeicao/);find('bonus',/premio|\bbonus\b/);find('ppr',/resgate.*ppr|ppr.*resgat/);
+  find('food',/alimentacao|refeicao/);find('bonus',/carregamento de beneficios|premio|\bbonus\b/);find('ppr',/resgate.*ppr|ppr.*resgat/);
  }
- let month=null;
+ let month=null,paymentMonth=null;
  for(const line of lines){const clean=normalize(line);const word=clean.match(new RegExp('('+months.join('|')+')[ /-]+(20\\d{2})'));
   if(word){month=word[2]+'-'+String(months.indexOf(word[1])+1).padStart(2,'0');break}
   const numeric=clean.match(/\b(0[1-9]|1[0-2])[./-](20\d{2})\b/);if(numeric){month=numeric[2]+'-'+numeric[1];break}
  }
- return {values,evidence,month,hasValues:Object.keys(values).length>0};
+ if(kind==='coverflex'){
+  const date=String(text).match(/\b\d{1,2}[/.](0[1-9]|1[0-2])[/.](20\d{2})\b/);
+  if(date){paymentMonth=date[2]+'-'+date[1];const d=new Date(Date.UTC(Number(date[2]),Number(date[1])-2,1));month=d.toISOString().slice(0,7)}
+ }
+ return {values,evidence,month,paymentMonth,hasValues:Object.keys(values).length>0};
 }
 let pdfPromise,tesseractPromise;
 async function pdfLibrary(){

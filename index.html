@@ -224,7 +224,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
     #document-review{padding:16px 0;margin:8px 0;border-block:1px solid #ffffff15}
     #document-review h3{font-size:16px;font-weight:500}
     #document-review label{display:block;font-size:12px;color:var(--muted);margin:12px 0}
-    #document-review input{display:block;width:100%;height:40px;margin-top:6px;background:#101620;border:1px solid #ffffff12;border-radius:10px;color:var(--ink);font-size:16px;min-width:0;padding:8px;color-scheme:dark}
+    #document-review input{display:block;width:100%;height:40px;min-height:40px;max-height:40px;box-sizing:border-box;line-height:22px;appearance:none;-webkit-appearance:none;margin-top:6px;background:#101620;border:1px solid #ffffff12;border-radius:10px;color:var(--ink);font-size:16px;min-width:0;padding:8px;color-scheme:dark}
     #document-review label small{display:block;font-size:10px;margin-top:5px;line-height:1.5;overflow-wrap:anywhere}
     .finance-document-row{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 0;font-size:12px;border-bottom:1px solid #ffffff10}
     .finance-document-row span{overflow-wrap:anywhere;min-width:0}.finance-document-row button{font-size:12px;min-height:36px;padding:6px 10px}
@@ -437,11 +437,11 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
         <h3>Confirmar documento</h3><p id="document-name" class="finance-note"></p>
         <label>Mês dos ganhos<input id="document-income-month" type="month" min="1900-01" max="2100-12"></label>
         <div id="document-primary-values"></div>
-        <details><summary>Outros valores e resgate PPR</summary><div id="document-other-values"></div>
+        <details><summary>Mais detalhes (opcional)</summary><div id="document-other-values"></div>
           <label>Mês do resgate<input id="document-movement-month" type="month" min="1900-01" max="2100-12"></label>
           <label>Mês do prémio resgatado (se souberes)<input id="document-origin-month" type="month" min="1900-01" max="2100-12"></label>
         </details>
-        <p class="finance-note">Confirma antes de guardar. As parcelas preenchidas substituem as do mesmo tipo no mês; não são somadas outra vez. O resgate PPR fica separado dos ganhos.</p>
+        <p class="finance-note">Confirma os valores. Não serão somados novamente se já estiverem registados.</p>
         <div class="finance-actions"><button id="document-cancel" type="button" class="ghost">Cancelar</button><button id="document-confirm" type="submit">Confirmar e guardar</button></div>
         <div id="document-msg" role="status" aria-live="polite"></div>
       </form>
@@ -1332,11 +1332,11 @@ function showDocumentReview(result){
   if(documentKind==='coverflex'&&['salary','gross','irs','ss','net'].includes(key))continue;
   const label=document.createElement('label'),span=document.createElement('span'),input=document.createElement('input');span.textContent=documentLabels[key]+' (€)';
   input.type='text';input.inputMode='decimal';input.autocomplete='off';input.placeholder='Não identificado';input.value=financeInput(result.values[key]);input.dataset.documentValue=key;input.setAttribute('aria-label',documentLabels[key]);label.append(span,input);
-  if(result.evidence[key]){const small=document.createElement('small');small.textContent=result.evidence[key].slice(0,220);label.append(small)}
+  if(result.evidence[key])input.title=result.evidence[key].slice(0,220);
   $(primary.includes(key)?'document-primary-values':'document-other-values').append(label);
  }
- $('document-income-month').value=result.month||financeMonth;$('document-movement-month').value=result.month||financeMonth;$('document-origin-month').value='';
- $('document-name').textContent=documentState.file.name+(documentKind==='coverflex'?' · Confirma os créditos do mês, não o saldo disponível.':'');$('document-review').classList.remove('hidden');
+ $('document-income-month').value=result.month||financeMonth;$('document-movement-month').value=result.paymentMonth||result.month||financeMonth;$('document-origin-month').value='';
+ $('document-name').textContent=documentState.file.name+(documentKind==='coverflex'?(result.paymentMonth?' · Recebido em '+result.paymentMonth.split('-').reverse().join('/')+'. Referente ao mês anterior.':' · Indica o mês a que os créditos dizem respeito.'):'');$('document-review').classList.remove('hidden');
  $('document-progress').textContent=result.hasValues?'Leitura concluída. Confirma os valores e o mês.':'Não consegui reconhecer valores com segurança. Podes preencher os campos ou escolher outra imagem.';
 }
 $('document-file').onchange=async()=>{
@@ -1345,7 +1345,7 @@ $('document-file').onchange=async()=>{
  if(financeDirty){if(!confirm('Há valores manuais por guardar. Descartá-los para importar o documento?'))return;await loadFinance();if(!financeLoaded)return}
  const owner=currentUserId,task=++documentTask;documentState={file,kind:documentKind,owner};setDocumentBusy(true);setMsg($('document-msg'),'');
  try{
-  const reader=await import('./receipt-reader.mjs');
+  const reader=await import('./receipt-reader.mjs?v=20261018b');
   const result=await reader.recognizeDocument(file,documentKind,message=>{if(task===documentTask)$('document-progress').textContent=message});
   if(task!==documentTask||owner!==currentUserId)return;
   showDocumentReview(result);

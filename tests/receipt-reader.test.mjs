@@ -18,3 +18,13 @@ test('unknown documents remain empty instead of inventing values or periods',()=
 });
 
 test('a Coverflex balance is not an attributed monthly benefit',()=>{const r=parseReceipt('Saldo\nAlimentação\n100,00 €\nPrémio\n200,00 €','coverflex');assert.equal(r.hasValues,false)});
+
+test('Coverflex payment in the following month belongs to the previous work month',()=>{
+ const r=parseReceipt('Carregamento de Benefícios\n02/10/2026\n+743,58€\nCarregamento de Alimentação\n02/10/2026\n+78,00€','coverflex');
+ assert.equal(r.values.bonus,74358);assert.equal(r.values.food,7800);assert.equal(r.month,'2026-09');assert.equal(r.paymentMonth,'2026-10');
+ assert.equal(parseReceipt('Carregamento de Benefícios 100,00€\n02/01/2026','coverflex').month,'2025-12');
+});
+test('new payroll labels and offset Coverflex deductions do not inflate net salary',()=>{
+ const r=parseReceipt('Setembro 2026\nVencimento Base Hora 150.00 1200,00 €\nSubsidio de Alimentação 10.0 60,00 €\nCoverflex Poupança e Reforma F 1.0 300,00 €\nDesconto Coverflex Poupança e Reforma F 1.0 300,00 €\nValor a receber: 960,00 €','payroll');
+ assert.equal(r.values.net,96000);assert.equal(r.values.ppr,0);assert.equal(r.values.salary,90000);
+});
