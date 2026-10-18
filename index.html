@@ -233,6 +233,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
     #document-review h3{margin:0 0 4px}#document-review #document-name:empty,#document-progress:empty{display:none}
     #finances:has(#document-review:not(.hidden)) .finance-stats,#finances:has(#document-review:not(.hidden))>#finance-detail,#finances:has(#document-review:not(.hidden))>#finance-documents,#finances:has(#document-review:not(.hidden))>#finance-manual{display:none}
     .finance-document-row{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 0;font-size:12px;border-bottom:1px solid #ffffff10}
+    .finance-document-actions{display:flex;gap:4px;flex-shrink:0}
     .finance-document-row span{overflow-wrap:anywhere;min-width:0}.finance-document-row button{font-size:12px;min-height:36px;padding:6px 10px}
     .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
     #finances{margin:32px 0}
@@ -1404,7 +1405,25 @@ async function loadFinanceDocuments(){
   for(const doc of data||[]){
    const row=document.createElement('div'),name=document.createElement('span'),button=document.createElement('button');row.className='finance-document-row';name.textContent=doc.filename;button.type='button';button.className='ghost';button.textContent='Abrir';
    button.onclick=async()=>{button.disabled=true;try{const {data,error}=await supabase.storage.from('hours-receipts').download(doc.object_path);if(error)throw error;if(owner!==currentUserId)return;const url=URL.createObjectURL(data),a=document.createElement('a');a.href=url;a.download=doc.filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),60000)}catch{$('finance-document-msg').textContent='Não foi possível abrir o documento.'}finally{button.disabled=false}};
-   row.append(name,button);$('finance-document-list').append(row);
+   const remove=document.createElement('button');remove.type='button';remove.className='ghost';remove.textContent='Retirar';remove.setAttribute('aria-label','Retirar '+doc.filename);
+   remove.onclick=async()=>{
+    if(owner!==currentUserId||version!==financeVersion)return;
+    if(!confirm('Retirar «'+doc.filename+'»? O ficheiro será eliminado. Os valores nas finanças mantêm-se.'))return;
+    button.disabled=true;remove.disabled=true;
+    try{
+     const {data:{user},error:authError}=await supabase.auth.getUser();if(authError)throw authError;
+     if(user?.id!==owner||owner!==currentUserId)throw new Error('A sessão mudou.');
+     const {error:storageError}=await supabase.storage.from('hours-receipts').remove([doc.object_path]);if(storageError)throw storageError;
+     if(owner!==currentUserId)throw new Error('A sessão mudou.');
+     const {data:deleted,error:deleteError}=await supabase.from('hours_finance_documents').delete().eq('id',doc.id).eq('user_id',owner).select('id');if(deleteError)throw deleteError;
+     if(!deleted?.length)throw new Error('Documento indisponível.');
+     if(owner!==currentUserId||version!==financeVersion)return;
+     await loadFinanceDocuments();$('finance-document-msg').textContent='Documento retirado. Os valores mantêm-se.';
+    }catch{if(owner===currentUserId&&version===financeVersion)$('finance-document-msg').textContent='Não foi possível concluir a remoção. Tenta novamente.'}
+    finally{button.disabled=false;remove.disabled=false}
+   };
+   const actions=document.createElement('div');actions.className='finance-document-actions';actions.append(button,remove);
+   row.append(name,actions);$('finance-document-list').append(row);
   }
  }catch{if(owner===currentUserId&&version===financeVersion)$('finance-document-msg').textContent='Não foi possível carregar os documentos.'}
 }
