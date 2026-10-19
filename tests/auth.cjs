@@ -85,12 +85,12 @@ test('authentication, recovery, passkeys and hours regression',async()=>{
   await page.click('#passkey-register');await page.waitForFunction(()=>window.calls.some(c=>c[0]==='register'));
   assert.equal(await page.locator('[data-edit="two"]').isVisible(),false);
   await editSettings(page);assert.equal(await page.getAttribute('#edit-records','aria-pressed'),'true');
-  await page.click('[data-edit="two"]');assert.equal(await page.inputValue('#start'),'22:00');
-  await page.fill('#end','03:00');await page.click('#save');await page.waitForFunction(()=>window.calls.some(c=>c[0]==='edit'));
-  await page.fill('#date','2026-10-06');await page.fill('#start','09:00');await page.fill('#end','18:00');await page.click('#save');
+  await page.click('#toggle-records');await page.click('[data-edit="two"]');assert.equal(await page.inputValue('#start'),'22:00');
+  await page.click('#toggle-time');await page.fill('#end','03:00');await page.click('#save');await page.waitForFunction(()=>window.calls.some(c=>c[0]==='edit'));
+  await page.click('#toggle-time');await page.fill('#date','2026-10-06');await page.click('#toggle-time');await page.fill('#start','09:00');await page.click('#toggle-time');await page.fill('#end','18:00');await page.click('#save');
   await page.waitForFunction(()=>window.calls.some(c=>c[0]==='upsert'));
   if(await page.getAttribute('#edit-records','aria-pressed')!=='true')await editSettings(page);
-  page.once('dialog',dialog=>dialog.accept());await page.click('[data-del="three"]');
+  page.once('dialog',dialog=>dialog.accept());await page.click('#toggle-records');await page.click('[data-del="three"]');
   await page.waitForFunction(()=>window.calls.some(c=>c[0]==='delete'));
   await page.evaluate(()=>window.authEvent('PASSWORD_RECOVERY'));
   await page.waitForSelector('#recovery',{state:'visible'});assert.equal(await page.locator('#app').isVisible(),false);

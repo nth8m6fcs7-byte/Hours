@@ -95,7 +95,7 @@ test('quick monthly tips contribute to earned total while PPR remains hidden',as
 
 test('weekly tips save and replace by week and sum automatically into monthly finances',async()=>{
  await withFinance(async p=>{
-  await p.click('#tips-card');await p.waitForFunction(()=>!document.getElementById('weekly-tips-save').disabled);
+  await p.click('#toggle-records');await p.click('#tips-card');await p.waitForFunction(()=>!document.getElementById('weekly-tips-save').disabled);
   await p.fill('#weekly-tips-amount','100');await p.click('#weekly-tips-save');await p.waitForFunction(()=>document.getElementById('weekly-tips-msg').textContent.includes('guardadas'));
   await p.click('#week-prev');await p.waitForFunction(()=>!document.getElementById('weekly-tips-save').disabled);await p.fill('#weekly-tips-amount','50');await p.click('#weekly-tips-save');await p.waitForFunction(()=>document.getElementById('weekly-tips-msg').textContent.includes('guardadas'));
   await p.fill('#weekly-tips-amount','60');await p.click('#weekly-tips-save');await p.waitForFunction(()=>window.financeRecords.reduce((t,r)=>t+r.entries.reduce((s,e)=>s+e.received_cents,0),0)===16000);

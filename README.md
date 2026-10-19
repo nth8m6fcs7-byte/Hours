@@ -247,18 +247,17 @@ anterior; adicionar novamente pelo Safari para obter o ícone novo.
 
 ## Organização da página
 
-Topo reduzido a HOURS, ícone orbital e definições. Três secções: O meu tempo
-(totais semanais), Turno em curso (cronómetro, pausa e saída no mesmo cartão)
-e Turnos registados (histórico). A entrada confirmada é um resumo discreto;
-Corrigir entrada volta a mostrar os campos bloqueados.
+Navegação inferior fixa com três ecrãs: **Hoje**, **Histórico** e **Finanças**.
+Hoje apresenta o turno em curso, as ações de pausa/saída e um atalho ao total semanal.
+Histórico reúne as semanas de gorjetas e pessoal, o filtro mensal, a edição e um
+botão + para acrescentar turnos. Finanças apresenta o total mensal, a divisão por
+parcela, os documentos e as gorjetas agregadas. Trocar de ecrã preserva rascunhos,
+correções e o turno ativo. A aplicação abre em Hoje após iniciar sessão.
 
-As três secções podem ser abertas/recolhidas pelo respetivo título, com indicação
-de estado e suporte de teclado. Recolher preserva os campos e o cronómetro.
-Consultar uma semana abre Turnos; editar ou retomar uma entrada abre o formulário.
-
-As três secções usam cabeçalhos idênticos, sem caixa exterior. A tua conta
-e Editar turnos ficam nas definições. Editar abre automaticamente Turnos e
-fecha o painel de definições. O estado de sincronização fica nas definições.
+O topo contém HOURS, o ícone orbital e as definições (conta, notificações e edição).
+O cronómetro e a entrada continuam ajustáveis. A navegação considera a área segura
+do iPhone, funciona com teclado e mantém-se disponível ao percorrer listas longas.
+Teste específico: `tests/navigation.cjs`, além das regressões de horas e finanças.
 
 Durante um turno ativo, Parar guarda a hora atual como saída e o tempo líquido
 trabalhado, sem exigir preencher a saída. O botão é compacto e fica ao lado
@@ -291,7 +290,7 @@ Fluxo diário: Começar turno usa a hora atual; tocar em Entrada permite corrigi
 
 ## Finanças pessoais — primeira versão
 
-A secção **Finanças**, fechada por defeito, regista valores líquidos por mês de
+O separador **Finanças** regista valores líquidos por mês de
 referência. Inclui vencimento, alimentação, prémios, prémio Coverflex, gorjetas
 pessoais e outros pagamentos. Cada parcela tem valor esperado, recebido e destino
 (conta, dinheiro, cartão de alimentação ou Coverflex). É possível adicionar outras
