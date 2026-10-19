@@ -45,9 +45,9 @@ test('simple document-first view confirms payroll and Coverflex without counting
   assert.equal(await p.evaluate(()=>window.documents.length),2);await p.click('#document-cancel');
   await p.locator('#finance-documents summary').click();await p.waitForFunction(()=>document.querySelectorAll('.finance-document-row').length===2);
   assert.equal(await p.evaluate(()=>window.calls.filter(c=>c[0]==='file-upload').every(c=>c[1]==='hours-receipts'&&c[2].startsWith('user/'))),true);
-  await p.locator('#finance-manual summary').click();await p.fill('#finance-ppr-amount','200');await p.click('#finance-save');await p.waitForFunction(()=>document.getElementById('finance-state').textContent==='Guardado na tua conta');
+  await p.locator('#finance-manual > summary').click();await p.getByText('Movimentos antigos de PPR',{exact:true}).click();await p.fill('#finance-ppr-amount','200');await p.click('#finance-save');await p.waitForFunction(()=>document.getElementById('finance-state').textContent==='Guardado na tua conta');
   assert.equal(await p.evaluate(()=>window.financeRecords[0].ppr_redemption_cents),20000);assert.equal(await p.evaluate(()=>window.financeRecords[0].entries.reduce((s,e)=>s+e.received_cents,0)),114000);
-  await p.locator('#finance-manual summary').click();
+  await p.locator('#finance-manual > summary').click();
   assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   await p.screenshot({path:'/tmp/hours-documents-simple.png',fullPage:true});
  });
