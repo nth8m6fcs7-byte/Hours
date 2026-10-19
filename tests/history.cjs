@@ -425,3 +425,13 @@ test('weekly history navigates past weeks across months and years without changi
   await page.click('#mine-card');assert.match(await page.textContent('#history-week-range'),/31\/12\/2026.*04\/01\/2027/);await page.click('#week-prev');assert.match(await page.textContent('#history-week-range'),/24\/12.*28\/12\/2026/);
  });
 });
+
+test('editing can add four duration-only shifts without overwriting existing days',async()=>{
+ await withHistory(records,async page=>{
+  await page.click('#settings-open');await page.click('#edit-records');await page.click('#add-history');
+  await page.fill('#add-history-month','2026-09');await page.fill('#add-history-days','3, 4, 5, 20');await page.fill('#add-history-hours','8');await page.click('#add-history-save');
+  await page.waitForFunction(()=>document.getElementById('records-msg').textContent.includes('32h00'));assert.equal(await page.textContent('#history-total'),'32h00');
+  const added=await page.evaluate(()=>window.records.filter(r=>r.work_date.startsWith('2026-09')));assert.equal(added.length,4);assert(added.every(r=>r.duration_minutes===480&&r.start_time===null&&r.end_time===null));
+  await page.click('#add-history');await page.fill('#add-history-days','3');await page.click('#add-history-save');await page.waitForFunction(()=>document.getElementById('add-history-msg').textContent.includes('Já existe'));assert.equal(await page.evaluate(()=>window.records.length),8);
+ });
+});

@@ -218,6 +218,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
     #active-shift:has(#timer-editor:not(.hidden)) .timer-actions{display:none}
 
 
+    #add-history-form{margin:14px 0;padding:12px 0;border-block:1px solid #ffffff15}#add-history-form label{display:block;margin:10px 0;font-size:13px}#add-history-form input{display:block;box-sizing:border-box;width:100%;height:42px;min-height:42px;max-height:42px;font-size:16px;padding:8px;margin-top:4px}#add-history{margin-bottom:12px}
     .week-navigation{display:flex;align-items:center;justify-content:space-between;gap:8px}.week-navigation .week-range{margin:0;text-align:center}.week-navigation button{min-width:44px;font-size:24px}
     .document-actions{display:flex;gap:10px;margin:12px 0 8px}.document-actions button{flex:1;min-height:44px;font-size:13px;padding:10px}
     #finances details{border-top:1px solid #ffffff10;margin-top:14px;padding-top:12px}
@@ -425,6 +426,16 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
         <div class="history-summary" role="status" aria-live="polite"><span id="history-count"><span id="record-count">0 turnos</span></span><div><strong id="history-total">0h00</strong><small id="history-total-label">no mês</small></div></div>
       </div>
       <p id="history-hint" class="history-hint hidden">Escolhe o turno que queres corrigir. Toca em Concluir quando terminares.</p>
+      <button id="add-history" type="button" class="secondary hidden">+ Adicionar turno</button>
+      <form id="add-history-form" class="hidden" novalidate>
+        <label>Mês<input id="add-history-month" type="month" required></label>
+        <label>Dias<input id="add-history-days" type="text" inputmode="text" placeholder="Ex.: 3, 4, 5, 20" required></label>
+        <label>Horas por dia<input id="add-history-hours" type="number" min="0.25" max="24" step="0.25" value="8" required></label>
+        <p class="finance-note">Regista a duração, sem inventar horas de entrada e saída.</p>
+        <button id="add-history-save" type="submit">Guardar turnos</button>
+        <button id="add-history-cancel" class="ghost" type="button">Cancelar</button>
+        <p id="add-history-msg" role="status"></p>
+      </form>
       <div id="records-msg" role="status" aria-live="polite"></div>
       <div id="list"></div>
       <p id="history-coverage" class="history-coverage"></p>
@@ -640,14 +651,15 @@ function renderHistory(){
   $('history-total-label').textContent=week?'na semana':current?'no mês':'no total';
   $('edit-records').textContent=editingRecords?'Concluir edição':'Editar turnos';
   $('edit-records').setAttribute('aria-pressed',String(editingRecords));
-  $('edit-records').disabled=!visible.length&&!editingRecords;
+  $('edit-records').disabled=false;
+  $('add-history').classList.toggle('hidden',!editingRecords);if(!editingRecords)$('add-history-form').classList.add('hidden');
   $('records').classList.toggle('editing',editingRecords);
   $('history-hint').classList.toggle('hidden',!editingRecords);
   $('list').innerHTML=visible.length?visible.map(r=>{
     const date=localDate(r.work_date),fullDate=new Intl.DateTimeFormat('pt-PT',{day:'numeric',month:'long',year:'numeric'}).format(date);
     const note=typeof r.notes==='string'?r.notes.trim():'';
     const nonWork=r.day_type==='day_off'||r.day_type==='vacation';
-    const heading=nonWork?(r.day_type==='day_off'?'Folga':'Férias'):`${(r.start_time||'—').slice(0,5)} <span>→</span> ${(r.end_time||'—').slice(0,5)}`;
+    const heading=nonWork?(r.day_type==='day_off'?'Folga':'Férias'):(!r.start_time&&!r.end_time&&durationOverride(r)!==null?'Duração registada':`${(r.start_time||'—').slice(0,5)} <span>→</span> ${(r.end_time||'—').slice(0,5)}`);
     return `<div class="shift${note?' has-note':''}"><div class="shift-main"><div class="date-tile" aria-hidden="true"><b>${pad(date.getDate())}</b><span>${dayName(date)}</span></div><div><strong>${heading}</strong><small>${fullDate}</small></div></div><div class="shift-end"><div class="dur">${isOpenShift(r)?'Em curso':fmtMins(duration(r))}</div></div>${note?`<p class="shift-note">${escapeHTML(note)}</p>`:''}${editingRecords?`<div class="shift-actions">${nonWork?'':`<button class="ghost" data-edit="${r.id}" aria-label="Editar horário de ${fullDate}">Editar</button>`}<button class="danger" data-del="${r.id}" aria-label="Apagar horário de ${fullDate}">Apagar</button></div>`:''}</div>`;
   }).join(''):`<div class="empty-state"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><strong>${week?'Sem turnos nesta semana.':rows.length?'Sem turnos neste mês.':'A tua primeira hora começa aqui.'}</strong><p>${week?'Os turnos deste intervalo aparecem aqui.':rows.length?'Escolhe outro mês para consultar o histórico.':'Adiciona um horário acima.<br>Os teus totais aparecem automaticamente.'}</p></div>`;
   const dates=rows.map(r=>r.work_date).sort();
@@ -673,6 +685,26 @@ $('history-back').onclick=()=>{activeWeek=null;renderHistory();focusHistory()};
 $('month-filter').onchange=e=>changeMonth(e.target.value);
 $('month-prev').onclick=()=>{const index=monthOptions.indexOf(selectedMonth);if(index>0)changeMonth(monthOptions[index-1])};
 $('month-next').onclick=()=>{const index=monthOptions.indexOf(selectedMonth);if(index>=0&&index<monthOptions.length-1)changeMonth(monthOptions[index+1])};
+$('add-history').onclick=()=>{$('add-history-month').value=selectedMonth||iso(new Date()).slice(0,7);$('add-history-days').value='';$('add-history-form').classList.remove('hidden');setMsg($('add-history-msg'),'');$('add-history-days').focus()};
+$('add-history-cancel').onclick=()=>$('add-history-form').classList.add('hidden');
+let addingHistory=false;
+$('add-history-form').onsubmit=async event=>{
+ event.preventDefault();if(addingHistory)return;const owner=currentUserId;
+ try{
+  const month=$('add-history-month').value,raw=$('add-history-days').value.trim(),hours=Number($('add-history-hours').value);
+  if(!/^(19\d{2}|20\d{2}|2100)-(0[1-9]|1[0-2])$/.test(month)||!/^\d{1,2}(?:[ ,;]+\d{1,2})*$/.test(raw)||!Number.isInteger(hours*60)||hours<=0||hours>24)throw new Error('Indica o mês, os dias separados por vírgulas e as horas (até 24).');
+  const days=[...new Set(raw.split(/[ ,;]+/).map(Number))],last=new Date(Number(month.slice(0,4)),Number(month.slice(5)),0).getDate();
+  if(days.some(day=>day<1||day>last))throw new Error('Um dos dias não existe neste mês.');
+  const dates=days.map(day=>month+'-'+pad(day));if(dates.some(date=>rows.some(r=>r.work_date===date)))throw new Error('Já existe um registo num desses dias. Retira-o da lista ou edita o turno existente.');
+  addingHistory=true;$('add-history-save').disabled=true;
+  const {data:{user},error:authError}=await supabase.auth.getUser();if(authError)throw authError;if(!user||user.id!==owner||owner!==currentUserId)throw new Error('Volta a entrar na tua conta.');
+  const records=dates.map(work_date=>({user_id:owner,work_date,day_type:'work',start_time:null,end_time:null,duration_minutes:hours*60,notes:'Duração indicada manualmente',break_seconds:0,work_adjustment_seconds:0,pause_intervals:[],paused_at:null,updated_at:new Date().toISOString()}));
+  const {error}=await supabase.from('personal_work_hours').insert(records);if(error)throw error;
+  if(owner!==currentUserId)return;
+  activeWeek=null;selectedMonth=month;await load();$('add-history-form').classList.add('hidden');setMsg($('records-msg'),days.length+' turnos guardados · '+fmtMins(days.length*hours*60),true);
+ }catch(error){if(owner===currentUserId)setMsg($('add-history-msg'),error.message||'Não foi possível guardar os turnos.')}
+ finally{addingHistory=false;$('add-history-save').disabled=false}
+};
 $('edit-records').onclick=()=>{
   editingRecords=!editingRecords;
   if(!editingRecords&&editingId)resetForm();

@@ -50,6 +50,7 @@ const createClient=(url,key,options)=>{
    };
    return query;
   },
+  insert:async input=>{window.calls.push(['insert',table,input]);if(window.saveError)return {error:{message:window.saveError}};for(const r of input){if(window.records.some(x=>x.work_date===r.work_date))return {error:{message:'Dia repetido'}}}window.records.push(...input.map((r,i)=>({...r,id:'added-'+i})));return {error:null}},
   upsert:async(input,options)=>{window.calls.push(['upsert',table,input,options]);if(window.saveError)return {error:{message:window.saveError}};for(const record of (Array.isArray(input)?input:[input])){const existing=window.records.find(row=>row.work_date===record.work_date);if(existing)Object.assign(existing,record);else window.records.push({...record,id:'saved-'+window.records.length})}return {error:null}},
   update:input=>({eq:async(...filter)=>{window.calls.push(['edit',table,input,filter]);if(window.saveError)return {error:{message:window.saveError}};Object.assign(window.records.find(record=>record[filter[0]]===filter[1]),input);return {error:null}}}),
   delete:()=>({eq:async(...filter)=>{window.calls.push(['delete',table,filter]);window.records=window.records.filter(record=>record[filter[0]]!==filter[1]);return {error:null}}})
