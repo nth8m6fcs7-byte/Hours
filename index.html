@@ -218,6 +218,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
     #active-shift:has(#timer-editor:not(.hidden)) .timer-actions{display:none}
 
 
+    .week-navigation{display:flex;align-items:center;justify-content:space-between;gap:8px}.week-navigation .week-range{margin:0;text-align:center}.week-navigation button{min-width:44px;font-size:24px}
     .document-actions{display:flex;gap:10px;margin:12px 0 8px}.document-actions button{flex:1;min-height:44px;font-size:13px;padding:10px}
     #finances details{border-top:1px solid #ffffff10;margin-top:14px;padding-top:12px}
     #finances summary{font-size:12px;color:var(--muted);cursor:pointer;min-height:34px}
@@ -419,7 +420,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
         </div>
         <div id="week-controls" class="week-controls hidden">
           <div class="topbar"><h3 id="history-week-title"></h3><button id="history-back" class="ghost" type="button">Ver por mês</button></div>
-          <p id="history-week-range" class="week-range"></p>
+          <div class="week-navigation"><button id="week-prev" type="button" class="ghost" aria-label="Semana anterior">‹</button><p id="history-week-range" class="week-range"></p><button id="week-next" type="button" class="ghost" aria-label="Semana seguinte">›</button></div>
         </div>
         <div class="history-summary" role="status" aria-live="polite"><span id="history-count"><span id="record-count">0 turnos</span></span><div><strong id="history-total">0h00</strong><small id="history-total-label">no mês</small></div></div>
       </div>
@@ -541,6 +542,7 @@ function duration(r){
 }
 function weekMon(d){const x=new Date(d);const wd=(x.getDay()+6)%7;return addDays(x,-wd)}
 function workWeekThu(d){const x=new Date(d);const wd=x.getDay();const back=(wd>=4?wd-4:wd+3);return addDays(x,-back)}
+let historyWeekStart=null;
 function weeklyRanges(){
   const anchor=rows.length?localDate(rows[0].work_date):new Date();
   const mon=weekMon(anchor),thu=workWeekThu(anchor);
@@ -623,7 +625,8 @@ function renderHistory(){
   const monthIndex=monthOptions.indexOf(current);
   $('month-prev').disabled=current===''||monthIndex<=0;
   $('month-next').disabled=current===''||monthIndex>=monthOptions.length-1;
-  const week=activeWeek?weeklyRanges()[activeWeek]:null;
+  const baseWeek=activeWeek?weeklyRanges()[activeWeek]:null;
+  const week=baseWeek?{...baseWeek,start:historyWeekStart||baseWeek.start,end:addDays(historyWeekStart||baseWeek.start,activeWeek==='tips'?6:4)}:null;
   $('month-controls').classList.toggle('hidden',!!week);
   $('week-controls').classList.toggle('hidden',!week);
   $('history-week-title').textContent=week?week.title:'';
@@ -659,7 +662,10 @@ function focusHistory(){
   $('records-title').focus({preventScroll:true});
   $('records').scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
 }
-function showWeek(type){activeWeek=type;renderHistory();focusHistory()}
+function showWeek(type){activeWeek=type;historyWeekStart=null;renderHistory();focusHistory()}
+function moveHistoryWeek(days){if(!activeWeek)return;historyWeekStart=addDays(historyWeekStart||weeklyRanges()[activeWeek].start,days);renderHistory()}
+$('week-prev').onclick=()=>moveHistoryWeek(-7);
+$('week-next').onclick=()=>moveHistoryWeek(7);
 $('tips-card').onclick=()=>showWeek('tips');
 $('mine-card').onclick=()=>showWeek('mine');
 $('history-back').onclick=()=>{activeWeek=null;renderHistory();focusHistory()};

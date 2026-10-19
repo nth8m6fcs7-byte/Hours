@@ -414,3 +414,14 @@ for(const failure of ['recordErrorAt','recordEmptyAt']){
 
 async function editSettings(page){if(!await page.locator('#hours-settings').isVisible())await page.click('#settings-open');await page.click('#edit-records')}
 async function openAccount(page){if(!await page.locator('#hours-settings').isVisible())await page.click('#settings-open');if(!await page.locator('#account').evaluate(e=>e.open))await page.click('#account summary')}
+
+test('weekly history navigates past weeks across months and years without changing weekly cards',async()=>{
+ await withHistory(yearBoundaryRecords,async page=>{
+  await page.click('#tips-card');const card=await page.textContent('#tips-total');
+  assert.match(await page.textContent('#history-week-range'),/28\/12\/2026.*03\/01\/2027/);
+  await page.click('#week-prev');assert.match(await page.textContent('#history-week-range'),/21\/12.*27\/12\/2026/);assert.equal(await page.textContent('#history-total'),'2h00');assert.match(await page.textContent('#list'),/08:00/);
+  await page.click('#week-next');assert.equal(await page.textContent('#tips-total'),card);assert.match(await page.textContent('#history-week-range'),/28\/12\/2026.*03\/01\/2027/);
+  await page.click('#week-prev');await page.click('#week-prev');assert.match(await page.textContent('#list'),/Sem turnos nesta semana/);
+  await page.click('#mine-card');assert.match(await page.textContent('#history-week-range'),/31\/12\/2026.*04\/01\/2027/);await page.click('#week-prev');assert.match(await page.textContent('#history-week-range'),/24\/12.*28\/12\/2026/);
+ });
+});
