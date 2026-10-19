@@ -8,7 +8,7 @@ export function amountCents(text){
 }
 function amounts(line){return [...line.matchAll(/(?:\d{1,3}(?:[.\s]\d{3})+|\d+)[,.]\d{2}(?!\d)\s*€?/g)].filter(m=>!line.slice(m.index+m[0].length).trimStart().startsWith('%')).map(m=>amountCents(m[0].replace('€','').trim())).filter(v=>v!==null)}
 export function parseReceipt(text,kind){
- const lines=String(text).split(/\r?\n/).map(s=>s.trim()).filter(Boolean),evidence={},values={};
+ const lines=String(text).replace(/(\d)[,.]\s+(\d{2})(?!\d)/g,'$1,$2').split(/\r?\n/).map(s=>s.trim()).filter(Boolean),evidence={},values={};
  if(kind==='coverflex'&&/\bsaldo\b/.test(normalize(text))&&!/carregamento|creditad|atribu[ií]d|movimento|transac/.test(normalize(text)))return {values,evidence,month:null,hasValues:false};
  // Pick a labelled value, never sum repeated Original/Duplicado copies or card balances.
  const find=(key,pattern)=>{for(let i=0;i<lines.length;i++){if(!pattern.test(normalize(lines[i]))||/saldo|disponivel|compra|despesa/.test(normalize(lines[i]))||/[-−]\s*\d/.test(lines[i]))continue;const numbers=amounts(lines[i]);if(numbers.length){values[key]=numbers.at(-1);evidence[key]=lines[i];return}if(kind==='coverflex'){for(let j=i+1;j<=Math.min(i+3,lines.length-1);j++){if(/carregamento|premio|alimentacao|resgate/.test(normalize(lines[j])))break;const credit=lines[j].replace(/\b\d{1,2}[/.\-]\d{1,2}[/.\-]20\d{2}\b/g,'').trim();if(/^\+?[\d.,\s]+(?:€|EUR)?$/i.test(credit)){const a=amounts(credit);if(a.length){values[key]=a.at(-1);evidence[key]=lines[i];return}}}}if(i+1<lines.length&&/^\s*[\d.,\s€]+$/.test(lines[i+1])){const next=amounts(lines[i+1]);if(next.length){values[key]=next.at(-1);evidence[key]=lines[i]+' '+lines[i+1];return}}}};
@@ -20,7 +20,7 @@ export function parseReceipt(text,kind){
   if(values.ppr!==undefined&&deduction.ppr!==undefined)values.ppr=Math.max(0,values.ppr-deduction.ppr);
   if(values.net!==undefined){const salary=values.net-(values.food??0)-(values.ppr??0);if(salary>=0){values.salary=salary;evidence.salary='Líquido do recibo menos alimentação e resgate PPR reconhecidos. Confirma a separação.'}}
  }else{
-  find('food',/alimentacao|refeicao/);find('bonus',/carregamento de beneficios|premio|\bbonus\b/);find('ppr',/resgate.*ppr|ppr.*resgat/);
+  find('food',/alimentacao|refeicao/);find('bonus',/carregamento.*benef|beneficios|premio|\bbonus\b/);find('ppr',/resgate.*ppr|ppr.*resgat/);
  }
  let month=null,paymentMonth=null;
  for(const line of lines){const clean=normalize(line);const word=clean.match(new RegExp('('+months.join('|')+')[ /-]+(20\\d{2})'));
@@ -38,11 +38,24 @@ async function pdfLibrary(){
  if(!pdfPromise)pdfPromise=import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs').then(pdf=>{pdf.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs';return pdf}).catch(e=>{pdfPromise=null;throw e});
  return pdfPromise;
 }
-async function ocr(canvas,onProgress){
+async function ocr(canvas,onProgress,kind){
  if(!tesseractPromise)tesseractPromise=import('https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/tesseract.esm.min.js').catch(e=>{tesseractPromise=null;throw e});
  const module=await tesseractPromise;const {createWorker}=module.default||module;
  const worker=await createWorker('por',1,{workerPath:'https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/worker.min.js',corePath:'https://cdn.jsdelivr.net/npm/tesseract.js-core@6.0.0',langPath:'https://cdn.jsdelivr.net/npm/@tesseract.js-data/por@1.0.0/4.0.0_best_int',logger:m=>{if(m.status==='recognizing text')onProgress?.('A ler a imagem… '+Math.round(m.progress*100)+'%')}});
- try{return (await worker.recognize(canvas)).data.text}finally{await worker.terminate()}
+ try{
+  let text=(await worker.recognize(canvas)).data.text;
+  if(kind==='coverflex'){
+   let parsed=parseReceipt(text,kind);
+   if(parsed.values.food===undefined||parsed.values.bonus===undefined){
+    onProgress?.('A confirmar os carregamentos…');
+    // A single text block keeps right-aligned credits next to their labels.
+    await worker.setParameters({tessedit_pageseg_mode:'6'});
+    const retry=(await worker.recognize(canvas)).data.text,next=parseReceipt(retry,kind);
+    for(const [key,label] of [['food','Alimentação'],['bonus','Prémio']]){if(parsed.values[key]===undefined&&next.values[key]!==undefined)text+='\n'+label+' '+(next.values[key]/100).toFixed(2)+' €'}
+   }
+  }
+  return text;
+ }finally{await worker.terminate()}
 }
 async function photoCanvas(file){
  const url=URL.createObjectURL(file);
@@ -64,6 +77,6 @@ export async function recognizeDocument(file,kind,onProgress){
     text+=pageText+'\n';
    }
   }finally{await doc.destroy()}
- }else text=await ocr(await photoCanvas(file),onProgress);
+ }else text=await ocr(await photoCanvas(file),onProgress,kind);
  return parseReceipt(text,kind);
 }

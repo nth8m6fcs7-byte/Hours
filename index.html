@@ -1359,7 +1359,7 @@ $('document-file').onchange=async()=>{
  if(financeDirty){if(!confirm('Há valores manuais por guardar. Descartá-los para importar o documento?'))return;await loadFinance();if(!financeLoaded)return}
  const owner=currentUserId,task=++documentTask;documentState={file,kind:documentKind,owner};setDocumentBusy(true);setMsg($('document-msg'),'');
  try{
-  const reader=await import('./receipt-reader.mjs?v=20261019a');
+  const reader=await import('./receipt-reader.mjs?v=20261019b');
   const result=await reader.recognizeDocument(file,documentKind,message=>{if(task===documentTask)$('document-progress').textContent=message});
   if(task!==documentTask||owner!==currentUserId)return;
   showDocumentReview(result);

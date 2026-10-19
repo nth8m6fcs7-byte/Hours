@@ -34,3 +34,5 @@ test('Coverflex OCR can merge payment dates and credits onto the same line',()=>
  assert.equal(r.values.bonus,74358);assert.equal(r.values.food,7800);assert.equal(r.month,'2026-09');
  const invalid=parseReceipt('Carregamento de Benefícios\n02/10/2026\nCarregamento de Alimentação\n02/10/2026 -78,00€','coverflex');assert.deepEqual(invalid.values,{});
 });
+
+test('Coverflex accepts OCR spacing and imperfect benefit labels',()=>{const r=parseReceipt('Carregamento de Benefíclos\n02/10/2026 +743, 58€\nCarregamento de Alimentação\n02/10/2026 +78,00€','coverflex');assert.equal(r.values.bonus,74358);assert.equal(r.values.food,7800)});
