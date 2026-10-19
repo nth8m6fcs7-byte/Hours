@@ -424,6 +424,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
           <div class="topbar"><h3 id="history-week-title"></h3><button id="history-back" class="ghost" type="button">Ver por mês</button></div>
           <div class="week-navigation"><button id="week-prev" type="button" class="ghost" aria-label="Semana anterior">‹</button><p id="history-week-range" class="week-range"></p><button id="week-next" type="button" class="ghost" aria-label="Semana seguinte">›</button></div>
         </div>
+        <form id="weekly-tips-form" class="finance-tips-row hidden" novalidate><label for="weekly-tips-amount">Gorjetas da semana (€)</label><input id="weekly-tips-amount" type="text" inputmode="decimal" placeholder="Por indicar"><button id="weekly-tips-save" type="submit" class="ghost">Guardar</button><p id="weekly-tips-note" class="finance-note"></p><p id="weekly-tips-msg" class="finance-note" role="status"></p></form>
         <div class="history-summary" role="status" aria-live="polite"><span id="history-count"><span id="record-count">0 turnos</span></span><div><strong id="history-total">0h00</strong><small id="history-total-label">no mês</small></div></div>
       </div>
       <p id="history-hint" class="history-hint hidden">Escolhe o turno que queres corrigir. Toca em Concluir quando terminares.</p>
@@ -645,6 +646,7 @@ function renderHistory(){
   $('week-controls').classList.toggle('hidden',!week);
   $('history-week-title').textContent=week?week.title:'';
   $('history-week-range').textContent=week?rangeLabel(week,true):'';
+  loadWeeklyTips(activeWeek==='tips'?iso(week.start):null);
   $('tips-card').setAttribute('aria-pressed',String(activeWeek==='tips'));
   $('mine-card').setAttribute('aria-pressed',String(activeWeek==='mine'));
   const visible=week?rowsInRange(week):current?rows.filter(r=>r.work_date.startsWith(current+'-')):rows;
@@ -1261,7 +1263,7 @@ function financeSelect(options,value,label){
  select.value=value;return select;
 }
 function appendFinanceLine(entry){
- const line=document.createElement('div');line.className='finance-line';
+ const line=document.createElement('div');line.className='finance-line';if(entry.week_start)line.dataset.weekStart=entry.week_start;
  const heading=document.createElement('div');heading.className='finance-category';
  const category=financeSelect(financeCategories,entry.category,'Tipo de parcela');category.dataset.finance='category';heading.append(category);
  const remove=document.createElement('button');remove.type='button';remove.className='finance-remove';remove.textContent='×';remove.setAttribute('aria-label','Remover parcela');
@@ -1279,7 +1281,7 @@ function readFinanceEntries(){
   const get=key=>line.querySelector(`[data-finance="${key}"]`).value;
   const category=get('category'),destination=get('destination');
   if(!Object.hasOwn(financeCategories,category)||!Object.hasOwn(financeDestinations,destination))throw new Error('Escolhe o tipo de parcela e o destino.');
-  return {category,destination,expected_cents:financeAmount(get('expected_cents')),received_cents:financeAmount(get('received_cents'))};
+  return {category,destination,expected_cents:financeAmount(get('expected_cents')),received_cents:financeAmount(get('received_cents')),...(category==='tips'&&line.dataset.weekStart?{week_start:line.dataset.weekStart}:{})};
  });
 }
 function markFinanceDirty(){financeDirty=true;$('finance-state').textContent='Alterações por guardar';setMsg($('finance-msg'),'');renderFinanceSummary()}
@@ -1322,7 +1324,7 @@ async function loadFinance(){
   const entries=data?.[0]?.entries??financeDefaultEntries();
   if(!Array.isArray(entries)||entries.length>32)throw new Error('Não foi possível ler os valores deste mês.');
   for(const entry of entries){if(!Object.hasOwn(financeCategories,entry.category)||!Object.hasOwn(financeDestinations,entry.destination)||['expected_cents','received_cents'].some(k=>entry[k]!==null&&(!Number.isInteger(entry[k])||entry[k]<0||entry[k]>99999999)))throw new Error('Há um valor inválido neste mês.');}
-  entries.forEach(appendFinanceLine);const tips=entries.filter(e=>e.category==='tips'&&e.received_cents!==null);$('finance-tips-amount').value=tips.length?financeInput(tips.reduce((sum,e)=>sum+e.received_cents,0)):'';financePpr=data?.[0]?.ppr_redemption_cents??null;$('finance-ppr-amount').value=financeInput(financePpr);$('finance-ppr-origin').value=data?.[0]?.ppr_origin_month?.slice(0,7)||'';renderPprSummary();financeLoaded=true;financeDirty=false;$('finance-state').textContent=data?.length?'Valores guardados na tua conta':'Novo mês · ainda sem valores guardados';renderFinanceSummary();
+  entries.forEach(appendFinanceLine);const tips=entries.filter(e=>e.category==='tips'&&e.received_cents!==null);$('finance-tips-amount').readOnly=tips.some(e=>e.week_start);$('finance-tips-save').classList.toggle('hidden',tips.some(e=>e.week_start));$('finance-tips-msg').textContent=tips.some(e=>e.week_start)?'Somado automaticamente das semanas de gorjetas.':'';$('finance-tips-amount').value=tips.length?financeInput(tips.reduce((sum,e)=>sum+e.received_cents,0)):'';financePpr=data?.[0]?.ppr_redemption_cents??null;$('finance-ppr-amount').value=financeInput(financePpr);$('finance-ppr-origin').value=data?.[0]?.ppr_origin_month?.slice(0,7)||'';renderPprSummary();financeLoaded=true;financeDirty=false;$('finance-state').textContent=data?.length?'Valores guardados na tua conta':'Novo mês · ainda sem valores guardados';renderFinanceSummary();
  }catch(error){if(version!==financeVersion)return;$('finance-state').textContent='';setMsg($('finance-msg'),'Não foi possível carregar as finanças. Tenta novamente.');$('finance-retry').classList.remove('hidden')}
  finally{if(version===financeVersion)setFinanceBusy(false)}
 }
@@ -1352,13 +1354,13 @@ $('finance-form').onsubmit=async event=>{
   const {error}=await supabase.from('hours_finance_months').upsert({user_id:owner,month:month+'-01',entries,ppr_redemption_cents:ppr,ppr_origin_month:ppr!==null&&origin?origin+'-01':null,updated_at:new Date().toISOString()},{onConflict:'user_id,month'});
   if(version!==financeVersion||currentUserId!==owner)return;
   if(error)throw error;
-  financeDirty=false;financePpr=ppr;renderPprSummary();$('finance-state').textContent='Guardado na tua conta';setMsg($('finance-msg'),'Mês guardado.',true);renderFinanceSummary();
+  weeklyTipsKey=null;financeDirty=false;financePpr=ppr;renderPprSummary();$('finance-state').textContent='Guardado na tua conta';setMsg($('finance-msg'),'Mês guardado.',true);renderFinanceSummary();
  }catch(error){if(version===financeVersion){$('finance-state').textContent='Alterações por guardar';setMsg($('finance-msg'),error.message||'Não foi possível guardar. Tenta novamente.')}}
  finally{if(version===financeVersion)setFinanceBusy(false)}
 };
 $('finance-tips-amount').oninput=()=>{financeDirty=true;$('finance-tips-msg').textContent='Por guardar'};
 $('finance-tips-form').onsubmit=async event=>{
- event.preventDefault();if(financeBusy||documentBusy||!financeLoaded||!currentUserId)return;
+ event.preventDefault();if(financeBusy||documentBusy||!financeLoaded||!currentUserId||$('finance-tips-amount').readOnly)return;
  try{
   const amount=financeAmount($('finance-tips-amount').value);if(amount===null)throw new Error('Indica o total de gorjetas do mês.');
   const lines=[...$('finance-lines').children].filter(line=>line.querySelector('[data-finance="category"]').value==='tips');
@@ -1369,6 +1371,34 @@ $('finance-tips-form').onsubmit=async event=>{
 };
 window.addEventListener('beforeunload',event=>{if(financeDirty||documentState){event.preventDefault();event.returnValue=''}});
 
+let weeklyTipsKey=null,weeklyTipsTask=0,weeklyTipsBusy=false,weeklyTipsManual=false;
+function tipsIncomeMonth(start){return iso(addDays(localDate(start),6)).slice(0,7)}
+async function loadWeeklyTips(start){
+ const key=start&&currentUserId?currentUserId+':'+start:null;if(key===weeklyTipsKey)return;weeklyTipsKey=key;const task=++weeklyTipsTask;
+ $('weekly-tips-form').classList.toggle('hidden',!key);$('weekly-tips-amount').value='';$('weekly-tips-msg').textContent='';weeklyTipsManual=false;
+ if(!key)return;const owner=currentUserId,month=tipsIncomeMonth(start);$('weekly-tips-amount').disabled=true;$('weekly-tips-save').disabled=true;
+ $('weekly-tips-note').textContent='Incluído em '+monthLabel(month)+'.';
+ try{
+  const {data,error}=await supabase.from('hours_finance_months').select('entries').eq('user_id',owner).eq('month',month+'-01').range(0,0);if(error)throw error;
+  if(task!==weeklyTipsTask||owner!==currentUserId)return;const tips=(data?.[0]?.entries||[]).filter(e=>e.category==='tips');
+  const item=tips.find(e=>e.week_start===start);$('weekly-tips-amount').value=financeInput(item?.received_cents);
+  weeklyTipsManual=tips.some(e=>!e.week_start&&(e.received_cents>0||e.expected_cents>0));$('weekly-tips-amount').disabled=false;$('weekly-tips-save').disabled=false;
+ }catch{if(task===weeklyTipsTask)$('weekly-tips-msg').textContent='Não foi possível ler as gorjetas. Volta a abrir esta semana.'}
+}
+$('weekly-tips-form').onsubmit=async event=>{
+ event.preventDefault();if(weeklyTipsBusy||$('weekly-tips-save').disabled||!weeklyTipsKey)return;
+ const key=weeklyTipsKey,owner=currentUserId,start=key.slice(key.indexOf(':')+1),task=weeklyTipsTask;
+ try{
+  const amount=financeAmount($('weekly-tips-amount').value);if(amount===null)throw new Error('Indica as gorjetas desta semana.');
+  if(financeDirty)throw new Error('Guarda primeiro as alterações nas Finanças.');
+  if(weeklyTipsManual&&!confirm('Já existe um total mensal de gorjetas. Substituí-lo pelas semanas que registares, para não contar duas vezes?'))return;
+  weeklyTipsBusy=true;$('weekly-tips-save').disabled=true;
+  const {error}=await supabase.rpc('hours_save_weekly_tips',{p_week_start:start,p_amount:amount,p_replace_manual:weeklyTipsManual});if(error)throw error;
+  if(task!==weeklyTipsTask||owner!==currentUserId)return;weeklyTipsManual=false;$('weekly-tips-msg').textContent='Gorjetas guardadas e incluídas nas finanças.';
+  if(financeMonth===tipsIncomeMonth(start)&&financeLoaded)await loadFinance();
+ }catch(error){if(task===weeklyTipsTask)$('weekly-tips-msg').textContent=error.message||'Não foi possível guardar.'}
+ finally{weeklyTipsBusy=false;if(task===weeklyTipsTask)$('weekly-tips-save').disabled=false}
+};
 const documentLabels={salary:'Salário líquido · sem alimentação e resgate',food:'Alimentação',bonus:'Prémio atribuído na Coverflex',ppr:'Resgate PPR · total do mês',gross:'Vencimento bruto',irs:'IRS',ss:'Segurança Social',net:'Líquido total do recibo'};
 let documentState=null,documentBusy=false,documentKind='payroll',documentTask=0;
 function setDocumentBusy(value){
