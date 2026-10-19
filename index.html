@@ -446,6 +446,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
         <label class="document-month-row">Mês<input id="document-income-month" type="month" min="1900-01" max="2100-12"></label>
         <div id="document-primary-values"></div>
         <details id="document-details"><summary>Ver detalhes</summary><div id="document-other-values"></div>
+          <details id="document-reading" class="hidden"><summary>Texto lido na imagem</summary><p class="finance-note">Se faltar um valor, copia este texto para podermos corrigir a leitura.</p><textarea id="document-reading-text" readonly aria-label="Texto lido na imagem" style="width:100%;box-sizing:border-box;min-height:120px;font-size:14px"></textarea></details>
           <label>Mês do resgate<input id="document-movement-month" type="month" min="1900-01" max="2100-12"></label>
           <label>Mês do prémio resgatado (se souberes)<input id="document-origin-month" type="month" min="1900-01" max="2100-12"></label>
         </details>
@@ -1338,6 +1339,7 @@ for(const [id,kind] of [['add-payroll','payroll'],['add-coverflex','coverflex']]
 };
 function showDocumentReview(result){
  const primary=documentKind==='payroll'?['salary','food']:['food','bonus'];
+ $('document-reading').open=false;$('document-reading-text').value=result.recognizedText||'';$('document-reading').classList.toggle('hidden',!result.recognizedText);
  $('document-details').open=false;$('document-heading').textContent=documentKind==='payroll'?'Recibo':'Coverflex';
  $('document-primary-values').replaceChildren();$('document-other-values').replaceChildren();
  for(const key of Object.keys(documentLabels)){
@@ -1359,7 +1361,7 @@ $('document-file').onchange=async()=>{
  if(financeDirty){if(!confirm('Há valores manuais por guardar. Descartá-los para importar o documento?'))return;await loadFinance();if(!financeLoaded)return}
  const owner=currentUserId,task=++documentTask;documentState={file,kind:documentKind,owner};setDocumentBusy(true);setMsg($('document-msg'),'');
  try{
-  const reader=await import('./receipt-reader.mjs?v=20261019b');
+  const reader=await import('./receipt-reader.mjs?v=20261019c');
   const result=await reader.recognizeDocument(file,documentKind,message=>{if(task===documentTask)$('document-progress').textContent=message});
   if(task!==documentTask||owner!==currentUserId)return;
   showDocumentReview(result);

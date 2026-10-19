@@ -49,9 +49,13 @@ async function ocr(canvas,onProgress,kind){
    if(parsed.values.food===undefined||parsed.values.bonus===undefined){
     onProgress?.('A confirmar os carregamentos…');
     // A single text block keeps right-aligned credits next to their labels.
-    await worker.setParameters({tessedit_pageseg_mode:'6'});
-    const retry=(await worker.recognize(canvas)).data.text,next=parseReceipt(retry,kind);
-    for(const [key,label] of [['food','Alimentação'],['bonus','Prémio']]){if(parsed.values[key]===undefined&&next.values[key]!==undefined)text+='\n'+label+' '+(next.values[key]/100).toFixed(2)+' €'}
+    for(const mode of ['6','11']){
+     await worker.setParameters({tessedit_pageseg_mode:mode});
+     const retry=(await worker.recognize(canvas)).data.text,next=parseReceipt(retry,kind);
+     for(const [key,label] of [['food','Alimentação'],['bonus','Prémio']]){if(parsed.values[key]===undefined&&next.values[key]!==undefined)text+='\n'+label+' '+(next.values[key]/100).toFixed(2)+' €'}
+     parsed=parseReceipt(text,kind);
+     if(parsed.values.food!==undefined&&parsed.values.bonus!==undefined)break;
+    }
    }
   }
   return text;
@@ -78,5 +82,5 @@ export async function recognizeDocument(file,kind,onProgress){
    }
   }finally{await doc.destroy()}
  }else text=await ocr(await photoCanvas(file),onProgress,kind);
- return parseReceipt(text,kind);
+ return {...parseReceipt(text,kind),recognizedText:text};
 }
