@@ -1,4 +1,4 @@
-# Hours
+# OTTO (anteriormente HOURS)
 
 App estática de registo pessoal de horas, publicada em https://nth8m6fcs7-byte.github.io/Hours/.
 Mantém a tabela `personal_work_hours` e as políticas RLS existentes. O frontend utiliza
@@ -254,7 +254,7 @@ botão + para acrescentar turnos. Finanças apresenta o total mensal, a divisão
 parcela, os documentos e as gorjetas agregadas. Trocar de ecrã preserva rascunhos,
 correções e o turno ativo. A aplicação abre em Hoje após iniciar sessão.
 
-O topo contém HOURS, o ícone orbital e as definições (conta, notificações e edição).
+O topo contém OTTO, o símbolo OPEN e as definições (conta, notificações e edição).
 O cronómetro e a entrada continuam ajustáveis. A navegação considera a área segura
 do iPhone, funciona com teclado e mantém-se disponível ao percorrer listas longas.
 Teste específico: `tests/navigation.cjs`, além das regressões de horas e finanças.
@@ -391,3 +391,10 @@ PDF reais. O teste PostgreSQL descartável verifica permissões de documentos e
 ficheiros entre contas (mesmo com outra política Storage ampla), importação atómica,
 preservação de gorjetas e não duplicação da alimentação e do resgate. Os testes
 não incluem documentos ou dados pessoais reais.
+
+## Identidade OTTO
+
+Nome apresentado: OTTO. Paleta grafite, branco quente e menta; logo OPEN em SVG
+com ícones PNG para iPhone/PWA. A publicação mantém `/Hours/`, o identificador do
+manifesto, as contas, os registos e as chaves locais para preservar continuidade.
+O nome do repositório e os identificadores técnicos HOURS permanecem estáveis.

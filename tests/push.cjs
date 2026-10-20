@@ -27,7 +27,7 @@ test('push permission, subscription persistence and disable work without changin
  assert.equal(await page.evaluate(()=>window.records.length),3);
  }finally{await browser.close()}
 });
-test('service worker displays a fixed HOURS notification and opens only its own app',async()=>{
+test('service worker displays a fixed OTTO notification and opens only its own app',async()=>{
  const handlers={};let shown,opened;const self={addEventListener:(type,fn)=>handlers[type]=fn,registration:{showNotification:async(title,options)=>{shown={title,options}}},clients:{matchAll:async()=>[],openWindow:async url=>opened=url}};
  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../push-sw.js'),'utf8'),{self,URL});
  let task;handlers.push({data:{json:()=>({tag:'hours-eight-id',url:'https://evil.example'})},waitUntil:p=>task=p});await task;
