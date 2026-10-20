@@ -715,7 +715,7 @@ function renderHistory(){
     const note=typeof r.notes==='string'?r.notes.trim():'';
     const nonWork=r.day_type==='day_off'||r.day_type==='vacation';
     const heading=nonWork?(r.day_type==='day_off'?(r.recurring?'Folga fixa':'Folga'):'Férias'):(!r.start_time&&!r.end_time&&durationOverride(r)!==null?'Duração registada':`${(r.start_time||'—').slice(0,5)} <span>→</span> ${(r.end_time||'—').slice(0,5)}`);
-    return `<div class="shift${note?' has-note':''}"><div class="shift-main"><div class="date-tile" aria-hidden="true"><b>${pad(date.getDate())}</b><span>${dayName(date)}</span></div><div><strong>${heading}</strong><small>${fullDate}</small></div></div><div class="shift-end"><div class="dur">${isOpenShift(r)?'Em curso':fmtMins(duration(r))}</div></div>${note?`<p class="shift-note">${escapeHTML(note)}</p>`:''}${editingRecords&&r.recurring?`<div class="shift-actions"><button class="ghost" data-register-work="${r.work_date}">Registar trabalho</button></div>`:editingRecords?`<div class="shift-actions">${nonWork?'':`<button class="ghost" data-edit="${r.id}" aria-label="Editar horário de ${fullDate}">Editar</button>`}<button class="danger" data-del="${r.id}" aria-label="Apagar horário de ${fullDate}">Apagar</button></div>`:''}</div>`;
+    return `<div class="shift${note?' has-note':''}"><div class="shift-main"><div class="date-tile" aria-hidden="true"><b>${pad(date.getDate())}</b><span>${dayName(date)}</span></div><div><strong>${heading}</strong><small>${fullDate}</small></div></div><div class="shift-end"><div class="dur">${isOpenShift(r)?'Em curso':fmtMins(duration(r))}</div></div>${note?`<p class="shift-note">${escapeHTML(note)}</p>`:''}${editingRecords&&r.recurring?`<div class="shift-actions"><button class="ghost" data-register-work="${r.work_date}">Registar trabalho</button></div>`:editingRecords?`<div class="shift-actions">${r.day_type==='day_off'?`<button class="ghost" data-convert-work="${r.id}" aria-label="Registar trabalho em ${fullDate}">Registar trabalho</button>`:nonWork?'':`<button class="ghost" data-edit="${r.id}" aria-label="Editar horário de ${fullDate}">Editar</button>`}<button class="danger" data-del="${r.id}" aria-label="Apagar horário de ${fullDate}">Apagar</button></div>`:''}</div>`;
   }).join(''):`<div class="empty-state"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><strong>${week?'Sem turnos nesta semana.':rows.length?'Sem turnos neste mês.':'A tua primeira hora começa aqui.'}</strong><p>${week?'Os turnos deste intervalo aparecem aqui.':rows.length?'Escolhe outro mês para consultar o histórico.':'Adiciona um horário acima.<br>Os teus totais aparecem automaticamente.'}</p></div>`;
   const dates=rows.map(r=>r.work_date).sort();
   const fullDate=s=>new Intl.DateTimeFormat('pt-PT',{day:'2-digit',month:'2-digit',year:'numeric'}).format(localDate(s));
@@ -988,9 +988,10 @@ $('save').onclick=async()=>{
   try{duration_minutes=parseDurationInput($('duration-override').value)}catch(error){$('shift-details').open=true;setMsg($('form-msg'),error.message);$('duration-override').focus();return}
   const notes=$('notes').value.trim()||null;
   const previous=rows.find(r=>r.id===recordId);
-  let break_seconds=previous?storedBreakSeconds(previous):0;
-  let pause_intervals=completedPauses(previous);
-  const work_adjustment_seconds=previous?adjustmentSeconds(previous):0;
+  if(previous?.day_type==='day_off'&&!start_time&&!end_time&&duration_minutes===null)return setMsg($('form-msg'),'Indica a entrada ou o total de horas trabalhadas.');
+  let break_seconds=previous&&previous.day_type!=='day_off'?storedBreakSeconds(previous):0;
+  let pause_intervals=previous?.day_type==='day_off'?[]:completedPauses(previous);
+  const work_adjustment_seconds=previous&&previous.day_type!=='day_off'?adjustmentSeconds(previous):0;
   if(automaticStop&&previous){
     if(stopNow<shiftStart(previous))return setMsg($('form-msg'),'A entrada está no futuro. Toca na hora para a corrigir.');
     duration_minutes=duration_minutes??Math.floor(workedSeconds(previous,stopNow)/60);
@@ -1038,10 +1039,10 @@ function resetForm(){closeVacation();openShiftId=null;correctingEntry=false;edit
 $('cancel').onclick=()=>{clearEntryDraft();resetForm()};
 $('list').onclick=async e=>{
   if(!editingRecords||savingHours)return;
-  const action=e.target.closest('[data-edit],[data-del],[data-register-work]');if(!action)return;
+  const action=e.target.closest('[data-edit],[data-del],[data-register-work],[data-convert-work]');if(!action)return;
   if(action.dataset.registerWork){$('add-history').click();$('add-history-month').value=action.dataset.registerWork.slice(0,7);$('add-history-days').value=String(Number(action.dataset.registerWork.slice(8)));return}
-  const edit=action.dataset.edit, del=action.dataset.del;
-  if(edit){setSectionOpen('shift-section',true);openShiftId=null;correctingEntry=false;const r=rows.find(x=>x.id===edit);if(!r||r.day_type==='day_off'||r.day_type==='vacation')return;editingId=r.id;$('form-title').textContent='Editar horário';$('cancel').classList.remove('hidden');$('date').value=r.work_date;$('start').value=(r.start_time||'').slice(0,5);$('end').value=(r.end_time||'').slice(0,5);const override=durationOverride(r);$('duration-override').value=override===null?'':durationInput(override);$('notes').value=typeof r.notes==='string'?r.notes:'';$('shift-details').open=override!==null||!!$('notes').value.trim();if(isOpenShift(r))resumeShift(r);else updateShiftForm();setMsg($('form-msg'),'');$('form-title').scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'})}
+  const edit=action.dataset.edit||action.dataset.convertWork, del=action.dataset.del;
+  if(edit){setSectionOpen('shift-section',true);openShiftId=null;correctingEntry=false;const r=rows.find(x=>x.id===edit);if(!r||r.day_type==='vacation')return;editingId=r.id;$('form-title').textContent='Editar horário';$('cancel').classList.remove('hidden');$('date').value=r.work_date;$('start').value=r.day_type==='day_off'?'':(r.start_time||'').slice(0,5);$('end').value=r.day_type==='day_off'?'':(r.end_time||'').slice(0,5);const override=r.day_type==='day_off'?null:durationOverride(r);$('duration-override').value=override===null?'':durationInput(override);$('notes').value=typeof r.notes==='string'?r.notes:'';$('shift-details').open=r.day_type==='day_off'||override!==null||!!$('notes').value.trim();if(isOpenShift(r))resumeShift(r);else updateShiftForm();setMsg($('form-msg'),'');$('form-title').scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'})}
   if(del){if(!confirm('Apagar este registo?'))return;const {error}=await supabase.from('personal_work_hours').delete().eq('id',del);if(error)return alert(error.message);if(editingId===del)resetForm();await load()}
 };
 supabase.auth.onAuthStateChange((event)=>{

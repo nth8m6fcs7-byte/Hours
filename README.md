@@ -411,3 +411,7 @@ No modo de edição, «Registar trabalho» numa folga fixa abre a adição de tu
 Os intervalos de férias excluem folgas fixas e folgas manuais. A confirmação
 contabiliza apenas os dias restantes; registos de trabalho continuam a exigir
 confirmação antes de serem substituídos. Folgas nunca descontam dias de férias.
+
+Uma folga, fixa ou guardada, permite «Registar trabalho» no modo de edição.
+A duração ou o horário registados substituem só esse dia; não alteram a regra
+semanal. O registo de trabalho passa a contar nos totais normalmente.

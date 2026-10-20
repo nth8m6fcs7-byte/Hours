@@ -348,3 +348,13 @@ test('vacations exclude weekly and manual days off and correct older vacation la
   const records=await page.evaluate(()=>window.records.filter(r=>r.work_date>='2026-10-05'&&r.work_date<='2026-10-11'));assert.equal(records.filter(r=>r.day_type==='vacation').length,4);assert.equal(records.find(r=>r.work_date==='2026-10-06').day_type,'day_off');assert.equal(records.find(r=>r.work_date==='2026-10-10').notes,'Folga extra');assert.equal(records.some(r=>r.work_date==='2026-10-07'&&r.day_type==='vacation'),false);
  });
 });
+
+test('a recorded day off can become work without changing the recurring weekly rule',async()=>{
+ await withDays(async page=>{
+  await page.evaluate(()=>{window.session.user.user_metadata={hours_weekly_days_off:{days:[1,2],from:'2026-10-01'}};Object.assign(window.records[0],{day_type:'day_off',start_time:null,end_time:null,duration_minutes:null});window.authEvent('SIGNED_IN')});await page.waitForFunction(()=>document.querySelector('#weekly-off-days input[value="1"]').checked);
+  await editSettings(page);await page.click('[data-convert-work="one"]');await page.click('#save');assert.match(await page.textContent('#form-msg'),/entrada ou o total/);
+  await page.fill('#duration-override','08:00');await page.click('#save');await page.waitForFunction(()=>window.records.find(r=>r.id==='one').day_type==='work'&&document.getElementById('sync').textContent==='Sincronizado');
+  const r=await page.evaluate(()=>window.records.find(r=>r.id==='one'));assert.equal(r.day_type,'work');assert.equal(r.duration_minutes,480);assert.equal(r.start_time,null);assert.deepEqual(await page.evaluate(()=>window.session.user.user_metadata.hours_weekly_days_off.days),[1,2]);
+  await page.click('#toggle-records');assert.match(await page.textContent('#list'),/Folga fixa/);assert.match(await page.textContent('#list'),/8h00/);
+ });
+});
