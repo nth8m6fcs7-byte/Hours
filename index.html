@@ -624,6 +624,7 @@ async function sessionUI(){
   const nextUserId=session?.user.id||null;
   if(currentUserId!==nextUserId){resetFinance();showAppPage('today',false);}
   currentUserId=nextUserId;readWeeklyOff(session?.user?.user_metadata?.hours_weekly_days_off);
+  if(session){try{const {data,error}=await supabase.auth.getUser();if(!error&&data.user?.id===currentUserId)readWeeklyOff(data.user.user_metadata?.hours_weekly_days_off)}catch{}}
   if(!session){setRecovering(false);$('hours-settings').close();closeTimerEditor(false)}
   $('recovery').classList.toggle('hidden',!recovering);
   $('auth').classList.toggle('hidden',!!session||recovering);
