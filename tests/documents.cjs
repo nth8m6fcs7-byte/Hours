@@ -23,7 +23,7 @@ const createClient=(...args)=>{
 };`;
 async function withDocs(run){const b=await chromium.launch({headless:true});try{const p=await b.newPage({viewport:{width:390,height:844}}),errors=[];p.on('pageerror',e=>errors.push(e.message));
  await p.route('https://hours.test/**',r=>r.fulfill({contentType:r.request().url().includes('.mjs')?'application/javascript':'text/html',body:r.request().url().includes('.mjs')?'export async function recognizeDocument(file){return JSON.parse(await file.text())}':html.replace(/^import .*;$/m,()=>base+finance+docs+'\nwindow.session={user:{id:"user"}};')}));
- await p.goto('https://hours.test/');await p.waitForFunction(()=>document.getElementById('sync').textContent==='Sincronizado');await p.click('#toggle-finance');await p.click('#income-tab');await p.waitForFunction(()=>!document.getElementById('finance-fields').disabled);await run(p);assert.deepEqual(errors,[]);
+ await p.goto('https://hours.test/');await p.waitForFunction(()=>document.getElementById('sync').textContent==='Sincronizado');await p.click('#toggle-finance');await p.click('#finance-menu-open');await p.click('#documents-tab');await p.waitForFunction(()=>!document.getElementById('finance-fields').disabled);await run(p);assert.deepEqual(errors,[]);
 }finally{await b.close()}}
 async function choose(p,kind,values,name='documento.pdf',month='2026-10'){
  await p.click(kind==='payroll'?'#add-payroll':'#add-coverflex');
@@ -36,16 +36,16 @@ test('simple document-first view confirms payroll and Coverflex without counting
   assert.equal(await p.locator('#finance-form').isVisible(),false);assert.equal(await p.locator('#finance-breakdown').isVisible(),false);
   await choose(p,'payroll',{salary:84000,food:10000,ppr:30000,gross:100000,net:124000});
   assert.equal(await p.locator('[data-document-value="ppr"]').isVisible(),false);assert.equal(await p.locator('.finance-stats').isVisible(),false);assert.equal(await p.locator('#document-confirm').textContent(),'Guardar');
-  assert.equal(await p.evaluate(()=>window.documents.length),0);await p.locator('#document-details > summary').click();await p.fill('#document-origin-month','2026-09');await confirm(p);
+  assert.equal(await p.evaluate(()=>window.documents.length),0);await p.click('#finance-menu-open');await p.click('#income-tab');assert.equal(await p.locator('#document-review').isVisible(),false);assert.equal(await p.locator('#finance-total').isVisible(),true);await p.click('#finance-menu-open');await p.click('#documents-tab');assert.equal(await p.locator('#document-review').isVisible(),true);assert.equal(await p.locator('[data-document-value="salary"]').inputValue(),'840,00');await p.locator('#document-details > summary').click();await p.fill('#document-origin-month','2026-09');await confirm(p);
   let row=await p.evaluate(()=>window.financeRecords[0]);assert.equal(row.entries.reduce((s,e)=>s+e.received_cents,0),94000);assert.equal(row.ppr_redemption_cents,30000);assert.equal(row.ppr_origin_month,'2026-09-01');
   assert.match(await p.textContent('#finance-ppr'),/não entra novamente/);
   await choose(p,'coverflex',{food:10000,bonus:20000},'coverflex.pdf');assert.equal(await p.locator('#document-details').getAttribute('open'),null);await confirm(p);
   row=await p.evaluate(()=>window.financeRecords[0]);assert.equal(row.entries.reduce((s,e)=>s+e.received_cents,0),114000);assert.equal(row.entries.filter(e=>e.category==='food').length,1);assert.equal(row.ppr_redemption_cents,30000);
   await choose(p,'coverflex',{food:10000,bonus:20000},'coverflex.pdf');await p.click('#document-confirm');await p.waitForFunction(()=>document.getElementById('document-msg').textContent.includes('já está guardado'));
   assert.equal(await p.evaluate(()=>window.documents.length),2);await p.click('#document-cancel');
-  await p.locator('#finance-documents summary').click();await p.waitForFunction(()=>document.querySelectorAll('.finance-document-row').length===2);
+  await p.waitForFunction(()=>document.querySelectorAll('.finance-document-row').length===2);
   assert.equal(await p.evaluate(()=>window.calls.filter(c=>c[0]==='file-upload').every(c=>c[1]==='hours-receipts'&&c[2].startsWith('user/'))),true);
-  await p.locator('#finance-manual > summary').click();await p.getByText('Movimentos antigos de PPR',{exact:true}).click();await p.fill('#finance-ppr-amount','200');await p.click('#finance-save');await p.waitForFunction(()=>document.getElementById('finance-state').textContent==='Guardado na tua conta');
+  await p.click('#finance-menu-open');await p.click('#income-tab');await p.locator('#finance-manual > summary').click();await p.getByText('Movimentos antigos de PPR',{exact:true}).click();await p.fill('#finance-ppr-amount','200');await p.click('#finance-save');await p.waitForFunction(()=>document.getElementById('finance-state').textContent==='Guardado na tua conta');
   assert.equal(await p.evaluate(()=>window.financeRecords[0].ppr_redemption_cents),20000);assert.equal(await p.evaluate(()=>window.financeRecords[0].entries.reduce((s,e)=>s+e.received_cents,0)),114000);
   await p.locator('#finance-manual > summary').click();
   assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
@@ -65,7 +65,7 @@ test('confirmation checks totals, preserves review after a failed save and allow
 test('removing a document supports cancel and retry while keeping financial values',async()=>{
  await withDocs(async p=>{
   await choose(p,'coverflex',{food:7800,bonus:74358},'beneficios.pdf');await confirm(p);
-  await p.locator('#finance-documents summary').click();await p.waitForSelector('.finance-document-row');
+  await p.waitForSelector('.finance-document-row');
   const before=await p.evaluate(()=>JSON.stringify(window.financeRecords));
   p.once('dialog',d=>d.dismiss());await p.getByRole('button',{name:'Retirar beneficios.pdf',exact:true}).click();assert.equal(await p.evaluate(()=>window.documents.length),1);
   await p.evaluate(()=>window.removeFailure='Sem rede');p.once('dialog',d=>d.accept());await p.getByRole('button',{name:'Retirar beneficios.pdf',exact:true}).click();await p.waitForFunction(()=>document.getElementById('finance-document-msg').textContent.includes('Tenta novamente'));assert.equal(await p.evaluate(()=>window.documents.length),1);

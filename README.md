@@ -250,8 +250,8 @@ anterior; adicionar novamente pelo Safari para obter o ícone novo.
 Navegação inferior fixa com três ecrãs: **Hoje**, **Histórico** e **Finanças**.
 Hoje apresenta o turno em curso, as ações de pausa/saída e um atalho ao total semanal.
 Histórico reúne as semanas de gorjetas e pessoal, o filtro mensal, a edição e um
-botão + para acrescentar turnos. Finanças abre em Disponível e mantém o total mensal,
-as parcelas, os documentos e as gorjetas em Ganhos do mês. Trocar de ecrã preserva rascunhos,
+botão + para acrescentar turnos. Finanças tem um menu lateral com Disponível, Rendimentos e Documentos.
+Cada área abre separadamente; o mês é partilhado por Rendimentos e Documentos. Trocar de ecrã preserva rascunhos,
 correções e o turno ativo. A aplicação abre em Hoje após iniciar sessão.
 
 O topo contém OTTO, o símbolo OPEN e as definições (conta, notificações e edição).
@@ -303,7 +303,10 @@ que ainda se pretende separar. O plano fica em `hours_money_plan`, protegido por
 RLS por utilizador, sem valores pessoais predefinidos. Migração: `sql/money-plan.sql`.
 Testes: `tests/money-plan.cjs` e `tests/money-plan-rls.sql`.
 
-**Ganhos do mês** mantém os recibos e valores mensais existentes.
+**Rendimentos** mostra o total mensal e as parcelas, com métricas secundárias em
+Ver detalhe. **Documentos** permite carregar, confirmar, abrir e retirar recibos
+e Coverflex. O menu fecha após escolher uma área e também com Escape. Trocar de
+área preserva os valores e documentos por confirmar; o menu não descarta rascunhos.
 
 O separador **Finanças** regista valores líquidos por mês de
 referência. Inclui vencimento, alimentação, prémios, prémio Coverflex, gorjetas
@@ -348,7 +351,7 @@ recusa de acesso anónimo. A imagem usada é PostgreSQL 17 Alpine.
 
 ## Recibos e Coverflex: importar, confirmar e resumir
 
-Ganhos do mês apresenta dois botões, **Recibo** e **Coverflex**, e o resumo dos
+Documentos apresenta dois botões, **Recibo** e **Coverflex**, e o resumo dos
 ganhos/horas. As parcelas manuais, a distribuição por destino, comparações e
 movimentos PPR ficam em detalhes fechados. Os valores já existentes são mantidos.
 
