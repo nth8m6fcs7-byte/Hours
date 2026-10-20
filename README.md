@@ -394,7 +394,7 @@ não incluem documentos ou dados pessoais reais.
 
 ## Identidade OTTO
 
-Nome apresentado: OTTO. Paleta grafite, branco quente e menta; logo OPEN em SVG
+Nome apresentado: OTTO. Paleta grafite suave, branco quente e azul discreto; logo OPEN branco em SVG
 com ícones PNG para iPhone/PWA. A publicação mantém `/Hours/`, o identificador do
 manifesto, as contas, os registos e as chaves locais para preservar continuidade.
 O nome do repositório e os identificadores técnicos HOURS permanecem estáveis.

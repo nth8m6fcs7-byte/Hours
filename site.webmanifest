@@ -6,17 +6,17 @@
   "start_url": "/Hours/",
   "scope": "/Hours/",
   "display": "standalone",
-  "background_color": "#111416",
-  "theme_color": "#111416",
+  "background_color": "#222629",
+  "theme_color": "#222629",
   "icons": [
     {
-      "src": "/Hours/icons/otto-192-v1.png",
+      "src": "/Hours/icons/otto-192-v2.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/Hours/icons/otto-512-v1.png",
+      "src": "/Hours/icons/otto-512-v2.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"

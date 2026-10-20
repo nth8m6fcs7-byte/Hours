@@ -3,7 +3,7 @@ self.addEventListener('push',event=>{
  let data={};try{data=event.data?.json()||{}}catch{}
  event.waitUntil(self.registration.showNotification('OTTO · 8 horas trabalhadas',{
   body:'Já completaste 8 horas, descontando as pausas. Confirma a tua saída.',
-  icon:'/Hours/icons/otto-192-v1.png',badge:'/Hours/icons/otto-192-v1.png',
+  icon:'/Hours/icons/otto-192-v2.png',badge:'/Hours/icons/otto-192-v2.png',
   tag:typeof data.tag==='string'?data.tag.slice(0,100):'hours-eight',
   data:{url:'/Hours/'},renotify:false
  }));
