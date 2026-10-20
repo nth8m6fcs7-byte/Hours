@@ -447,7 +447,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
           <label class="field" for="vacation-start"><span class="field-label">Data de início</span><input id="vacation-start" type="date"></label>
           <label class="field" for="vacation-end"><span class="field-label">Data de fim</span><input id="vacation-end" type="date"></label>
         </div>
-        <p class="field-help">Todos os dias do intervalo ficam marcados como férias, sem horas.</p>
+        <p class="field-help">As folgas ficam de fora. Só os restantes dias do intervalo contam como férias.</p>
         <div class="actions form-actions"><button id="vacation-save" type="button">Guardar férias</button><button id="vacation-cancel" class="ghost" type="button">Cancelar</button></div>
       </div>
       <div id="form-msg" role="status" aria-live="polite"></div>
@@ -904,7 +904,12 @@ async function saveNonWork(day_type,first,last){
       existing.push(...data);
       if(typeof count==='number'&&existing.length>=count)break;
     }
-    const conflicts=existing.filter(r=>(!r.day_type||r.day_type==='work')&&(r.start_time||r.end_time||durationOverride(r)!==null)).length;
+    const excluded=day_type==='vacation'?dates.filter(date=>{const record=existing.find(r=>r.work_date===date),worked=record&&(!record.day_type||record.day_type==='work')&&(record.start_time||record.end_time||durationOverride(record)!==null);return record?.day_type==='day_off'||(!worked&&date>=weeklyOff.from&&weeklyOff.days.includes(localDate(date).getDay()))}):[];
+    const excludedSet=new Set(excluded);dates=dates.filter(date=>!excludedSet.has(date));
+    const corrections=existing.filter(r=>excludedSet.has(r.work_date)&&r.day_type==='vacation');
+    if(!dates.length&&!corrections.length){setMsg($('form-msg'),'O intervalo contém apenas folgas. Não foram descontados dias de férias.',true);return}
+    const selected=new Set(dates);
+    const conflicts=existing.filter(r=>selected.has(r.work_date)&&(!r.day_type||r.day_type==='work')&&(r.start_time||r.end_time||durationOverride(r)!==null)).length;
     if(conflicts){
       const message=day_type==='day_off'?'Este dia já tem um horário de trabalho. Substituir por Folga?':`Existem ${conflicts} ${conflicts===1?'dia com horário de trabalho':'dias com horários de trabalho'} neste intervalo. Substituir por Férias?`;
       if(!confirm(message))return;
@@ -912,11 +917,12 @@ async function saveNonWork(day_type,first,last){
     $('sync').textContent='A guardar…';
     const updated_at=new Date().toISOString();
     const records=dates.map(work_date=>({user_id:user.id,work_date,day_type,start_time:null,end_time:null,duration_minutes:null,break_seconds:0,work_adjustment_seconds:0,pause_intervals:[],paused_at:null,notes:existing.find(r=>r.work_date===work_date)?.notes??null,updated_at}));
+    for(const r of corrections)records.push({...r,user_id:user.id,day_type:'day_off',start_time:null,end_time:null,duration_minutes:null,break_seconds:0,work_adjustment_seconds:0,pause_intervals:[],paused_at:null,updated_at});
     const {error}=await supabase.from('personal_work_hours').upsert(records,{onConflict:'user_id,work_date'});
     if(error)throw error;
     if(!activeWeek&&selectedMonth!==''&&selectedMonth!==null)selectedMonth=first.slice(0,7);
     resetForm();await load();
-    setMsg($('form-msg'),day_type==='day_off'?'Folga guardada.':`${dates.length} ${dates.length===1?'dia de férias guardado':'dias de férias guardados'}.`,true);
+    setMsg($('form-msg'),day_type==='day_off'?'Folga guardada.':`${dates.length} ${dates.length===1?'dia de férias guardado':'dias de férias guardados'}.${excluded.length?' '+excluded.length+' folgas excluídas.':''}`,true);
   }catch(error){$('sync').textContent='Erro';setMsg($('form-msg'),error.message||'Não foi possível guardar. Tenta novamente.')}
   finally{setHoursBusy(false)}
 }

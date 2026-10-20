@@ -407,3 +407,7 @@ A preferência `hours_weekly_days_off` é guardada nos metadados da própria con
 O histórico acrescenta folgas de duração zero aos dias sem registos; trabalho,
 férias e folgas manuais têm prioridade. Alterar/desativar a regra não apaga registos.
 No modo de edição, «Registar trabalho» numa folga fixa abre a adição de turno.
+
+Os intervalos de férias excluem folgas fixas e folgas manuais. A confirmação
+contabiliza apenas os dias restantes; registos de trabalho continuam a exigir
+confirmação antes de serem substituídos. Folgas nunca descontam dias de férias.

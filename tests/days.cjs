@@ -80,7 +80,7 @@ test('non-work ignores stale hours, retains notes and verifies conflicts outside
   assert.equal(await page.textContent('#tips-total'),'0h00');
   await page.click('#toggle-time');await page.fill('#date','2026-10-05');await page.click('#toggle-time');await page.click('#vacation-toggle');await page.click('#vacation-save');await saved(page);
   assert.equal(await page.evaluate(()=>window.records[0].notes),'Nota preservada');
-  assert.equal(await page.evaluate(()=>window.records[0].duration_minutes),null);
+  assert.equal(await page.evaluate(()=>window.records[0].day_type),'day_off');assert.equal(await page.textContent('#tips-total'),'0h00');assert.equal(await page.evaluate(()=>window.calls.filter(c=>c[0]==='upsert').length),0);
   await page.evaluate(()=>window.records.push({id:'fresh',user_id:'user',work_date:'2026-10-06',start_time:'09:00',end_time:'17:00',day_type:'work'}));
   await page.click('#toggle-time');await page.fill('#date','2026-10-06');
   page.once('dialog',async dialog=>{assert.match(dialog.message(),/Substituir por Folga/);await dialog.dismiss()});await page.click('#day-off');
@@ -337,5 +337,14 @@ test('weekly days off recur from their effective date while real work and holida
   assert.match(await page.textContent('#list'),/Folga fixa/);assert.equal(await page.evaluate(()=>window.records.length),3);assert.match(await page.textContent('#list'),/09:00/);assert.equal(await page.textContent('#history-total'),'17h00');
   await page.evaluate(()=>{window.records.push({id:'holiday',user_id:'user',work_date:'2026-10-06',day_type:'vacation'});window.authEvent('SIGNED_IN')});await page.waitForFunction(()=>document.getElementById('sync').textContent==='Sincronizado');await page.click('#toggle-records');assert.match(await page.textContent('#list'),/Férias/);
   await page.click('#settings-open');await page.locator('#weekly-off-days input[value="1"]').uncheck();await page.locator('#weekly-off-days input[value="2"]').uncheck();await page.click('#weekly-off-save');await page.waitForFunction(()=>document.getElementById('weekly-off-msg').textContent.includes('desativadas'));await page.getByRole('button',{name:'Fechar definições'}).click();assert.doesNotMatch(await page.textContent('#list'),/Folga fixa/);
+ });
+});
+
+test('vacations exclude weekly and manual days off and correct older vacation labels on those days',async()=>{
+ await withDays(async page=>{
+  await page.evaluate(()=>{window.session.user.user_metadata={hours_weekly_days_off:{days:[2,3],from:'2026-06-01'}};window.records.push({id:'old-vac',user_id:'user',work_date:'2026-10-06',day_type:'vacation'},{id:'manual-off',user_id:'user',work_date:'2026-10-10',day_type:'day_off',notes:'Folga extra'});window.authEvent('SIGNED_IN')});await page.waitForFunction(()=>document.querySelector('#weekly-off-days input[value="2"]').checked);
+  await page.click('#vacation-toggle');await page.fill('#vacation-start','2026-10-05');await page.fill('#vacation-end','2026-10-11');page.once('dialog',d=>d.accept());await page.click('#vacation-save');await saved(page);
+  assert.match(await page.textContent('#form-msg'),/4 dias de férias guardados.*3 folgas excluídas/);
+  const records=await page.evaluate(()=>window.records.filter(r=>r.work_date>='2026-10-05'&&r.work_date<='2026-10-11'));assert.equal(records.filter(r=>r.day_type==='vacation').length,4);assert.equal(records.find(r=>r.work_date==='2026-10-06').day_type,'day_off');assert.equal(records.find(r=>r.work_date==='2026-10-10').notes,'Folga extra');assert.equal(records.some(r=>r.work_date==='2026-10-07'&&r.day_type==='vacation'),false);
  });
 });
