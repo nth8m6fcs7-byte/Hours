@@ -35,7 +35,7 @@ async function withFinance(run){
  }finally{await b.close()}
 }
 const line=(p,i)=>p.locator('#finance-lines .finance-line').nth(i);
-async function open(page){await page.click('#toggle-finance');await page.waitForFunction(()=>!document.getElementById('finance-fields').disabled);await page.locator('#finance-manual > summary').click();await page.locator('#finance-detail summary').click()}
+async function open(page){await page.click('#toggle-finance');await page.click('#income-tab');await page.waitForFunction(()=>!document.getElementById('finance-fields').disabled);await page.locator('#finance-manual > summary').click();await page.locator('#finance-detail summary').click()}
 async function amount(page,i,expected,received){await line(page,i).locator('[data-finance="expected_cents"]').fill(expected);await line(page,i).locator('[data-finance="received_cents"]').fill(received)}
 test('monthly finances persist exact cents, distinguish cash and benefits, and compare with completed hours',async()=>{
  await withFinance(async(p,reopen)=>{
@@ -78,14 +78,14 @@ test('multiple payment destinations, removal, invalid amounts and account isolat
   await amount(p,0,'','');await p.click('#finance-save');await p.waitForFunction(()=>document.getElementById('finance-state').textContent==='Guardado na tua conta');
   assert.equal(await p.evaluate(()=>window.financeRecords[0].entries.filter(e=>e.category==='tips').length),2);
   await p.evaluate(()=>{window.session={user:{id:'second-user'}};window.authEvent('SIGNED_IN')});await p.waitForFunction(()=>document.getElementById('finance-lines').children.length===0);
-  await p.click('#toggle-finance');await p.click('#toggle-finance');await p.waitForFunction(()=>!document.getElementById('finance-fields').disabled);assert.equal(await p.textContent('#finance-total'),'—');
+  await p.click('#toggle-finance');await p.click('#income-tab');await p.click('#toggle-finance');await p.click('#income-tab');await p.waitForFunction(()=>!document.getElementById('finance-fields').disabled);assert.equal(await p.textContent('#finance-total'),'—');
   await p.evaluate(()=>{window.session=null;window.authEvent('SIGNED_OUT')});await p.waitForSelector('#app',{state:'hidden'});assert.equal(await p.locator('#finance-lines .finance-line').count(),0);
  });
 });
 
 test('quick monthly tips contribute to earned total while PPR remains hidden',async()=>{
  await withFinance(async p=>{
-  await p.click('#toggle-finance');await p.waitForFunction(()=>!document.getElementById('finance-fields').disabled);
+  await p.click('#toggle-finance');await p.click('#income-tab');await p.waitForFunction(()=>!document.getElementById('finance-fields').disabled);
   await p.fill('#finance-tips-amount','150,50');await p.click('#finance-tips-save');await p.waitForFunction(()=>document.getElementById('finance-tips-msg').textContent.includes('Gorjetas guardadas'));
   assert.match(await p.textContent('#finance-total'),/150,50/);assert.equal(await p.locator('#finance-ppr').isVisible(),false);
   await p.fill('#finance-tips-amount','200');await p.click('#finance-tips-save');await p.waitForFunction(()=>document.getElementById('finance-total').textContent.includes('200,00'));
@@ -100,7 +100,7 @@ test('weekly tips save and replace by week and sum automatically into monthly fi
   await p.click('#week-prev');await p.waitForFunction(()=>!document.getElementById('weekly-tips-save').disabled);await p.fill('#weekly-tips-amount','50');await p.click('#weekly-tips-save');await p.waitForFunction(()=>document.getElementById('weekly-tips-msg').textContent.includes('guardadas'));
   await p.fill('#weekly-tips-amount','60');await p.click('#weekly-tips-save');await p.waitForFunction(()=>window.financeRecords.reduce((t,r)=>t+r.entries.reduce((s,e)=>s+e.received_cents,0),0)===16000);
   assert.equal(await p.evaluate(()=>window.financeRecords.flatMap(r=>r.entries).length),2);
-  const month=await p.evaluate(()=>window.financeRecords[0].month.slice(0,7));await p.click('#toggle-finance');await p.waitForFunction(()=>!document.getElementById('finance-fields').disabled);await p.fill('#finance-month',month);await p.locator('#finance-month').dispatchEvent('change');await p.waitForFunction(()=>!document.getElementById('finance-fields').disabled);
+  const month=await p.evaluate(()=>window.financeRecords[0].month.slice(0,7));await p.click('#toggle-finance');await p.click('#income-tab');await p.waitForFunction(()=>!document.getElementById('finance-fields').disabled);await p.fill('#finance-month',month);await p.locator('#finance-month').dispatchEvent('change');await p.waitForFunction(()=>!document.getElementById('finance-fields').disabled);
   assert.equal(await p.locator('#finance-tips-amount').getAttribute('readonly'),'');assert.equal(await p.locator('#finance-tips-save').isVisible(),false);
  });
 });

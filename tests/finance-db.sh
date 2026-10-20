@@ -29,3 +29,5 @@ docker --host=unix:///var/run/docker.sock exec -i "$finance_container" psql -v O
 docker --host=unix:///var/run/docker.sock exec -i "$finance_container" psql -v ON_ERROR_STOP=1 -U postgres < tests/document-rls.sql
 docker --host=unix:///var/run/docker.sock exec -i "$finance_container" psql -v ON_ERROR_STOP=1 -U postgres < sql/weekly-tips.sql
 docker --host=unix:///var/run/docker.sock exec -i "$finance_container" psql -v ON_ERROR_STOP=1 -U postgres < tests/weekly-tips-rls.sql
+docker --host=unix:///var/run/docker.sock exec -i "$finance_container" psql -v ON_ERROR_STOP=1 -U postgres < sql/money-plan.sql
+docker --host=unix:///var/run/docker.sock exec -i "$finance_container" psql -v ON_ERROR_STOP=1 -U postgres < tests/money-plan-rls.sql

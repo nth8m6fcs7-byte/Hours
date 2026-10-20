@@ -23,7 +23,7 @@ const createClient=(...args)=>{
 };`;
 async function withDocs(run){const b=await chromium.launch({headless:true});try{const p=await b.newPage({viewport:{width:390,height:844}}),errors=[];p.on('pageerror',e=>errors.push(e.message));
  await p.route('https://hours.test/**',r=>r.fulfill({contentType:r.request().url().includes('.mjs')?'application/javascript':'text/html',body:r.request().url().includes('.mjs')?'export async function recognizeDocument(file){return JSON.parse(await file.text())}':html.replace(/^import .*;$/m,()=>base+finance+docs+'\nwindow.session={user:{id:"user"}};')}));
- await p.goto('https://hours.test/');await p.waitForFunction(()=>document.getElementById('sync').textContent==='Sincronizado');await p.click('#toggle-finance');await p.waitForFunction(()=>!document.getElementById('finance-fields').disabled);await run(p);assert.deepEqual(errors,[]);
+ await p.goto('https://hours.test/');await p.waitForFunction(()=>document.getElementById('sync').textContent==='Sincronizado');await p.click('#toggle-finance');await p.click('#income-tab');await p.waitForFunction(()=>!document.getElementById('finance-fields').disabled);await run(p);assert.deepEqual(errors,[]);
 }finally{await b.close()}}
 async function choose(p,kind,values,name='documento.pdf',month='2026-10'){
  await p.click(kind==='payroll'?'#add-payroll':'#add-coverflex');

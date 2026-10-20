@@ -250,8 +250,8 @@ anterior; adicionar novamente pelo Safari para obter o ícone novo.
 Navegação inferior fixa com três ecrãs: **Hoje**, **Histórico** e **Finanças**.
 Hoje apresenta o turno em curso, as ações de pausa/saída e um atalho ao total semanal.
 Histórico reúne as semanas de gorjetas e pessoal, o filtro mensal, a edição e um
-botão + para acrescentar turnos. Finanças apresenta o total mensal, a divisão por
-parcela, os documentos e as gorjetas agregadas. Trocar de ecrã preserva rascunhos,
+botão + para acrescentar turnos. Finanças abre em Disponível e mantém o total mensal,
+as parcelas, os documentos e as gorjetas em Ganhos do mês. Trocar de ecrã preserva rascunhos,
 correções e o turno ativo. A aplicação abre em Hoje após iniciar sessão.
 
 O topo contém OTTO, o símbolo OPEN e as definições (conta, notificações e edição).
@@ -289,6 +289,21 @@ As pausas aparecem por baixo do cronómetro. Ao tocar, os intervalos «das … �
 Fluxo diário: Começar turno usa a hora atual; tocar em Entrada permite corrigi-la com ✓/✕. Fazer pausa congela o cronómetro; Retomar assume o regresso atual e a ligação Regresso permite corrigir a hora depois (por exemplo, retomar às 14:00 mas indicar que o regresso real foi às 13:00). Parar assume a saída atual e guarda o turno. O cronómetro continua editável diretamente; os turnos guardados continuam editáveis nas definições.
 
 ## Finanças pessoais — primeira versão
+
+**Disponível** mostra os saldos atuais da conta e do dinheiro em mão, menos contas
+por pagar e uma nova reserva para poupar. Os quatro valores são introduzidos pelo
+utilizador; valores em falta não são tratados como zero. A conta aceita saldo
+negativo. A próxima entrada de dinheiro é uma data opcional. Alimentação e
+benefícios Coverflex aparecem separados e não entram no disponível.
+
+É uma fotografia manual dos saldos, não um extrato bancário nem um registo de
+despesas: é necessário atualizar os valores quando mudam. Não se somam novamente
+rendimentos já incluídos nos saldos. A reserva para poupar refere-se ao dinheiro
+que ainda se pretende separar. O plano fica em `hours_money_plan`, protegido por
+RLS por utilizador, sem valores pessoais predefinidos. Migração: `sql/money-plan.sql`.
+Testes: `tests/money-plan.cjs` e `tests/money-plan-rls.sql`.
+
+**Ganhos do mês** mantém os recibos e valores mensais existentes.
 
 O separador **Finanças** regista valores líquidos por mês de
 referência. Inclui vencimento, alimentação, prémios, prémio Coverflex, gorjetas
@@ -333,7 +348,7 @@ recusa de acesso anónimo. A imagem usada é PostgreSQL 17 Alpine.
 
 ## Recibos e Coverflex: importar, confirmar e resumir
 
-Finanças passa a abrir com dois botões, **Recibo** e **Coverflex**, e o resumo dos
+Ganhos do mês apresenta dois botões, **Recibo** e **Coverflex**, e o resumo dos
 ganhos/horas. As parcelas manuais, a distribuição por destino, comparações e
 movimentos PPR ficam em detalhes fechados. Os valores já existentes são mantidos.
 

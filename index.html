@@ -308,6 +308,10 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
     .app-navigation{border-top-color:#ffffff0d}#hours-settings{background:#292e32}input,select,textarea{color-scheme:dark}#document-review input,.finance-tips-row input{background:#2d3337}
     #timer-title:before{background:#b1b7bb}.history-summary,.income-summary>div,#home-week{border-color:#ffffff0d}
     .weekly-off-days{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}.weekly-off-days label{position:relative;min-width:40px;min-height:44px;display:grid;place-items:center;border:1px solid var(--line);border-radius:10px;cursor:pointer;font-size:12px}.weekly-off-days input{position:absolute;opacity:0;width:100%;height:100%;margin:0}.weekly-off-days label:has(:checked){background:#6ba7d8;color:#10212e}.weekly-off-days label:has(:focus-visible){outline:2px solid var(--ink)}#weekly-off-from{height:42px;padding:8px;margin:6px 0 12px}
+
+    .money-tabs{display:flex;gap:4px;padding:4px;background:#2d3337;border-radius:13px;margin:4px 0 20px}.money-tabs button{flex:1;background:transparent!important;color:var(--muted)!important;font-size:13px;min-height:40px;padding:8px}.money-tabs button[aria-pressed="true"]{background:#424b51!important;color:var(--ink)!important}
+    .money-hero{padding:18px 0 22px}.money-hero>span{font-size:13px;color:var(--muted)}.money-hero strong{display:block;font-size:40px;font-weight:600;letter-spacing:-1px;margin:9px 0}.money-hero p{font-size:13px;color:var(--muted);line-height:1.5}.money-hero.negative strong{color:#ffb2b2}
+    #money-form label{display:block;font-size:13px;color:var(--muted);margin:12px 0}#money-form input{display:block;height:42px;min-height:42px;max-height:42px;margin-top:6px;padding:8px;font-size:16px;background:#2d3337}.money-tabs+#money-view #money-breakdown{margin-bottom:8px}#money-save{margin:12px 0}
   </style>
 </head>
 <body>
@@ -488,6 +492,15 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
 
     <section id="finances" class="section-collapsed" aria-labelledby="finance-title">
       <div class="section-header"><h2 id="finance-title">Finanças</h2></div>
+      <div class="money-tabs" role="group" aria-label="Vistas das finanças"><button id="money-tab" type="button" aria-pressed="true">Disponível</button><button id="income-tab" type="button" aria-pressed="false">Ganhos do mês</button></div>
+      <div id="money-view">
+        <div class="money-hero"><span id="money-horizon">Disponível após reservas</span><strong id="money-available">—</strong><p id="money-explanation">Indica os teus saldos e o que precisas de reservar.</p></div>
+        <div id="money-breakdown" class="income-summary"></div><p id="money-coverflex" class="finance-note"></p>
+        <details id="money-editor"><summary>Atualizar valores</summary><form id="money-form" novalidate><fieldset id="money-fields" disabled style="border:0;padding:0;margin:0"><legend class="sr-only">Saldos e reservas em euros</legend><label>Saldo atual na conta (€)<input id="money-bank" type="text" inputmode="decimal" placeholder="Por indicar" autocomplete="off"></label><label>Dinheiro em mão · inclui gorjetas (€)<input id="money-cash" type="text" inputmode="decimal" placeholder="Por indicar" autocomplete="off"></label><label>Contas ainda por pagar (€)<input id="money-bills" type="text" inputmode="decimal" placeholder="Por indicar" autocomplete="off"></label><label>Quero reservar para poupar (€)<input id="money-savings" type="text" inputmode="decimal" placeholder="Por indicar" autocomplete="off"></label><p class="finance-note">Usa os saldos de agora. Não voltes a somar salários ou gorjetas já incluídos. Indica 0 quando não houver valor.</p><label>Próxima entrada de dinheiro · opcional<input id="money-date" type="date"></label><details><summary>Coverflex · opcional</summary><label>Saldo de alimentação (€)<input id="money-food" type="text" inputmode="decimal" placeholder="Por indicar"></label><label>Saldo de benefícios (€)<input id="money-benefits" type="text" inputmode="decimal" placeholder="Por indicar"></label><p class="finance-note">Estes saldos ficam separados do dinheiro livre.</p></details><button id="money-save" type="submit">Guardar</button></fieldset></form></details>
+        <p id="money-state" class="finance-note" role="status"></p><button id="money-retry" type="button" class="ghost hidden">Tentar novamente</button>
+        <p class="finance-note">Estimativa com os valores que indicares. Atualiza os saldos quando gastares dinheiro.</p>
+      </div><div id="income-view" class="hidden">
+
       <div class="finance-month">
         <button id="finance-prev" type="button" aria-label="Mês financeiro anterior">‹</button>
         <input id="finance-month" type="month" min="1900-01" max="2100-12" aria-label="Mês das finanças">
@@ -536,6 +549,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
       <p id="finance-state" role="status" aria-live="polite"></p>
       <div id="finance-msg" role="status" aria-live="polite"></div>
       <button id="finance-retry" type="button" class="ghost hidden">Tentar novamente</button>
+      </div>
     </section>
 
     <button id="home-week" class="home-week" type="button"><span>Esta semana <small>Segunda a domingo</small></span><strong id="home-week-total">0h00</strong><span aria-hidden="true">›</span></button>
@@ -1313,6 +1327,7 @@ function setFinanceBusy(value){
  for(const id of ['finance-prev','finance-next','finance-month','finance-retry'])$(id).disabled=value;
 }
 function resetFinance(){
+ resetMoneyPlan();
  resetDocumentReview();$('finance-tips-amount').value='';$('finance-tips-msg').textContent='';financePpr=null;$('finance-ppr-amount').value='';$('finance-ppr-origin').value='';$('finance-document-list').replaceChildren();$('finance-ppr').textContent='';
  financeVersion++;financeLoaded=false;financeDirty=false;financeBusy=false;financeMonth=iso(new Date()).slice(0,7);
  $('finance-month').value=financeMonth;$('finance-lines').replaceChildren();$('finance-fields').disabled=true;
@@ -1431,8 +1446,34 @@ $('finance-tips-form').onsubmit=async event=>{
   await $('finance-form').onsubmit({preventDefault(){}});$('finance-tips-msg').textContent=financeDirty?'Não foi possível guardar. Tenta novamente.':'Gorjetas guardadas no total do mês.';
  }catch(error){$('finance-tips-msg').textContent=error.message}
 };
-window.addEventListener('beforeunload',event=>{if(financeDirty||documentState){event.preventDefault();event.returnValue=''}});
+window.addEventListener('beforeunload',event=>{if(financeDirty||documentState||moneyDirty){event.preventDefault();event.returnValue=''}});
 
+let moneyLoaded=false,moneyBusy=false,moneyDirty=false,moneyVersion=0;
+const moneyKeys=['bank','cash','bills','savings','food','benefits'];
+function moneyValues(){const out={};for(const key of moneyKeys){const raw=$('money-'+key).value.trim();out[key+'_cents']=key==='bank'&&raw.startsWith('-')?-financeAmount(raw.slice(1)):financeAmount(raw);if(key==='bank'&&raw==='-')throw new Error('Indica um saldo válido.')}return out}
+function setMoneyBusy(value){moneyBusy=value;$('money-fields').disabled=value||!moneyLoaded;$('money-retry').disabled=value}
+function resetMoneyPlan(){moneyVersion++;moneyLoaded=false;moneyBusy=false;moneyDirty=false;for(const key of moneyKeys)$('money-'+key).value='';$('money-date').value='';$('money-state').textContent='';$('money-editor').open=false;setMoneyBusy(false);renderMoneyPlan();$('income-view').classList.add('hidden');$('money-view').classList.remove('hidden');$('money-tab').setAttribute('aria-pressed','true');$('income-tab').setAttribute('aria-pressed','false')}
+function renderMoneyPlan(){
+ $('money-available').textContent='—';$('money-explanation').textContent='Indica os teus saldos e o que precisas de reservar.';$('money-breakdown').replaceChildren();$('money-coverflex').textContent='';$('money-view').querySelector('.money-hero').classList.remove('negative');$('money-horizon').textContent=$('money-date').value?'Disponível até '+new Intl.DateTimeFormat('pt-PT').format(localDate($('money-date').value)):'Disponível após reservas';
+ if(!moneyLoaded)return;let v;try{v=moneyValues()}catch{return}
+ for(const [key,title] of [['bank','Na conta'],['cash','Em dinheiro'],['bills','Para contas'],['savings','Para poupar']]){const row=document.createElement('div'),name=document.createElement('span'),amount=document.createElement('strong');name.textContent=title;amount.textContent=v[key+'_cents']===null?'Por indicar':financeMoney(v[key+'_cents']);row.append(name,amount);$('money-breakdown').append(row)}
+ if(['bank','cash','bills','savings'].every(key=>v[key+'_cents']!==null)){const available=v.bank_cents+v.cash_cents-v.bills_cents-v.savings_cents;$('money-available').textContent=financeMoney(available);$('money-view').querySelector('.money-hero').classList.toggle('negative',available<0);$('money-explanation').textContent=available<0?'O saldo não chega para as contas e a reserva que indicaste.':'Conta + dinheiro, depois de reservar contas e poupança.';}
+ const benefits=[];for(const [key,title] of [['food','Alimentação'],['benefits','Benefícios']])if(v[key+'_cents']!==null)benefits.push(title+': '+financeMoney(v[key+'_cents']));$('money-coverflex').textContent=benefits.length?'Coverflex · '+benefits.join(' · ')+' · fora do disponível.':'';
+}
+async function loadMoneyPlan(){
+ if(!currentUserId||moneyBusy)return;const owner=currentUserId,version=++moneyVersion;moneyLoaded=false;setMoneyBusy(true);$('money-state').textContent='A carregar…';$('money-retry').classList.add('hidden');
+ try{const {data,error}=await supabase.from('hours_money_plan').select('bank_cents,cash_cents,bills_cents,savings_cents,food_cents,benefits_cents,next_income_date,updated_at').eq('user_id',owner).range(0,0);if(owner!==currentUserId||version!==moneyVersion)return;if(error)throw error;const record=data?.[0];for(const key of moneyKeys){const v=record?.[key+'_cents']??null;if(v!==null&&(!Number.isInteger(v)||Math.abs(v)>99999999||(key!=='bank'&&v<0)))throw new Error('Saldo inválido.');$('money-'+key).value=financeInput(v)}$('money-date').value=record?.next_income_date||'';moneyLoaded=true;moneyDirty=false;$('money-editor').open=!record;$('money-state').textContent=record?'Valores atualizados em '+new Intl.DateTimeFormat('pt-PT',{dateStyle:'short',timeStyle:'short'}).format(new Date(record.updated_at)):'Preenche uma vez para veres o teu disponível.';renderMoneyPlan();}
+ catch{if(version===moneyVersion){$('money-state').textContent='Não foi possível carregar os valores.';$('money-retry').classList.remove('hidden')}}finally{if(version===moneyVersion)setMoneyBusy(false)}
+}
+function showFinanceView(view){$('money-view').classList.toggle('hidden',view!=='money');$('income-view').classList.toggle('hidden',view!=='income');$('money-tab').setAttribute('aria-pressed',String(view==='money'));$('income-tab').setAttribute('aria-pressed',String(view==='income'));if(view==='money'&&!moneyLoaded&&!moneyBusy)loadMoneyPlan();if(view==='income'&&!financeLoaded&&!financeBusy)loadFinance()}
+$('money-tab').onclick=()=>showFinanceView('money');$('income-tab').onclick=()=>showFinanceView('income');$('money-retry').onclick=loadMoneyPlan;
+$('money-form').oninput=()=>{moneyDirty=true;$('money-state').textContent='Alterações por guardar';renderMoneyPlan()};
+$('money-form').onsubmit=async event=>{
+ event.preventDefault();if(moneyBusy||!moneyLoaded||!currentUserId)return;const owner=currentUserId,version=moneyVersion;let values,date;
+ try{values=moneyValues();date=$('money-date').value;if(date&&(!/^(19\d{2}|20\d{2}|2100)-\d{2}-\d{2}$/.test(date)||iso(localDate(date))!==date))throw new Error('Indica uma data válida.')}catch(error){return $('money-state').textContent=error.message}
+ setMoneyBusy(true);try{const {data:{user},error:authError}=await supabase.auth.getUser();if(authError)throw authError;if(user?.id!==owner||owner!==currentUserId)throw new Error('A sessão mudou.');const {error}=await supabase.from('hours_money_plan').upsert({user_id:owner,...values,next_income_date:date||null,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error)throw error;if(version!==moneyVersion||owner!==currentUserId)return;moneyDirty=false;$('money-state').textContent='Valores guardados. Atualiza-os quando houver mudanças.';$('money-editor').open=false;renderMoneyPlan()}
+ catch{if(version===moneyVersion)$('money-state').textContent='Não foi possível guardar. Os valores continuam aqui para tentares novamente.'}finally{if(version===moneyVersion)setMoneyBusy(false)}
+};
 let weeklyTipsKey=null,weeklyTipsTask=0,weeklyTipsBusy=false,weeklyTipsManual=false;
 function tipsIncomeMonth(start){return iso(addDays(localDate(start),6)).slice(0,7)}
 async function loadWeeklyTips(start){
@@ -1599,12 +1640,12 @@ $('weekly-off-form').onsubmit=async event=>{
 // Screens share the same state; switching never resets a draft or an active shift.
 $('records').insertBefore($('my-time'),$('records').querySelector('.history-panel'));
 $('active-shift').append($('timer-progress'));
-$('finances').insertBefore($('finances').querySelector('.finance-stats'),$('finances').querySelector('.document-actions'));
-$('finances').insertBefore($('finance-income-summary'),$('finances').querySelector('.document-actions'));
+$('income-view').insertBefore($('finances').querySelector('.finance-stats'),$('finances').querySelector('.document-actions'));
+$('income-view').insertBefore($('finance-income-summary'),$('finances').querySelector('.document-actions'));
 function showAppPage(page,scroll=true){
  $('app').dataset.page=page;for(const section of ['shift-section','my-time','records','finances'])$(section).classList.remove('section-collapsed');
  for(const button of document.querySelectorAll('[data-page-target]')){if(button.dataset.pageTarget===page)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current')}
- if(page==='finance'&&!financeLoaded&&!financeBusy)loadFinance();
+ if(page==='finance')showFinanceView($('income-view').classList.contains('hidden')?'money':'income');
  if(scroll)window.scrollTo({top:0,behavior:'instant'});
 }
 function setSectionOpen(id,open){
