@@ -307,6 +307,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
     #my-time button[aria-pressed="true"]{border-color:#ffffff24;background:#394147!important}.document-actions button{border-color:#6ba7d84d}
     .app-navigation{border-top-color:#ffffff0d}#hours-settings{background:#292e32}input,select,textarea{color-scheme:dark}#document-review input,.finance-tips-row input{background:#2d3337}
     #timer-title:before{background:#b1b7bb}.history-summary,.income-summary>div,#home-week{border-color:#ffffff0d}
+    .weekly-off-days{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}.weekly-off-days label{position:relative;min-width:40px;min-height:44px;display:grid;place-items:center;border:1px solid var(--line);border-radius:10px;cursor:pointer;font-size:12px}.weekly-off-days input{position:absolute;opacity:0;width:100%;height:100%;margin:0}.weekly-off-days label:has(:checked){background:#6ba7d8;color:#10212e}.weekly-off-days label:has(:focus-visible){outline:2px solid var(--ink)}#weekly-off-from{height:42px;padding:8px;margin:6px 0 12px}
   </style>
 </head>
 <body>
@@ -386,6 +387,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
       <button id="calendar-alert" class="secondary" type="button">Lembrete das 8h no Calendário</button>
       <p class="field-help">Adiciona o lembrete ao teu calendário para receber um aviso com a app fechada. O contador desconta as pausas. Depois de cada pausa, atualiza o lembrete no calendário; um lembrete já adicionado não é alterado automaticamente.</p>
       </details>
+      <details class="settings-section"><summary>Folgas fixas</summary><form id="weekly-off-form" novalidate><p class="field-help">Repetem-se todas as semanas. Trabalho e férias registados têm prioridade.</p><div id="weekly-off-days" class="weekly-off-days"><label><input type="checkbox" value="1" aria-label="Seg"><span>Seg</span></label><label><input type="checkbox" value="2" aria-label="Ter"><span>Ter</span></label><label><input type="checkbox" value="3" aria-label="Qua"><span>Qua</span></label><label><input type="checkbox" value="4" aria-label="Qui"><span>Qui</span></label><label><input type="checkbox" value="5" aria-label="Sex"><span>Sex</span></label><label><input type="checkbox" value="6" aria-label="Sáb"><span>Sáb</span></label><label><input type="checkbox" value="0" aria-label="Dom"><span>Dom</span></label></div><label class="field">A partir de<input id="weekly-off-from" type="date" required></label><button id="weekly-off-save" type="submit">Guardar folgas</button><p id="weekly-off-msg" class="field-help" role="status"></p></form></details>
       <section class="settings-section"><h3>Turnos</h3><button id="edit-records" class="secondary" aria-pressed="false" aria-controls="list">Editar turnos</button></section>
     <details id="account" class="account">
       <summary><span><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg>A tua conta</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
@@ -621,7 +623,7 @@ async function sessionUI(){
   const {data:{session}}=await supabase.auth.getSession();
   const nextUserId=session?.user.id||null;
   if(currentUserId!==nextUserId){resetFinance();showAppPage('today',false);}
-  currentUserId=nextUserId;
+  currentUserId=nextUserId;readWeeklyOff(session?.user?.user_metadata?.hours_weekly_days_off);
   if(!session){setRecovering(false);$('hours-settings').close();closeTimerEditor(false)}
   $('recovery').classList.toggle('hidden',!recovering);
   $('auth').classList.toggle('hidden',!!session||recovering);
@@ -695,7 +697,9 @@ function renderHistory(){
   loadWeeklyTips(activeWeek==='tips'?iso(week.start):null);
   $('tips-card').setAttribute('aria-pressed',String(activeWeek==='tips'));
   $('mine-card').setAttribute('aria-pressed',String(activeWeek==='mine'));
-  const visible=week?rowsInRange(week):current?rows.filter(r=>r.work_date.startsWith(current+'-')):rows;
+  const actual=week?rowsInRange(week):current?rows.filter(r=>r.work_date.startsWith(current+'-')):rows;
+  const rangeFirst=week?iso(week.start):current?current+'-01':rows.at(-1)?.work_date||iso(new Date()),rangeLast=week?iso(week.end):current?iso(new Date(Number(current.slice(0,4)),Number(current.slice(5)),0)):iso(new Date());
+  const visible=withWeeklyOff(actual,rangeFirst,rangeLast);
   $('record-count').textContent=`${visible.length} ${visible.length===1?'turno':'turnos'}`;
   $('history-total').textContent=fmtMins(visible.reduce((sum,r)=>sum+duration(r),0));
   $('history-total-label').textContent=week?'na semana':current?'no mês':'no total';
@@ -709,8 +713,8 @@ function renderHistory(){
     const date=localDate(r.work_date),fullDate=new Intl.DateTimeFormat('pt-PT',{day:'numeric',month:'long',year:'numeric'}).format(date);
     const note=typeof r.notes==='string'?r.notes.trim():'';
     const nonWork=r.day_type==='day_off'||r.day_type==='vacation';
-    const heading=nonWork?(r.day_type==='day_off'?'Folga':'Férias'):(!r.start_time&&!r.end_time&&durationOverride(r)!==null?'Duração registada':`${(r.start_time||'—').slice(0,5)} <span>→</span> ${(r.end_time||'—').slice(0,5)}`);
-    return `<div class="shift${note?' has-note':''}"><div class="shift-main"><div class="date-tile" aria-hidden="true"><b>${pad(date.getDate())}</b><span>${dayName(date)}</span></div><div><strong>${heading}</strong><small>${fullDate}</small></div></div><div class="shift-end"><div class="dur">${isOpenShift(r)?'Em curso':fmtMins(duration(r))}</div></div>${note?`<p class="shift-note">${escapeHTML(note)}</p>`:''}${editingRecords?`<div class="shift-actions">${nonWork?'':`<button class="ghost" data-edit="${r.id}" aria-label="Editar horário de ${fullDate}">Editar</button>`}<button class="danger" data-del="${r.id}" aria-label="Apagar horário de ${fullDate}">Apagar</button></div>`:''}</div>`;
+    const heading=nonWork?(r.day_type==='day_off'?(r.recurring?'Folga fixa':'Folga'):'Férias'):(!r.start_time&&!r.end_time&&durationOverride(r)!==null?'Duração registada':`${(r.start_time||'—').slice(0,5)} <span>→</span> ${(r.end_time||'—').slice(0,5)}`);
+    return `<div class="shift${note?' has-note':''}"><div class="shift-main"><div class="date-tile" aria-hidden="true"><b>${pad(date.getDate())}</b><span>${dayName(date)}</span></div><div><strong>${heading}</strong><small>${fullDate}</small></div></div><div class="shift-end"><div class="dur">${isOpenShift(r)?'Em curso':fmtMins(duration(r))}</div></div>${note?`<p class="shift-note">${escapeHTML(note)}</p>`:''}${editingRecords&&r.recurring?`<div class="shift-actions"><button class="ghost" data-register-work="${r.work_date}">Registar trabalho</button></div>`:editingRecords?`<div class="shift-actions">${nonWork?'':`<button class="ghost" data-edit="${r.id}" aria-label="Editar horário de ${fullDate}">Editar</button>`}<button class="danger" data-del="${r.id}" aria-label="Apagar horário de ${fullDate}">Apagar</button></div>`:''}</div>`;
   }).join(''):`<div class="empty-state"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><strong>${week?'Sem turnos nesta semana.':rows.length?'Sem turnos neste mês.':'A tua primeira hora começa aqui.'}</strong><p>${week?'Os turnos deste intervalo aparecem aqui.':rows.length?'Escolhe outro mês para consultar o histórico.':'Adiciona um horário acima.<br>Os teus totais aparecem automaticamente.'}</p></div>`;
   const dates=rows.map(r=>r.work_date).sort();
   const fullDate=s=>new Intl.DateTimeFormat('pt-PT',{day:'2-digit',month:'2-digit',year:'numeric'}).format(localDate(s));
@@ -1027,7 +1031,8 @@ function resetForm(){closeVacation();openShiftId=null;correctingEntry=false;edit
 $('cancel').onclick=()=>{clearEntryDraft();resetForm()};
 $('list').onclick=async e=>{
   if(!editingRecords||savingHours)return;
-  const action=e.target.closest('[data-edit],[data-del]');if(!action)return;
+  const action=e.target.closest('[data-edit],[data-del],[data-register-work]');if(!action)return;
+  if(action.dataset.registerWork){$('add-history').click();$('add-history-month').value=action.dataset.registerWork.slice(0,7);$('add-history-days').value=String(Number(action.dataset.registerWork.slice(8)));return}
   const edit=action.dataset.edit, del=action.dataset.del;
   if(edit){setSectionOpen('shift-section',true);openShiftId=null;correctingEntry=false;const r=rows.find(x=>x.id===edit);if(!r||r.day_type==='day_off'||r.day_type==='vacation')return;editingId=r.id;$('form-title').textContent='Editar horário';$('cancel').classList.remove('hidden');$('date').value=r.work_date;$('start').value=(r.start_time||'').slice(0,5);$('end').value=(r.end_time||'').slice(0,5);const override=durationOverride(r);$('duration-override').value=override===null?'':durationInput(override);$('notes').value=typeof r.notes==='string'?r.notes:'';$('shift-details').open=override!==null||!!$('notes').value.trim();if(isOpenShift(r))resumeShift(r);else updateShiftForm();setMsg($('form-msg'),'');$('form-title').scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'})}
   if(del){if(!confirm('Apagar este registo?'))return;const {error}=await supabase.from('personal_work_hours').delete().eq('id',del);if(error)return alert(error.message);if(editingId===del)resetForm();await load()}
@@ -1559,6 +1564,28 @@ async function loadFinanceDocuments(){
 }
 $('finance-documents').ontoggle=()=>{if($('finance-documents').open&&currentUserId)loadFinanceDocuments()};
 
+let weeklyOff={days:[],from:''},weeklyOffSaving=false;
+function readWeeklyOff(value){
+ const valid=value&&Array.isArray(value.days)&&value.days.every(day=>Number.isInteger(day)&&day>=0&&day<=6)&&/^\d{4}-\d{2}-\d{2}$/.test(value.from||'');
+ weeklyOff=valid?{days:[...new Set(value.days)],from:value.from}:{days:[],from:''};
+ if(!weeklyOffSaving){for(const input of $('weekly-off-days').querySelectorAll('input'))input.checked=weeklyOff.days.includes(Number(input.value));$('weekly-off-from').value=weeklyOff.from||iso(new Date());}
+}
+function withWeeklyOff(actual,first,last){
+ if(!weeklyOff.days.length||!first||!last)return actual;
+ const taken=new Set(rows.map(r=>r.work_date)),out=[...actual],start=first>weeklyOff.from?first:weeklyOff.from;
+ let day=localDate(start),count=0;
+ while(iso(day)<=last&&count++<40000){const date=iso(day);if(weeklyOff.days.includes(day.getDay())&&!taken.has(date))out.push({id:'recurring-'+date,work_date:date,day_type:'day_off',start_time:null,end_time:null,duration_minutes:null,recurring:true});day=addDays(day,1)}
+ return out.sort((a,b)=>b.work_date.localeCompare(a.work_date));
+}
+$('weekly-off-form').onsubmit=async event=>{
+ event.preventDefault();if(weeklyOffSaving||!currentUserId)return;const owner=currentUserId;
+ const days=[...$('weekly-off-days').querySelectorAll('input:checked')].map(input=>Number(input.value)),from=$('weekly-off-from').value;
+ if(!/^(19\d{2}|20\d{2}|2100)-\d{2}-\d{2}$/.test(from)||iso(localDate(from))!==from)return setMsg($('weekly-off-msg'),'Indica uma data válida.');
+ weeklyOffSaving=true;$('weekly-off-save').disabled=true;
+ try{const {error}=await supabase.auth.updateUser({data:{hours_weekly_days_off:{days,from}}});if(error)throw error;if(owner!==currentUserId)return;weeklyOffSaving=false;readWeeklyOff({days,from});renderHistory();setMsg($('weekly-off-msg'),days.length?'Folgas fixas guardadas.':'Folgas fixas desativadas.',true)}
+ catch(error){if(owner===currentUserId)setMsg($('weekly-off-msg'),error.message||'Não foi possível guardar.')}
+ finally{weeklyOffSaving=false;$('weekly-off-save').disabled=false}
+};
 // Screens share the same state; switching never resets a draft or an active shift.
 $('records').insertBefore($('my-time'),$('records').querySelector('.history-panel'));
 $('active-shift').append($('timer-progress'));

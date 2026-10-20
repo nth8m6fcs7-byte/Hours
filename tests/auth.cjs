@@ -22,7 +22,7 @@ const createClient=(url,key,options)=>{
   signInWithPassword:async input=>{window.calls.push(['login',input]);if(!window.authError)window.session={user:{id:'user'}};return result()},
   signUp:async input=>{window.calls.push(['signup',input]);return result()},
   resetPasswordForEmail:async(...input)=>{window.calls.push(['reset',...input]);return result()},
-  updateUser:async input=>{window.calls.push(['updateUser',input]);return result()},
+  updateUser:async input=>{window.calls.push(['updateUser',input]);if(input.data&&!window.authError)window.session.user.user_metadata={...window.session.user.user_metadata,...input.data};return result()},
   signOut:async()=>{window.session=null;window.authEvent('SIGNED_OUT');return result()},
   registerPasskey:async()=>{window.calls.push(['register']);return result()},
   signInWithPasskey:async()=>{window.calls.push(['passkey']);if(!window.authError){window.session={user:{id:'user'}};window.authEvent('SIGNED_IN')}return result()}

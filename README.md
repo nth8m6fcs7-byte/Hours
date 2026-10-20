@@ -398,3 +398,12 @@ Nome apresentado: OTTO. Paleta grafite suave, branco quente e azul discreto; log
 com ícones PNG para iPhone/PWA. A publicação mantém `/Hours/`, o identificador do
 manifesto, as contas, os registos e as chaves locais para preservar continuidade.
 O nome do repositório e os identificadores técnicos HOURS permanecem estáveis.
+
+## Folgas fixas
+
+Definições → Folgas fixas permite escolher dias da semana e a data inicial.
+A preferência `hours_weekly_days_off` é guardada nos metadados da própria conta
+(apenas uma preferência de apresentação, nunca usada para autorização).
+O histórico acrescenta folgas de duração zero aos dias sem registos; trabalho,
+férias e folgas manuais têm prioridade. Alterar/desativar a regra não apaga registos.
+No modo de edição, «Registar trabalho» numa folga fixa abre a adição de turno.

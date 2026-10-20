@@ -330,3 +330,12 @@ test('older pauses without intervals can be corrected by total without inventing
   const row=await page.evaluate(()=>window.records.find(r=>r.work_date==='2026-10-17'));assert.equal(row.break_seconds,13740);assert.deepEqual(row.pause_intervals,[]);
  });
 });
+
+test('weekly days off recur from their effective date while real work and holidays win',async()=>{
+ await withDays(async page=>{
+  await page.click('#settings-open');await page.getByText('Folgas fixas',{exact:true}).click();await page.locator('#weekly-off-days input[value="1"]').check();await page.locator('#weekly-off-days input[value="2"]').check();await page.fill('#weekly-off-from','2026-10-01');await page.click('#weekly-off-save');await page.waitForFunction(()=>document.getElementById('weekly-off-msg').textContent.includes('guardadas'));await page.getByRole('button',{name:'Fechar definições'}).click();await page.click('#toggle-records');
+  assert.match(await page.textContent('#list'),/Folga fixa/);assert.equal(await page.evaluate(()=>window.records.length),3);assert.match(await page.textContent('#list'),/09:00/);assert.equal(await page.textContent('#history-total'),'17h00');
+  await page.evaluate(()=>{window.records.push({id:'holiday',user_id:'user',work_date:'2026-10-06',day_type:'vacation'});window.authEvent('SIGNED_IN')});await page.waitForFunction(()=>document.getElementById('sync').textContent==='Sincronizado');await page.click('#toggle-records');assert.match(await page.textContent('#list'),/Férias/);
+  await page.click('#settings-open');await page.locator('#weekly-off-days input[value="1"]').uncheck();await page.locator('#weekly-off-days input[value="2"]').uncheck();await page.click('#weekly-off-save');await page.waitForFunction(()=>document.getElementById('weekly-off-msg').textContent.includes('desativadas'));await page.getByRole('button',{name:'Fechar definições'}).click();assert.doesNotMatch(await page.textContent('#list'),/Folga fixa/);
+ });
+});
