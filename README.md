@@ -441,3 +441,17 @@ entradas, saídas, pausas e total de horas. Folgas e férias contam zero horas e
 turnos em curso são identificados sem entrarem no total. O ficheiro não contém
 finanças nem dados da conta. É gerado localmente com pdf-lib 1.17.1 carregado
 apenas ao exportar. Teste: `tests/monthly-report.cjs`.
+
+## Visualização financeira
+
+Resumo compacto com saldo destacado, quatro blocos de saldos/reservas e uma barra
+de distribuição apenas quando os quatro valores estão preenchidos, há saldo
+positivo e as reservas cabem no saldo. Um défice é mostrado em vermelho, sem
+uma barra de proporções enganadora. Rendimentos usa cores consistentes nas
+parcelas e na barra de composição, com descrição acessível e montantes em texto.
+Documentos mantém ações diretas e um estado vazio orientado ao carregamento.
+Não são inferidos gastos, tendências ou valores em falta.
+
+Referências de organização visual consultadas: [Copilot Money](https://www.copilot.money/),
+[Monarch Reports](https://help.monarch.com/hc/en-us/articles/21846787088916-Using-Reports)
+e [YNAB Focused Views](https://support.ynab.com/en_us/focused-views-a-guide-BksnNYqLh).
