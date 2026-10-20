@@ -415,3 +415,11 @@ confirmação antes de serem substituídos. Folgas nunca descontam dias de féri
 Uma folga, fixa ou guardada, permite «Registar trabalho» no modo de edição.
 A duração ou o horário registados substituem só esse dia; não alteram a regra
 semanal. O registo de trabalho passa a contar nos totais normalmente.
+
+## PDF mensal de trabalho
+
+Histórico → escolher mês → PDF do mês descarrega um PDF com datas, tipos de dia,
+entradas, saídas, pausas e total de horas. Folgas e férias contam zero horas e os
+turnos em curso são identificados sem entrarem no total. O ficheiro não contém
+finanças nem dados da conta. É gerado localmente com pdf-lib 1.17.1 carregado
+apenas ao exportar. Teste: `tests/monthly-report.cjs`.

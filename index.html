@@ -468,6 +468,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
         <form id="weekly-tips-form" class="finance-tips-row hidden" novalidate><label for="weekly-tips-amount">Gorjetas da semana (€)</label><input id="weekly-tips-amount" type="text" inputmode="decimal" placeholder="Por indicar"><button id="weekly-tips-save" type="submit" class="ghost">Guardar</button><p id="weekly-tips-note" class="finance-note"></p><p id="weekly-tips-msg" class="finance-note" role="status"></p></form>
         <div class="history-summary" role="status" aria-live="polite"><span id="history-count"><span id="record-count">0 turnos</span></span><div><strong id="history-total">0h00</strong><small id="history-total-label">no mês</small></div></div>
       </div>
+      <button id="export-month-pdf" type="button" class="ghost">PDF do mês</button>
       <p id="history-hint" class="history-hint hidden">Escolhe o turno que queres corrigir. Toca em Concluir quando terminares.</p>
       <button id="add-history" type="button" class="secondary hidden">+ Adicionar turno</button>
       <form id="add-history-form" class="hidden" novalidate>
@@ -691,6 +692,7 @@ function renderHistory(){
   $('month-next').disabled=current===''||monthIndex>=monthOptions.length-1;
   const baseWeek=activeWeek?weeklyRanges()[activeWeek]:null;
   const week=baseWeek?{...baseWeek,start:historyWeekStart||baseWeek.start,end:addDays(historyWeekStart||baseWeek.start,activeWeek==='tips'?6:4)}:null;
+  $('export-month-pdf').classList.toggle('hidden',!!week||!current);$('export-month-pdf').disabled=!hoursHistoryReady;
   $('month-controls').classList.toggle('hidden',!!week);
   $('week-controls').classList.toggle('hidden',!week);
   $('history-week-title').textContent=week?week.title:'';
@@ -1613,6 +1615,19 @@ function setSectionOpen(id,open){
 for(const button of document.querySelectorAll('[data-page-target]'))button.onclick=()=>showAppPage(button.dataset.pageTarget);
 $('toggle-shift').onclick=()=>showAppPage('today');
 $('home-week').onclick=()=>showWeek('tips');
+let reportBusy=false;
+$('export-month-pdf').onclick=async()=>{
+ if(reportBusy||!hoursHistoryReady||!currentUserId||!selectedMonth||activeWeek)return;
+ const month=selectedMonth,owner=currentUserId;
+ const last=iso(new Date(Number(month.slice(0,4)),Number(month.slice(5)),0)),items=withWeeklyOff(rows.filter(r=>r.work_date.startsWith(month+'-')),month+'-01',last).sort((a,b)=>a.work_date.localeCompare(b.work_date));
+ const payload={month,label:monthLabel(month),exportedAt:new Intl.DateTimeFormat('pt-PT',{dateStyle:'short',timeStyle:'short'}).format(new Date()),total:fmtMins(items.reduce((n,r)=>n+duration(r),0)),entries:items.map(r=>({date:r.work_date.slice(8)+'/'+r.work_date.slice(5,7),type:r.day_type==='vacation'?'Férias':r.day_type==='day_off'?'Folga':isOpenShift(r)?'Em curso':'Trabalho',start:r.day_type==='work'||!r.day_type?(r.start_time||'-').slice(0,5):'-',end:r.day_type==='work'||!r.day_type?(r.end_time||'-').slice(0,5):'-',breaks:r.day_type==='work'||!r.day_type?fmtMins(Math.floor(storedBreakSeconds(r)/60)):'-',hours:isOpenShift(r)?'Em curso':fmtMins(duration(r))}))};
+ reportBusy=true;$('export-month-pdf').disabled=true;setMsg($('records-msg'),'A preparar o PDF…');
+ try{
+  const {createMonthlyReport}=await import('./monthly-report.mjs?v=1');const file=await createMonthlyReport(payload);if(owner!==currentUserId)return;
+  const url=URL.createObjectURL(file),a=document.createElement('a');a.href=url;a.download=file.name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);setMsg($('records-msg'),'PDF preparado. Podes guardar ou partilhar o ficheiro.',true);
+ }catch{if(owner===currentUserId)setMsg($('records-msg'),'Não foi possível criar o PDF. Tenta novamente.');}
+ finally{reportBusy=false;$('export-month-pdf').disabled=!hoursHistoryReady}
+};
 $('history-add').onclick=()=>{editingRecords=true;renderHistory();$('add-history').click()};
 $('home-date').textContent=new Intl.DateTimeFormat('pt-PT',{weekday:'long',day:'numeric',month:'long'}).format(new Date());
 $('date').value=iso(new Date());
