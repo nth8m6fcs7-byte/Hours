@@ -309,10 +309,6 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
     #timer-title:before{background:#b1b7bb}.history-summary,.income-summary>div,#home-week{border-color:#ffffff0d}
     .weekly-off-days{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}.weekly-off-days label{position:relative;min-width:40px;min-height:44px;display:grid;place-items:center;border:1px solid var(--line);border-radius:10px;cursor:pointer;font-size:12px}.weekly-off-days input{position:absolute;opacity:0;width:100%;height:100%;margin:0}.weekly-off-days label:has(:checked){background:#6ba7d8;color:#10212e}.weekly-off-days label:has(:focus-visible){outline:2px solid var(--ink)}#weekly-off-from{height:42px;padding:8px;margin:6px 0 12px}
 
-    .money-tabs{display:flex;gap:4px;padding:4px;background:#2d3337;border-radius:13px;margin:4px 0 20px}.money-tabs button{flex:1;background:transparent!important;color:var(--muted)!important;font-size:13px;min-height:40px;padding:8px}.money-tabs button[aria-pressed="true"]{background:#424b51!important;color:var(--ink)!important}
-    .money-hero{padding:18px 0 22px}.money-hero>span{font-size:13px;color:var(--muted)}.money-hero strong{display:block;font-size:40px;font-weight:600;letter-spacing:-1px;margin:9px 0}.money-hero p{font-size:13px;color:var(--muted);line-height:1.5}.money-hero.negative strong{color:#ffb2b2}
-    #money-form label{display:block;font-size:13px;color:var(--muted);margin:12px 0}#money-form input{display:block;height:42px;min-height:42px;max-height:42px;margin-top:6px;padding:8px;font-size:16px;background:#2d3337}.money-tabs+#money-view #money-breakdown{margin-bottom:8px}#money-save{margin:12px 0}
-
     .finance-heading{display:flex;align-items:center;gap:10px;margin:0 0 20px}.finance-heading h3{font-size:19px;font-weight:500;margin:0}.finance-heading button{font-size:23px;min-width:44px;padding:5px;background:transparent}
     #finance-menu{position:fixed;inset:0 auto 0 0;margin:0;width:min(310px,85vw);height:100dvh;max-height:100dvh;box-sizing:border-box;border:0;border-right:1px solid var(--line);padding:calc(24px + env(safe-area-inset-top)) 20px 24px;background:#222629;color:var(--ink)}
     #finance-menu::backdrop{background:#0008;backdrop-filter:blur(4px)}.finance-menu-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:30px}.finance-menu-header h2{font-size:23px;margin:0}.finance-menu-header button{background:transparent;font-size:28px;padding:5px 12px}
@@ -320,19 +316,13 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
     #documents-view #finance-documents{border:0;margin-top:20px;padding-top:0}#finance-month-bar .finance-month{margin-top:0}#finance-detail .finance-stat{display:inline-block;width:48%;box-sizing:border-box}#finance-detail .finance-stat strong{font-size:23px}#finance-status:empty{display:none}
 
 
-    /* Compact financial overview: balance first, supporting values grouped. */
+    /* Monthly income overview. */
     #finances>.section-header{margin-bottom:8px}#finances>.section-header h2{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
-    .finance-heading{margin-bottom:14px;gap:8px}.finance-heading h3{font-size:25px;letter-spacing:-.6px;font-weight:600}.finance-heading button{border:1px solid var(--line);border-radius:12px;font-size:20px;min-height:40px;min-width:40px}
-    #finances .money-hero,#income-view>.finance-stats{background:linear-gradient(135deg,#35434c,#2b3135 75%);border:1px solid #ffffff12;border-radius:22px;padding:22px;margin:0 0 14px;box-sizing:border-box}
-    #finances .money-hero strong{font-size:clamp(30px,9vw,43px);margin:8px 0;line-height:1.15}#finances .money-hero p{font-size:12px;margin:0;max-width:42ch}
+    .finance-heading{margin-bottom:14px;gap:8px}.finance-heading h3{font-size:25px;letter-spacing:-.6px;font-weight:600}.finance-heading button{border:1px solid var(--line);border-radius:12px;font-size:20px;min-height:40px;min-width:40px}#income-view>.finance-stats{background:linear-gradient(135deg,#35434c,#2b3135 75%);border:1px solid #ffffff12;border-radius:22px;padding:22px;margin:0 0 14px;box-sizing:border-box}
     #income-view>.finance-stats{display:block;text-align:left}#income-view .finance-stat:first-child{padding:0;text-align:left;background:none}#income-view .finance-stat:first-child strong{font-size:clamp(30px,9vw,43px)}#income-view .finance-stat:first-child>span{font-size:12px}
-    #money-breakdown{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:14px 0}#money-breakdown>div{display:flex;flex-direction:column;gap:7px;align-items:flex-start;padding:14px;border:1px solid #ffffff0a;border-radius:16px;background:#ffffff04;min-width:0}#money-breakdown span{font-size:12px;color:var(--muted)}#money-breakdown strong{font-size:20px;letter-spacing:-.4px;overflow-wrap:anywhere}
-    .finance-segments{display:flex;gap:3px;height:9px;overflow:hidden;border-radius:8px;width:100%}.finance-segments>span{min-width:0;flex-basis:0;height:100%;margin:0;display:block}.finance-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:9px;font-size:10px;color:var(--muted)}.finance-legend span:before,.income-source>span:before{content:'';display:inline-block;width:7px;height:7px;background:var(--part-color);border-radius:50%;margin-right:7px}
-    #money-allocation{margin:2px 0 12px}#income-composition{margin-top:18px}#finance-income-summary{margin:0 0 14px}#finance-income-summary>div{padding:12px 2px;font-size:13px}#finance-income-summary strong{white-space:nowrap}#money-coverflex:not(:empty){padding:11px 13px;background:#ffffff04;border-radius:12px;border-left:2px solid #83b8ab;font-size:11px}
-    #money-editor,#finance-detail,#finance-manual{margin-top:12px;padding-top:14px}#money-editor>summary,#finance-detail>summary,#finance-manual>summary{font-size:13px;min-height:30px}#money-state,#finance-state{font-size:11px}
+    .finance-segments{display:flex;gap:3px;height:9px;overflow:hidden;border-radius:8px;width:100%}.finance-segments>span{min-width:0;flex-basis:0;height:100%;margin:0;display:block}.finance-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:9px;font-size:10px;color:var(--muted)}.finance-legend span:before,.income-source>span:before{content:'';display:inline-block;width:7px;height:7px;background:var(--part-color);border-radius:50%;margin-right:7px}#income-composition{margin-top:18px}#finance-income-summary{margin:0 0 14px}#finance-income-summary>div{padding:12px 2px;font-size:13px}#finance-income-summary strong{white-space:nowrap}#finance-detail,#finance-manual{margin-top:12px;padding-top:14px}#finance-detail>summary,#finance-manual>summary{font-size:13px;min-height:30px}#finance-state{font-size:11px}
     #documents-view .document-actions{gap:9px;margin:8px 0 16px}#documents-view .document-actions button{min-height:62px!important;border-radius:16px;background:#ffffff04!important;font-size:14px}#documents-view .finance-document-row{padding:14px 12px;border:1px solid #ffffff0d;border-radius:14px;margin:8px 0;background:#ffffff03;gap:10px}#documents-view .finance-document-row>span{overflow-wrap:anywhere;min-width:0}
     #finance-document-msg.document-empty{padding:24px 20px;border:1px dashed #ffffff20;border-radius:18px;text-align:center;line-height:1.6;font-size:13px;background:#ffffff02}#finance-document-msg.document-empty:before{content:'Documentos do mês';display:block;color:var(--ink);font-size:15px;font-weight:500;margin-bottom:7px}
-    @media(min-width:700px){#money-breakdown{grid-template-columns:repeat(4,minmax(0,1fr))}#finances .money-hero{padding:26px}#finances .money-hero strong{font-size:44px}}
 
 </style>
 </head>
@@ -514,16 +504,10 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
 
     <section id="finances" class="section-collapsed" aria-labelledby="finance-title">
       <div class="section-header"><h2 id="finance-title">Finanças</h2></div>
-      <div class="finance-heading"><button id="finance-menu-open" type="button" class="ghost" aria-label="Abrir menu das finanças" aria-haspopup="dialog" aria-controls="finance-menu">☰</button><h3 id="finance-view-title">Disponível</h3></div>
-      <dialog id="finance-menu" aria-labelledby="finance-menu-title"><div class="finance-menu-header"><h2 id="finance-menu-title">Finanças</h2><button id="finance-menu-close" type="button" class="ghost" aria-label="Fechar menu">×</button></div><nav aria-label="Áreas das finanças"><button id="money-tab" type="button" aria-current="page">Disponível<span>Saldos e reservas</span></button><button id="income-tab" type="button">Rendimentos<span>O que recebeste por mês</span></button><button id="documents-tab" type="button">Documentos<span>Recibos e Coverflex</span></button></nav></dialog>
+      <div class="finance-heading"><button id="finance-menu-open" type="button" class="ghost" aria-label="Abrir menu das finanças" aria-haspopup="dialog" aria-controls="finance-menu">☰</button><h3 id="finance-view-title">Rendimentos</h3></div>
+      <dialog id="finance-menu" aria-labelledby="finance-menu-title"><div class="finance-menu-header"><h2 id="finance-menu-title">Finanças</h2><button id="finance-menu-close" type="button" class="ghost" aria-label="Fechar menu">×</button></div><nav aria-label="Áreas das finanças"><button id="income-tab" type="button" aria-current="page">Rendimentos<span>O que recebeste por mês</span></button><button id="documents-tab" type="button">Documentos<span>Recibos e Coverflex</span></button></nav></dialog>
       <div id="finance-month-bar" class="hidden"></div>
-      <div id="money-view">
-        <div class="money-hero"><span id="money-horizon">Disponível após reservas</span><strong id="money-available">—</strong><p id="money-explanation">Indica os teus saldos e o que precisas de reservar.</p></div>
-        <div id="money-allocation" class="finance-visual hidden"></div><div id="money-breakdown" class="income-summary"></div><p id="money-coverflex" class="finance-note"></p>
-        <details id="money-editor"><summary>Atualizar valores</summary><form id="money-form" novalidate><fieldset id="money-fields" disabled style="border:0;padding:0;margin:0"><legend class="sr-only">Saldos e reservas em euros</legend><label>Saldo atual na conta (€)<input id="money-bank" type="text" inputmode="decimal" placeholder="Por indicar" autocomplete="off"></label><label>Dinheiro em mão · inclui gorjetas (€)<input id="money-cash" type="text" inputmode="decimal" placeholder="Por indicar" autocomplete="off"></label><label>Contas ainda por pagar (€)<input id="money-bills" type="text" inputmode="decimal" placeholder="Por indicar" autocomplete="off"></label><label>Quero reservar para poupar (€)<input id="money-savings" type="text" inputmode="decimal" placeholder="Por indicar" autocomplete="off"></label><p class="finance-note">Saldos atuais, com os rendimentos já recebidos. Indica 0 se não houver valor.</p><label>Próxima entrada de dinheiro · opcional<input id="money-date" type="date"></label><details><summary>Coverflex · opcional</summary><label>Saldo de alimentação (€)<input id="money-food" type="text" inputmode="decimal" placeholder="Por indicar"></label><label>Saldo de benefícios (€)<input id="money-benefits" type="text" inputmode="decimal" placeholder="Por indicar"></label><p class="finance-note">Estes saldos ficam separados do dinheiro livre.</p></details><button id="money-save" type="submit">Guardar</button></fieldset></form></details>
-        <p id="money-state" class="finance-note" role="status"></p><button id="money-retry" type="button" class="ghost hidden">Tentar novamente</button>
-        <p class="finance-note">Saldos manuais. Atualiza-os quando mudarem.</p>
-      </div><div id="income-view" class="hidden">
+      <div id="income-view" class="hidden">
 
       <div class="finance-month">
         <button id="finance-prev" type="button" aria-label="Mês financeiro anterior">‹</button>
@@ -1351,7 +1335,7 @@ function setFinanceBusy(value){
  for(const id of ['finance-prev','finance-next','finance-month','finance-retry'])$(id).disabled=value;
 }
 function resetFinance(){
- resetMoneyPlan();
+ resetFinanceView();
  resetDocumentReview();$('finance-tips-amount').value='';$('finance-tips-msg').textContent='';financePpr=null;$('finance-ppr-amount').value='';$('finance-ppr-origin').value='';$('finance-document-list').replaceChildren();$('finance-ppr').textContent='';
  financeVersion++;financeLoaded=false;financeDirty=false;financeBusy=false;financeMonth=iso(new Date()).slice(0,7);
  $('finance-month').value=financeMonth;$('finance-lines').replaceChildren();$('finance-fields').disabled=true;
@@ -1472,7 +1456,7 @@ $('finance-tips-form').onsubmit=async event=>{
   await $('finance-form').onsubmit({preventDefault(){}});$('finance-tips-msg').textContent=financeDirty?'Não foi possível guardar. Tenta novamente.':'Gorjetas guardadas no total do mês.';
  }catch(error){$('finance-tips-msg').textContent=error.message}
 };
-window.addEventListener('beforeunload',event=>{if(financeDirty||documentState||moneyDirty){event.preventDefault();event.returnValue=''}});
+window.addEventListener('beforeunload',event=>{if(financeDirty||documentState){event.preventDefault();event.returnValue=''}});
 
 const financePalette=['#87b9df','#b8a1d6','#d7bc85','#83b8ab','#b7bfc6','#dca7aa'];
 function renderFinanceBar(id,parts,title){
@@ -1480,47 +1464,23 @@ function renderFinanceBar(id,parts,title){
  const bar=document.createElement('div');bar.className='finance-segments';bar.setAttribute('role','img');bar.setAttribute('aria-label',title+': '+parts.map(p=>p.label+' '+financeMoney(p.value)).join(', '));
  for(const part of parts){const segment=document.createElement('span');segment.style.flexGrow=part.value;segment.style.background=part.color;segment.title=part.label+' · '+financeMoney(part.value);bar.append(segment)}host.append(bar);
 }
-let financeView='money';
-let moneyLoaded=false,moneyBusy=false,moneyDirty=false,moneyVersion=0;
-const moneyKeys=['bank','cash','bills','savings','food','benefits'];
-function moneyValues(){const out={};for(const key of moneyKeys){const raw=$('money-'+key).value.trim();out[key+'_cents']=key==='bank'&&raw.startsWith('-')?-financeAmount(raw.slice(1)):financeAmount(raw);if(key==='bank'&&raw==='-')throw new Error('Indica um saldo válido.')}return out}
-function setMoneyBusy(value){moneyBusy=value;$('money-fields').disabled=value||!moneyLoaded;$('money-retry').disabled=value}
-function resetMoneyPlan(){moneyVersion++;moneyLoaded=false;moneyBusy=false;moneyDirty=false;for(const key of moneyKeys)$('money-'+key).value='';$('money-date').value='';$('money-state').textContent='';$('money-editor').open=false;setMoneyBusy(false);renderMoneyPlan();$('income-view').classList.add('hidden');$('money-view').classList.remove('hidden');$('money-tab').setAttribute('aria-current','page');$('income-tab').setAttribute('aria-current','false');$('documents-tab').setAttribute('aria-current','false');financeView='money';if($('documents-view'))$('documents-view').classList.add('hidden');$('finance-month-bar').classList.add('hidden');if($('finance-status'))$('finance-status').classList.add('hidden');$('finance-view-title').textContent='Disponível';$('finance-menu').close()}
-function renderMoneyPlan(){
- $('money-available').textContent='—';$('money-explanation').textContent='Indica os teus saldos e o que precisas de reservar.';$('money-breakdown').replaceChildren();$('money-coverflex').textContent='';$('money-allocation').replaceChildren();$('money-allocation').classList.add('hidden');$('money-view').querySelector('.money-hero').classList.remove('negative');$('money-horizon').textContent=$('money-date').value?'Disponível até '+new Intl.DateTimeFormat('pt-PT').format(localDate($('money-date').value)):'Disponível após reservas';
- if(!moneyLoaded)return;let v;try{v=moneyValues()}catch{return}
- for(const [key,title] of [['bank','Na conta'],['cash','Em dinheiro'],['bills','Para contas'],['savings','Para poupar']]){const row=document.createElement('div'),name=document.createElement('span'),amount=document.createElement('strong');name.textContent=title;amount.textContent=v[key+'_cents']===null?'Por indicar':financeMoney(v[key+'_cents']);row.append(name,amount);$('money-breakdown').append(row)}
- if(['bank','cash','bills','savings'].every(key=>v[key+'_cents']!==null)){const available=v.bank_cents+v.cash_cents-v.bills_cents-v.savings_cents;$('money-available').textContent=financeMoney(available);$('money-view').querySelector('.money-hero').classList.toggle('negative',available<0);$('money-explanation').textContent=available<0?'O saldo não chega para as contas e a reserva que indicaste.':'Conta + dinheiro, depois de reservar contas e poupança.';
- if(available>=0&&v.bank_cents+v.cash_cents>0){renderFinanceBar('money-allocation',[{label:'Disponível',value:available,color:financePalette[0]},{label:'Contas',value:v.bills_cents,color:financePalette[2]},{label:'Poupança',value:v.savings_cents,color:financePalette[1]}].filter(p=>p.value>0),'Distribuição do saldo');const legend=document.createElement('div');legend.className='finance-legend';for(const [label,color] of [['Disponível',financePalette[0]],['Contas',financePalette[2]],['Poupança',financePalette[1]]]){const item=document.createElement('span');item.style.setProperty('--part-color',color);item.textContent=label;legend.append(item)}$('money-allocation').append(legend)}
- }
- const benefits=[];for(const [key,title] of [['food','Alimentação'],['benefits','Benefícios']])if(v[key+'_cents']!==null)benefits.push(title+': '+financeMoney(v[key+'_cents']));$('money-coverflex').textContent=benefits.length?'Coverflex · '+benefits.join(' · ')+' · fora do disponível.':'';
-}
-async function loadMoneyPlan(){
- if(!currentUserId||moneyBusy)return;const owner=currentUserId,version=++moneyVersion;moneyLoaded=false;setMoneyBusy(true);$('money-state').textContent='A carregar…';$('money-retry').classList.add('hidden');
- try{const {data,error}=await supabase.from('hours_money_plan').select('bank_cents,cash_cents,bills_cents,savings_cents,food_cents,benefits_cents,next_income_date,updated_at').eq('user_id',owner).range(0,0);if(owner!==currentUserId||version!==moneyVersion)return;if(error)throw error;const record=data?.[0];for(const key of moneyKeys){const v=record?.[key+'_cents']??null;if(v!==null&&(!Number.isInteger(v)||Math.abs(v)>99999999||(key!=='bank'&&v<0)))throw new Error('Saldo inválido.');$('money-'+key).value=financeInput(v)}$('money-date').value=record?.next_income_date||'';moneyLoaded=true;moneyDirty=false;$('money-editor').open=!record;$('money-state').textContent=record?'Valores atualizados em '+new Intl.DateTimeFormat('pt-PT',{dateStyle:'short',timeStyle:'short'}).format(new Date(record.updated_at)):'Preenche uma vez para veres o teu disponível.';renderMoneyPlan();}
- catch{if(version===moneyVersion){$('money-state').textContent='Não foi possível carregar os valores.';$('money-retry').classList.remove('hidden')}}finally{if(version===moneyVersion)setMoneyBusy(false)}
+let financeView='income';
+function resetFinanceView(){
+ financeView='income';$('income-view').classList.remove('hidden');if($('documents-view'))$('documents-view').classList.add('hidden');
+ $('income-tab').setAttribute('aria-current','page');$('documents-tab').setAttribute('aria-current','false');$('finance-view-title').textContent='Rendimentos';$('finance-month-bar').classList.remove('hidden');if($('finance-status'))$('finance-status').classList.remove('hidden');$('finance-menu').close();
 }
 function showFinanceView(view){
- financeView=view;const names={money:'Disponível',income:'Rendimentos',documents:'Documentos'};
+ financeView=view;const names={income:'Rendimentos',documents:'Documentos'};
  for(const key of Object.keys(names)){const panel=$(key+'-view');if(panel)panel.classList.toggle('hidden',view!==key);$(key==='documents'?'documents-tab':key+'-tab').setAttribute('aria-current',view===key?'page':'false')}
- $('finance-view-title').textContent=names[view];$('finance-month-bar').classList.toggle('hidden',view==='money');if($('finance-status'))$('finance-status').classList.toggle('hidden',view==='money');
- if(view==='money'&&!moneyLoaded&&!moneyBusy)loadMoneyPlan();
- if(view!=='money'&&!financeLoaded&&!financeBusy)loadFinance();
+ $('finance-view-title').textContent=names[view];
+ if(!financeLoaded&&!financeBusy)loadFinance();
  if(view==='documents'){$('finance-documents').open=true;loadFinanceDocuments()}
 }
 $('finance-menu-open').onclick=()=>{$('finance-menu').showModal();$('finance-menu-open').setAttribute('aria-expanded','true')};
 $('finance-menu-close').onclick=()=>$('finance-menu').close();
 $('finance-menu').onclose=()=>{$('finance-menu-open').setAttribute('aria-expanded','false');$('finance-menu-open').focus()};
 $('finance-menu').onclick=e=>{if(e.target===$('finance-menu')){const r=e.target.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)e.target.close()}};
-for(const [id,view] of [['money-tab','money'],['income-tab','income'],['documents-tab','documents']])$(id).onclick=()=>{showFinanceView(view);$('finance-menu').close()};
-$('money-retry').onclick=loadMoneyPlan;
-$('money-form').oninput=()=>{moneyDirty=true;$('money-state').textContent='Alterações por guardar';renderMoneyPlan()};
-$('money-form').onsubmit=async event=>{
- event.preventDefault();if(moneyBusy||!moneyLoaded||!currentUserId)return;const owner=currentUserId,version=moneyVersion;let values,date;
- try{values=moneyValues();date=$('money-date').value;if(date&&(!/^(19\d{2}|20\d{2}|2100)-\d{2}-\d{2}$/.test(date)||iso(localDate(date))!==date))throw new Error('Indica uma data válida.')}catch(error){return $('money-state').textContent=error.message}
- setMoneyBusy(true);try{const {data:{user},error:authError}=await supabase.auth.getUser();if(authError)throw authError;if(user?.id!==owner||owner!==currentUserId)throw new Error('A sessão mudou.');const {error}=await supabase.from('hours_money_plan').upsert({user_id:owner,...values,next_income_date:date||null,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error)throw error;if(version!==moneyVersion||owner!==currentUserId)return;moneyDirty=false;$('money-state').textContent='Valores guardados. Atualiza-os quando houver mudanças.';$('money-editor').open=false;renderMoneyPlan()}
- catch{if(version===moneyVersion)$('money-state').textContent='Não foi possível guardar. Os valores continuam aqui para tentares novamente.'}finally{if(version===moneyVersion)setMoneyBusy(false)}
-};
+for(const [id,view] of [['income-tab','income'],['documents-tab','documents']])$(id).onclick=()=>{showFinanceView(view);$('finance-menu').close()};
 let weeklyTipsKey=null,weeklyTipsTask=0,weeklyTipsBusy=false,weeklyTipsManual=false;
 function tipsIncomeMonth(start){return iso(addDays(localDate(start),6)).slice(0,7)}
 async function loadWeeklyTips(start){

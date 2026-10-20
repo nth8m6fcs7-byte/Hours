@@ -250,7 +250,7 @@ anterior; adicionar novamente pelo Safari para obter o ícone novo.
 Navegação inferior fixa com três ecrãs: **Hoje**, **Histórico** e **Finanças**.
 Hoje apresenta o turno em curso, as ações de pausa/saída e um atalho ao total semanal.
 Histórico reúne as semanas de gorjetas e pessoal, o filtro mensal, a edição e um
-botão + para acrescentar turnos. Finanças tem um menu lateral com Disponível, Rendimentos e Documentos.
+botão + para acrescentar turnos. Finanças tem um menu lateral com Rendimentos e Documentos.
 Cada área abre separadamente; o mês é partilhado por Rendimentos e Documentos. Trocar de ecrã preserva rascunhos,
 correções e o turno ativo. A aplicação abre em Hoje após iniciar sessão.
 
@@ -290,18 +290,10 @@ Fluxo diário: Começar turno usa a hora atual; tocar em Entrada permite corrigi
 
 ## Finanças pessoais — primeira versão
 
-**Disponível** mostra os saldos atuais da conta e do dinheiro em mão, menos contas
-por pagar e uma nova reserva para poupar. Os quatro valores são introduzidos pelo
-utilizador; valores em falta não são tratados como zero. A conta aceita saldo
-negativo. A próxima entrada de dinheiro é uma data opcional. Alimentação e
-benefícios Coverflex aparecem separados e não entram no disponível.
-
-É uma fotografia manual dos saldos, não um extrato bancário nem um registo de
-despesas: é necessário atualizar os valores quando mudam. Não se somam novamente
-rendimentos já incluídos nos saldos. A reserva para poupar refere-se ao dinheiro
-que ainda se pretende separar. O plano fica em `hours_money_plan`, protegido por
-RLS por utilizador, sem valores pessoais predefinidos. Migração: `sql/money-plan.sql`.
-Testes: `tests/money-plan.cjs` e `tests/money-plan-rls.sql`.
+As Finanças abrem diretamente em **Rendimentos**. O controlo manual de saldos,
+contas e poupança foi retirado: a OTTO organiza os ganhos do trabalho e respetivos
+comprovativos, sem duplicar uma aplicação bancária. A antiga tabela privada
+`hours_money_plan` mantém-se intacta, mas a aplicação já não a consulta nem altera.
 
 **Rendimentos** mostra o total mensal e as parcelas, com métricas secundárias em
 Ver detalhe. **Documentos** permite carregar, confirmar, abrir e retirar recibos
@@ -444,13 +436,12 @@ apenas ao exportar. Teste: `tests/monthly-report.cjs`.
 
 ## Visualização financeira
 
-Resumo compacto com saldo destacado, quatro blocos de saldos/reservas e uma barra
-de distribuição apenas quando os quatro valores estão preenchidos, há saldo
-positivo e as reservas cabem no saldo. Um défice é mostrado em vermelho, sem
-uma barra de proporções enganadora. Rendimentos usa cores consistentes nas
+Resumo compacto com o total mensal destacado. Rendimentos usa cores nas
 parcelas e na barra de composição, com descrição acessível e montantes em texto.
 Documentos mantém ações diretas e um estado vazio orientado ao carregamento.
-Não são inferidos gastos, tendências ou valores em falta.
+Não são inferidos gastos, tendências ou valores em falta. As comparações entre
+esperado e recebido continuam nos detalhes, sem validar automaticamente recibos
+ou comissões sem os dados necessários.
 
 Referências de organização visual consultadas: [Copilot Money](https://www.copilot.money/),
 [Monarch Reports](https://help.monarch.com/hc/en-us/articles/21846787088916-Using-Reports)
