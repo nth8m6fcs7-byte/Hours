@@ -446,3 +446,12 @@ ou comissões sem os dados necessários.
 Referências de organização visual consultadas: [Copilot Money](https://www.copilot.money/),
 [Monarch Reports](https://help.monarch.com/hc/en-us/articles/21846787088916-Using-Reports)
 e [YNAB Focused Views](https://support.ynab.com/en_us/focused-views-a-guide-BksnNYqLh).
+
+### Permissão de leitura do serviço push
+
+Aplicar `sql/hours-push-read-permission.sql`: o serviço precisa de SELECT apenas
+nas colunas usadas para confirmar que o turno continua ativo antes do envio.
+BYPASSRLS não substitui os privilégios de coluna. Sem esta permissão, a leitura
+falhava com 42501 e as tentativas eram consumidas sem contactar o fornecedor push.
+O dispatcher devolve contagens de envios/erros/leituras ignoradas e regista apenas
+códigos de erro seguros, sem endpoints, chaves ou payloads de fornecedores.
