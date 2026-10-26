@@ -248,7 +248,9 @@ anterior; adicionar novamente pelo Safari para obter o ícone novo.
 ## Organização da página
 
 Navegação inferior fixa com três ecrãs: **Hoje**, **Histórico** e **Finanças**.
-Hoje apresenta o turno em curso, as ações de pausa/saída e um atalho ao total semanal.
+Hoje apresenta o turno em curso, as ações de pausa/saída e um atalho ao total
+da semana pessoal (quinta a segunda). O atalho abre essa mesma semana no Histórico;
+a semana de gorjetas (segunda a domingo) mantém-se separada.
 Histórico reúne as semanas de gorjetas e pessoal, o filtro mensal, a edição e um
 botão + para acrescentar turnos. Finanças tem um menu lateral com Rendimentos e Documentos.
 Cada área abre separadamente; o mês é partilhado por Rendimentos e Documentos. Trocar de ecrã preserva rascunhos,
