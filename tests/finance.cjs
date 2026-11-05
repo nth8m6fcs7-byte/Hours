@@ -101,6 +101,17 @@ test('weekly tips save and replace by week and sum automatically into monthly fi
   await p.fill('#weekly-tips-amount','60');await p.click('#weekly-tips-save');await p.waitForFunction(()=>window.financeRecords.reduce((t,r)=>t+r.entries.reduce((s,e)=>s+e.received_cents,0),0)===16000);
   assert.equal(await p.evaluate(()=>window.financeRecords.flatMap(r=>r.entries).length),2);
   const month=await p.evaluate(()=>window.financeRecords[0].month.slice(0,7));await p.click('#toggle-finance');await p.click('#finance-menu-open');await p.click('#income-tab');await p.waitForFunction(()=>!document.getElementById('finance-fields').disabled);await p.fill('#finance-month',month);await p.locator('#finance-month').dispatchEvent('change');await p.waitForFunction(()=>!document.getElementById('finance-fields').disabled);
-  assert.equal(await p.locator('#finance-tips-amount').getAttribute('readonly'),'');assert.equal(await p.locator('#finance-tips-save').isVisible(),false);
+  assert.equal(await p.locator('#finance-tips-amount').getAttribute('readonly'),null);assert.equal(await p.locator('#finance-tips-save').isVisible(),true);
+  await p.locator('#finance-tips-weeks>summary').click();const before=await p.evaluate(()=>JSON.stringify(window.financeRecords));await p.locator('.tips-week-edit input').first().fill('65');await p.locator('.tips-week-edit button').first().click();await p.waitForFunction(()=>document.getElementById('finance-tips-msg').textContent==='Semana guardada.');assert.notEqual(await p.evaluate(()=>JSON.stringify(window.financeRecords)),before);assert.equal(await p.evaluate(()=>window.financeRecords.flatMap(r=>r.entries).filter(e=>e.week_start).length),2);
+  const saved=await p.evaluate(()=>JSON.stringify(window.financeRecords));await p.fill('#finance-tips-amount','999');p.once('dialog',d=>d.dismiss());await p.click('#finance-tips-save');assert.equal(await p.evaluate(()=>JSON.stringify(window.financeRecords)),saved);
+  p.once('dialog',d=>d.accept());await p.click('#finance-tips-save');await p.waitForFunction(()=>document.getElementById('finance-tips-msg').textContent==='Gorjetas guardadas.');assert.equal(await p.locator('#finance-tips-weeks').isVisible(),false);assert.match(await p.textContent('#finance-total'),/999,00/);
+ });
+});
+
+test('November monthly tips can be entered and corrected without opening advanced fields',async()=>{
+ await withFinance(async p=>{
+  await p.click('#toggle-finance');await p.waitForFunction(()=>!document.getElementById('finance-fields').disabled);await p.fill('#finance-month','2026-11');await p.locator('#finance-month').dispatchEvent('change');await p.waitForFunction(()=>!document.getElementById('finance-fields').disabled);
+  assert.equal(await p.locator('#finance-manual').getAttribute('open'),null);await p.fill('#finance-tips-amount','125,50');await p.click('#finance-tips-save');await p.waitForFunction(()=>document.getElementById('finance-tips-msg').textContent==='Gorjetas guardadas.');assert.match(await p.textContent('#finance-total'),/125,50/);
+  await p.fill('#finance-tips-amount','130');await p.click('#finance-tips-save');await p.waitForFunction(()=>document.getElementById('finance-total').textContent.includes('130,00'));assert.equal(await p.evaluate(()=>window.financeRecords.find(r=>r.month==='2026-11-01').entries.filter(e=>e.category==='tips').length),1);
  });
 });

@@ -457,3 +457,11 @@ BYPASSRLS não substitui os privilégios de coluna. Sem esta permissão, a leitu
 falhava com 42501 e as tentativas eram consumidas sem contactar o fornecedor push.
 O dispatcher devolve contagens de envios/erros/leituras ignoradas e regista apenas
 códigos de erro seguros, sem endpoints, chaves ou payloads de fornecedores.
+
+### Edição simples de gorjetas
+
+Rendimentos apresenta o campo Gorjetas recebidas e Guardar, mesmo nos meses com
+registos semanais. Editar por semana permite corrigir cada parcela preservando
+a divisão e a soma mensal. Substituir semanas por um único total exige confirmação
+explícita; cancelar mantém os registos guardados. A edição direta não exige abrir
+os valores avançados. Os detalhes e movimentos PPR continuam recolhidos.

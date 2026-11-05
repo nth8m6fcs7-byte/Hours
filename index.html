@@ -324,6 +324,10 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
     #documents-view .document-actions{gap:9px;margin:8px 0 16px}#documents-view .document-actions button{min-height:62px!important;border-radius:16px;background:#ffffff04!important;font-size:14px}#documents-view .finance-document-row{padding:14px 12px;border:1px solid #ffffff0d;border-radius:14px;margin:8px 0;background:#ffffff03;gap:10px}#documents-view .finance-document-row>span{overflow-wrap:anywhere;min-width:0}
     #finance-document-msg.document-empty{padding:24px 20px;border:1px dashed #ffffff20;border-radius:18px;text-align:center;line-height:1.6;font-size:13px;background:#ffffff02}#finance-document-msg.document-empty:before{content:'Documentos do mês';display:block;color:var(--ink);font-size:15px;font-weight:500;margin-bottom:7px}
 
+
+    #finance-tips-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:16px;margin:14px 0 6px;background:#ffffff05;border:1px solid #ffffff10;border-radius:17px}#finance-tips-form>label{grid-column:1/-1;font-size:14px;color:var(--ink)}#finance-tips-form>input{width:100%;box-sizing:border-box;font-size:22px;height:48px;max-height:48px;margin:0;padding:8px 12px}#finance-tips-save{align-self:center;min-height:44px;color:#92c6ed}#finance-tips-msg{grid-column:1/-1;margin:0!important;min-height:0}#finance-tips-msg:empty{display:none}
+    #finance-tips-weeks{margin:0 0 16px;padding:10px 0;border:0}#finance-tips-weeks>summary{font-size:12px;color:var(--muted)}.tips-week-edit{display:flex;align-items:end;gap:8px;margin:12px 0}.tips-week-edit label{flex:1;font-size:12px;color:var(--muted)}.tips-week-edit input{display:block;width:100%;box-sizing:border-box;height:42px;margin:5px 0 0;font-size:16px}.tips-week-edit button{min-height:42px;font-size:12px}#finance-state:empty{display:none}
+
 </style>
 </head>
 <body>
@@ -529,10 +533,11 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
         <div class="finance-actions"><button id="document-cancel" type="button" class="ghost">Cancelar</button><button id="document-confirm" type="submit">Guardar</button></div>
         <div id="document-msg" role="status" aria-live="polite"></div>
       </form>
-      <form id="finance-tips-form" class="finance-tips-row" novalidate><label for="finance-tips-amount">Gorjetas do mês (€)</label><input id="finance-tips-amount" type="text" inputmode="decimal" placeholder="Por indicar" aria-label="Gorjetas do mês"><button id="finance-tips-save" type="submit" class="ghost">Guardar</button><p id="finance-tips-msg" class="finance-note" role="status"></p></form>
+      <form id="finance-tips-form" class="finance-tips-row" novalidate><label for="finance-tips-amount">Gorjetas recebidas (€)</label><input id="finance-tips-amount" type="text" inputmode="decimal" placeholder="Por indicar" aria-label="Gorjetas do mês"><button id="finance-tips-save" type="submit" class="ghost">Guardar</button><p id="finance-tips-msg" class="finance-note" role="status"></p></form>
+      <details id="finance-tips-weeks" class="hidden"><summary>Editar por semana</summary><div id="finance-tips-week-list"></div></details>
       <div id="finance-income-summary" class="income-summary"></div>
       <div class="finance-stats">
-        <div class="finance-stat"><span>Total ganho no mês · inclui gorjetas</span><strong id="finance-total">—</strong><div id="income-composition" class="finance-visual hidden"></div></div>
+        <div class="finance-stat"><span>Recebido no mês · dinheiro e benefícios</span><strong id="finance-total">—</strong><div id="income-composition" class="finance-visual hidden"></div></div>
         <div class="finance-stat"><span>Horas concluídas</span><strong id="finance-hours">—</strong></div>
         <div class="finance-stat"><span>Dinheiro por hora</span><strong id="finance-rate">—</strong></div>
       </div>
@@ -540,11 +545,11 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
       <p id="finance-comparison" class="finance-note"></p>
       <div id="finance-breakdown"></div>
       <p id="finance-hour-note" class="finance-note"></p>
-      <p class="finance-note">Valores líquidos do mês a que dizem respeito. Regista cada parcela uma só vez; separa o vencimento das gorjetas e dos benefícios. Vazio = ainda não indicado; 0 = nenhum valor.</p>
+      <p class="finance-note">Vazio = por indicar. Os benefícios estão incluídos no total.</p>
       <p id="finance-ppr" class="finance-note hidden"></p>
       </details>
       <details id="finance-documents"><summary>Documentos do mês</summary><div id="finance-document-list"></div><p id="finance-document-msg" class="finance-note" role="status"></p></details>
-      <details id="finance-manual"><summary>Ajustar valores manualmente</summary>
+      <details id="finance-manual"><summary>Editar outros valores</summary>
       <form id="finance-form" novalidate>
         <fieldset id="finance-fields" style="border:0;padding:0;margin:0" disabled>
           <legend class="sr-only">Valores mensais em euros</legend>
@@ -1332,11 +1337,12 @@ function financeAmount(value){
 function financeInput(cents){return cents===null||cents===undefined?'':(cents/100).toFixed(2).replace('.',',')}
 function setFinanceBusy(value){
  financeBusy=value;$('finance-fields').disabled=value||!financeLoaded;for(const id of ['finance-tips-amount','finance-tips-save'])$(id).disabled=value||!financeLoaded;
+ for(const control of $('finance-tips-week-list').querySelectorAll('input,button'))control.disabled=value||!financeLoaded;
  for(const id of ['finance-prev','finance-next','finance-month','finance-retry'])$(id).disabled=value;
 }
 function resetFinance(){
  resetFinanceView();
- resetDocumentReview();$('finance-tips-amount').value='';$('finance-tips-msg').textContent='';financePpr=null;$('finance-ppr-amount').value='';$('finance-ppr-origin').value='';$('finance-document-list').replaceChildren();$('finance-ppr').textContent='';
+ resetDocumentReview();$('finance-tips-amount').value='';$('finance-tips-msg').textContent='';financePpr=null;$('finance-ppr-amount').value='';$('finance-ppr-origin').value='';$('finance-document-list').replaceChildren();$('finance-tips-week-list').replaceChildren();$('finance-tips-weeks').classList.add('hidden');$('finance-tips-weeks').open=false;$('finance-ppr').textContent='';
  financeVersion++;financeLoaded=false;financeDirty=false;financeBusy=false;financeMonth=iso(new Date()).slice(0,7);
  $('finance-month').value=financeMonth;$('finance-lines').replaceChildren();$('finance-fields').disabled=true;
  $('finance-state').textContent='';setMsg($('finance-msg'),'');$('finance-retry').classList.add('hidden');setFinanceBusy(false);renderFinanceSummary();
@@ -1403,7 +1409,7 @@ function renderFinanceSummary(){
 }
 async function loadFinance(){
  if(!currentUserId)return;
- const version=++financeVersion,owner=currentUserId,month=financeMonth;financeLoaded=false;$('finance-tips-amount').value='';$('finance-tips-msg').textContent='';financePpr=null;$('finance-ppr').textContent='';$('finance-ppr-amount').value='';$('finance-ppr-origin').value='';setFinanceBusy(true);renderFinanceSummary();$('finance-lines').replaceChildren();setMsg($('finance-msg'),'');$('finance-state').textContent='A carregar…';$('finance-retry').classList.add('hidden');
+ const version=++financeVersion,owner=currentUserId,month=financeMonth;financeLoaded=false;$('finance-tips-week-list').replaceChildren();$('finance-tips-weeks').classList.add('hidden');$('finance-tips-weeks').open=false;$('finance-tips-amount').value='';$('finance-tips-msg').textContent='';financePpr=null;$('finance-ppr').textContent='';$('finance-ppr-amount').value='';$('finance-ppr-origin').value='';setFinanceBusy(true);renderFinanceSummary();$('finance-lines').replaceChildren();setMsg($('finance-msg'),'');$('finance-state').textContent='A carregar…';$('finance-retry').classList.add('hidden');
  try{
   const {data,error}=await supabase.from('hours_finance_months').select('entries,updated_at,ppr_redemption_cents,ppr_origin_month').eq('user_id',owner).eq('month',month+'-01').range(0,0);
   if(version!==financeVersion||owner!==currentUserId)return;
@@ -1411,7 +1417,7 @@ async function loadFinance(){
   const entries=data?.[0]?.entries??financeDefaultEntries();
   if(!Array.isArray(entries)||entries.length>32)throw new Error('Não foi possível ler os valores deste mês.');
   for(const entry of entries){if(!Object.hasOwn(financeCategories,entry.category)||!Object.hasOwn(financeDestinations,entry.destination)||['expected_cents','received_cents'].some(k=>entry[k]!==null&&(!Number.isInteger(entry[k])||entry[k]<0||entry[k]>99999999)))throw new Error('Há um valor inválido neste mês.');}
-  entries.forEach(appendFinanceLine);const tips=entries.filter(e=>e.category==='tips'&&e.received_cents!==null);$('finance-tips-amount').readOnly=tips.some(e=>e.week_start);$('finance-tips-save').classList.toggle('hidden',tips.some(e=>e.week_start));$('finance-tips-msg').textContent=tips.some(e=>e.week_start)?'Somado automaticamente das semanas de gorjetas.':'';$('finance-tips-amount').value=tips.length?financeInput(tips.reduce((sum,e)=>sum+e.received_cents,0)):'';financePpr=data?.[0]?.ppr_redemption_cents??null;$('finance-ppr-amount').value=financeInput(financePpr);$('finance-ppr-origin').value=data?.[0]?.ppr_origin_month?.slice(0,7)||'';renderPprSummary();financeLoaded=true;financeDirty=false;$('finance-state').textContent=data?.length?'Valores guardados na tua conta':'Novo mês · ainda sem valores guardados';renderFinanceSummary();
+  entries.forEach(appendFinanceLine);const tips=entries.filter(e=>e.category==='tips'&&e.received_cents!==null);$('finance-tips-amount').readOnly=false;$('finance-tips-save').classList.remove('hidden');$('finance-tips-msg').textContent='';$('finance-tips-amount').value=tips.length?financeInput(tips.reduce((sum,e)=>sum+e.received_cents,0)):'';financePpr=data?.[0]?.ppr_redemption_cents??null;$('finance-ppr-amount').value=financeInput(financePpr);$('finance-ppr-origin').value=data?.[0]?.ppr_origin_month?.slice(0,7)||'';renderPprSummary();financeLoaded=true;financeDirty=false;$('finance-state').textContent='';renderFinanceSummary();renderTipsWeeks();
  }catch(error){if(version!==financeVersion)return;$('finance-state').textContent='';setMsg($('finance-msg'),'Não foi possível carregar as finanças. Tenta novamente.');$('finance-retry').classList.remove('hidden')}
  finally{if(version===financeVersion)setFinanceBusy(false)}
 }
@@ -1441,19 +1447,28 @@ $('finance-form').onsubmit=async event=>{
   const {error}=await supabase.from('hours_finance_months').upsert({user_id:owner,month:month+'-01',entries,ppr_redemption_cents:ppr,ppr_origin_month:ppr!==null&&origin?origin+'-01':null,updated_at:new Date().toISOString()},{onConflict:'user_id,month'});
   if(version!==financeVersion||currentUserId!==owner)return;
   if(error)throw error;
-  weeklyTipsKey=null;financeDirty=false;financePpr=ppr;renderPprSummary();$('finance-state').textContent='Guardado na tua conta';setMsg($('finance-msg'),'Mês guardado.',true);renderFinanceSummary();
+  weeklyTipsKey=null;financeDirty=false;financePpr=ppr;renderPprSummary();$('finance-state').textContent='Guardado na tua conta';setMsg($('finance-msg'),'Mês guardado.',true);renderFinanceSummary();renderTipsWeeks();
  }catch(error){if(version===financeVersion){$('finance-state').textContent='Alterações por guardar';setMsg($('finance-msg'),error.message||'Não foi possível guardar. Tenta novamente.')}}
  finally{if(version===financeVersion)setFinanceBusy(false)}
 };
+function renderTipsWeeks(){
+ const host=$('finance-tips-week-list');host.replaceChildren();const lines=[...$('finance-lines').children].filter(line=>line.dataset.weekStart&&line.querySelector('[data-finance="category"]').value==='tips');$('finance-tips-weeks').classList.toggle('hidden',!lines.length);
+ for(const line of lines.sort((a,b)=>a.dataset.weekStart.localeCompare(b.dataset.weekStart))){const row=document.createElement('form'),label=document.createElement('label'),input=document.createElement('input'),save=document.createElement('button');row.className='tips-week-edit';const start=localDate(line.dataset.weekStart),end=addDays(start,6);label.textContent=rangeLabel({start,end});input.type='text';input.inputMode='decimal';input.value=line.querySelector('[data-finance="received_cents"]').value;input.setAttribute('aria-label','Gorjetas '+label.textContent);save.type='submit';save.textContent='Guardar';save.className='ghost';label.append(input);row.append(label,save);host.append(row);
+ input.oninput=()=>{financeDirty=true;$('finance-tips-msg').textContent='Por guardar';try{const amount=financeAmount(input.value);line.querySelector('[data-finance="received_cents"]').value=financeInput(amount);line.querySelector('[data-finance="expected_cents"]').value=financeInput(amount);renderFinanceSummary()}catch{}};
+ row.onsubmit=async event=>{event.preventDefault();if(financeBusy||documentBusy)return;try{const amount=financeAmount(input.value);if(amount===null)throw new Error('Indica o valor da semana.');line.querySelector('[data-finance="received_cents"]').value=financeInput(amount);line.querySelector('[data-finance="expected_cents"]').value=financeInput(amount);markFinanceDirty();await $('finance-form').onsubmit({preventDefault(){}});if(!financeDirty){const tips=readFinanceEntries().filter(e=>e.category==='tips'&&e.received_cents!==null);$('finance-tips-amount').value=financeInput(tips.reduce((n,e)=>n+e.received_cents,0));$('finance-tips-msg').textContent='Semana guardada.'}}catch(error){$('finance-tips-msg').textContent=error.message}};
+ }
+}
 $('finance-tips-amount').oninput=()=>{financeDirty=true;$('finance-tips-msg').textContent='Por guardar'};
 $('finance-tips-form').onsubmit=async event=>{
- event.preventDefault();if(financeBusy||documentBusy||!financeLoaded||!currentUserId||$('finance-tips-amount').readOnly)return;
+ event.preventDefault();if(financeBusy||documentBusy||!financeLoaded||!currentUserId)return;
  try{
   const amount=financeAmount($('finance-tips-amount').value);if(amount===null)throw new Error('Indica o total de gorjetas do mês.');
   const lines=[...$('finance-lines').children].filter(line=>line.querySelector('[data-finance="category"]').value==='tips');
+  const weekly=lines.filter(line=>line.dataset.weekStart);
+  if(weekly.length){const total=lines.reduce((n,line)=>n+(financeAmount(line.querySelector('[data-finance="received_cents"]').value)||0),0);if(total===amount){$('finance-tips-msg').textContent='Sem alterações.';return}if(!confirm('Substituir as '+weekly.length+' semanas deste mês por um único total de '+financeMoney(amount)+'? Para manter a divisão, cancela e escolhe «Editar por semana».'))return;}
   const first=lines[0],destination=first?.querySelector('[data-finance="destination"]').value||'cash';
   lines.forEach(line=>line.remove());appendFinanceLine({category:'tips',destination,expected_cents:amount,received_cents:amount});markFinanceDirty();
-  await $('finance-form').onsubmit({preventDefault(){}});$('finance-tips-msg').textContent=financeDirty?'Não foi possível guardar. Tenta novamente.':'Gorjetas guardadas no total do mês.';
+  await $('finance-form').onsubmit({preventDefault(){}});$('finance-tips-msg').textContent=financeDirty?'Não foi possível guardar. Tenta novamente.':'Gorjetas guardadas.';
  }catch(error){$('finance-tips-msg').textContent=error.message}
 };
 window.addEventListener('beforeunload',event=>{if(financeDirty||documentState){event.preventDefault();event.returnValue=''}});
