@@ -331,6 +331,9 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
 
     #income-month-metrics{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin:12px 0 8px}#income-view #income-month-metrics .finance-stat{grid-column:auto;width:auto;display:block;padding:15px;background:#ffffff04;border:1px solid #ffffff0c;border-radius:16px;text-align:left;min-width:0}#income-view #income-month-metrics .finance-stat strong{font-size:25px;letter-spacing:-.6px}#income-view #income-month-metrics .finance-stat span{font-size:11px}#income-month-metrics+.finance-note{font-size:10px;margin:0 0 18px;color:var(--muted)}
 
+
+    #bonus-check{padding:15px;border:1px solid #ffffff12;border-radius:16px;margin:14px 0;background:#ffffff04}#bonus-check>div{display:flex;align-items:center;justify-content:space-between;color:var(--muted);font-size:12px}#bonus-check button{padding:4px 8px;min-height:32px;font-size:12px}#bonus-check>strong{display:block;font-size:19px;font-weight:500;margin:5px 0}#bonus-check p{font-size:11px;color:var(--muted);line-height:1.5;margin:4px 0 0}#bonus-check.short>strong{color:#ffb2b2}#bonus-check.matches>strong{color:#9ac7ba}#bonus-fields{border:0;padding:0;margin:0}#bonus-editor{margin:14px 0;padding:14px 0;border-block:1px solid var(--line)}#bonus-editor>summary{font-size:14px}#bonus-form label{display:block;font-size:12px;color:var(--muted);margin:12px 0}#bonus-form input{display:block;box-sizing:border-box;width:100%;height:44px;min-height:44px;max-height:44px;padding:8px;font-size:16px;margin-top:6px}#bonus-save{margin:8px 0}
+
 </style>
 </head>
 <body>
@@ -537,6 +540,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
         <div class="finance-actions"><button id="document-cancel" type="button" class="ghost">Cancelar</button><button id="document-confirm" type="submit">Guardar</button></div>
         <div id="document-msg" role="status" aria-live="polite"></div>
       </form>
+      <details id="bonus-editor"><summary>Conferir bónus · faturação</summary><form id="bonus-form" novalidate><fieldset id="bonus-fields" disabled><label>Mês da faturação<input id="bonus-revenue-month" type="month" min="1900-01" max="2100-12"></label><label>Faturação (€)<input id="bonus-revenue" type="text" inputmode="decimal" placeholder="Por indicar"></label><p class="finance-note">Bónus previsto · 0,5%: <strong id="bonus-expected">—</strong></p><label>Bónus recebido na Coverflex (€)<input id="bonus-received" type="text" inputmode="decimal" placeholder="Por receber"></label><button id="bonus-save" type="submit">Guardar</button></fieldset><p id="bonus-msg" class="finance-note" role="status"></p></form></details>
       <form id="finance-tips-form" class="finance-tips-row" novalidate><label for="finance-tips-amount">Gorjetas recebidas (€)</label><input id="finance-tips-amount" type="text" inputmode="decimal" placeholder="Por indicar" aria-label="Gorjetas do mês"><button id="finance-tips-save" type="submit" class="ghost">Guardar</button><p id="finance-tips-msg" class="finance-note" role="status"></p></form>
       <details id="finance-tips-weeks" class="hidden"><summary>Editar por semana</summary><div id="finance-tips-week-list"></div></details>
       <div id="finance-income-summary" class="income-summary"></div>
@@ -545,6 +549,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
         <div class="finance-stat"><span>Horas trabalhadas</span><strong id="finance-hours">—</strong></div>
         <div class="finance-stat"><span>Empresa / hora</span><strong id="finance-rate">—</strong></div>
       </div>
+      <section id="bonus-check" class="hidden" aria-label="Conferência do bónus"><div><span>Bónus · 0,5%</span><button id="bonus-edit" type="button" class="ghost">Conferir</button></div><strong id="bonus-status"></strong><p id="bonus-check-note"></p></section>
       <details id="finance-detail"><summary>Ver detalhe</summary>
       <p id="finance-comparison" class="finance-note"></p>
       <div id="finance-breakdown"></div>
@@ -1338,6 +1343,7 @@ window.addEventListener('pageshow',updateTimer);
 const financeCategories={salary:'Vencimento líquido',food:'Alimentação',bonus:'Prémios',coverflex:'Prémio Coverflex',tips:'Gorjetas pessoais',other:'Outros pagamentos'};
 const financeDestinations={bank:'Conta bancária',cash:'Dinheiro',meal_card:'Cartão de alimentação',coverflex:'Coverflex'};
 const financeMoney=cents=>new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'}).format(cents/100);
+let bonusReceivedDirty=false;
 let financeLoaded=false,financeBusy=false,financeDirty=false,financeVersion=0,financeMonth=iso(new Date()).slice(0,7),financePpr=null;
 function financeDefaultEntries(){return Object.keys(financeCategories).map(category=>({category,destination:category==='food'?'meal_card':category==='coverflex'?'coverflex':category==='tips'?'cash':'bank',expected_cents:null,received_cents:null}))}
 function financeAmount(value){
@@ -1347,12 +1353,12 @@ function financeAmount(value){
 }
 function financeInput(cents){return cents===null||cents===undefined?'':(cents/100).toFixed(2).replace('.',',')}
 function setFinanceBusy(value){
- financeBusy=value;$('finance-fields').disabled=value||!financeLoaded;for(const id of ['finance-tips-amount','finance-tips-save'])$(id).disabled=value||!financeLoaded;
+ financeBusy=value;$('bonus-fields').disabled=value||!financeLoaded;$('finance-fields').disabled=value||!financeLoaded;for(const id of ['finance-tips-amount','finance-tips-save'])$(id).disabled=value||!financeLoaded;
  for(const control of $('finance-tips-week-list').querySelectorAll('input,button'))control.disabled=value||!financeLoaded;
  for(const id of ['finance-prev','finance-next','finance-month','finance-retry'])$(id).disabled=value;
 }
 function resetFinance(){
- resetFinanceView();
+ resetBonusPlan();resetFinanceView();
  resetDocumentReview();$('finance-tips-amount').value='';$('finance-tips-msg').textContent='';financePpr=null;$('finance-ppr-amount').value='';$('finance-ppr-origin').value='';$('finance-document-list').replaceChildren();$('finance-tips-week-list').replaceChildren();$('finance-tips-weeks').classList.add('hidden');$('finance-tips-weeks').open=false;$('finance-ppr').textContent='';
  financeVersion++;financeLoaded=false;financeDirty=false;financeBusy=false;financeMonth=iso(new Date()).slice(0,7);
  $('finance-month').value=financeMonth;$('finance-lines').replaceChildren();$('finance-fields').disabled=true;
@@ -1393,9 +1399,10 @@ $('finance-ppr-amount').oninput=markFinanceDirty;$('finance-ppr-origin').onchang
 function renderFinanceSummary(){
  if(!$('finance-total'))return;
  for(const id of ['finance-total','finance-hours','finance-rate'])$(id).textContent='—';
- $('finance-comparison').textContent='';$('finance-hour-note').textContent='';$('finance-breakdown').replaceChildren();$('finance-income-summary').replaceChildren();$('income-composition').replaceChildren();$('income-composition').classList.add('hidden');
+ renderBonusCheck();$('finance-comparison').textContent='';$('finance-hour-note').textContent='';$('finance-breakdown').replaceChildren();$('finance-income-summary').replaceChildren();$('income-composition').replaceChildren();$('income-composition').classList.add('hidden');
  if(!financeLoaded)return;
  let entries;try{entries=readFinanceEntries()}catch{return}
+ const forecast=bonusForecast();if(forecast!==null){let applied=false;entries=entries.map(e=>{if(e.category!=='coverflex')return e;const expected_cents=applied?0:forecast;applied=true;return {...e,expected_cents}});if(!applied)entries.push({category:'coverflex',destination:'coverflex',expected_cents:forecast,received_cents:null});}
  const received=entries.filter(e=>e.received_cents!==null),expected=entries.filter(e=>e.expected_cents!==null),sum=(list,key)=>list.reduce((total,e)=>total+e[key],0);
  const total=sum(received,'received_cents'),company=received.filter(e=>e.category!=='tips'),companyTotal=sum(company,'received_cents'),tips=received.filter(e=>e.category==='tips'),tipsTotal=sum(tips,'received_cents');
  $('finance-total').textContent=received.length?financeMoney(total):'—';
@@ -1420,14 +1427,15 @@ function renderFinanceSummary(){
 }
 async function loadFinance(){
  if(!currentUserId)return;
- const version=++financeVersion,owner=currentUserId,month=financeMonth;financeLoaded=false;$('finance-tips-week-list').replaceChildren();$('finance-tips-weeks').classList.add('hidden');$('finance-tips-weeks').open=false;$('finance-tips-amount').value='';$('finance-tips-msg').textContent='';financePpr=null;$('finance-ppr').textContent='';$('finance-ppr-amount').value='';$('finance-ppr-origin').value='';setFinanceBusy(true);renderFinanceSummary();$('finance-lines').replaceChildren();setMsg($('finance-msg'),'');$('finance-state').textContent='A carregar…';$('finance-retry').classList.add('hidden');
+ const version=++financeVersion,owner=currentUserId,month=financeMonth;resetBonusPlan();financeLoaded=false;$('finance-tips-week-list').replaceChildren();$('finance-tips-weeks').classList.add('hidden');$('finance-tips-weeks').open=false;$('finance-tips-amount').value='';$('finance-tips-msg').textContent='';financePpr=null;$('finance-ppr').textContent='';$('finance-ppr-amount').value='';$('finance-ppr-origin').value='';setFinanceBusy(true);renderFinanceSummary();$('finance-lines').replaceChildren();setMsg($('finance-msg'),'');$('finance-state').textContent='A carregar…';$('finance-retry').classList.add('hidden');
  try{
-  const {data,error}=await supabase.from('hours_finance_months').select('entries,updated_at,ppr_redemption_cents,ppr_origin_month').eq('user_id',owner).eq('month',month+'-01').range(0,0);
+  const {data,error}=await supabase.from('hours_finance_months').select('entries,updated_at,ppr_redemption_cents,ppr_origin_month,bonus_revenue_cents,bonus_revenue_month').eq('user_id',owner).eq('month',month+'-01').range(0,0);
   if(version!==financeVersion||owner!==currentUserId)return;
   if(error)throw error;
   const entries=data?.[0]?.entries??financeDefaultEntries();
   if(!Array.isArray(entries)||entries.length>32)throw new Error('Não foi possível ler os valores deste mês.');
   for(const entry of entries){if(!Object.hasOwn(financeCategories,entry.category)||!Object.hasOwn(financeDestinations,entry.destination)||['expected_cents','received_cents'].some(k=>entry[k]!==null&&(!Number.isInteger(entry[k])||entry[k]<0||entry[k]>99999999)))throw new Error('Há um valor inválido neste mês.');}
+  $('bonus-revenue').value=financeInput(data?.[0]?.bonus_revenue_cents??null);$('bonus-revenue-month').value=data?.[0]?.bonus_revenue_month?.slice(0,7)||defaultBonusMonth();const receivedBonus=entries.filter(e=>e.category==='coverflex'&&e.received_cents!==null);$('bonus-received').value=receivedBonus.length?financeInput(receivedBonus.reduce((n,e)=>n+e.received_cents,0)):'';
   entries.forEach(appendFinanceLine);const tips=entries.filter(e=>e.category==='tips'&&e.received_cents!==null);$('finance-tips-amount').readOnly=false;$('finance-tips-save').classList.remove('hidden');$('finance-tips-msg').textContent='';$('finance-tips-amount').value=tips.length?financeInput(tips.reduce((sum,e)=>sum+e.received_cents,0)):'';financePpr=data?.[0]?.ppr_redemption_cents??null;$('finance-ppr-amount').value=financeInput(financePpr);$('finance-ppr-origin').value=data?.[0]?.ppr_origin_month?.slice(0,7)||'';renderPprSummary();financeLoaded=true;financeDirty=false;$('finance-state').textContent='';renderFinanceSummary();renderTipsWeeks();
  }catch(error){if(version!==financeVersion)return;$('finance-state').textContent='';setMsg($('finance-msg'),'Não foi possível carregar as finanças. Tenta novamente.');$('finance-retry').classList.remove('hidden')}
  finally{if(version===financeVersion)setFinanceBusy(false)}
@@ -1447,7 +1455,8 @@ $('finance-retry').onclick=loadFinance;
 $('finance-add').onclick=()=>{if(financeBusy||!financeLoaded)return;if($('finance-lines').children.length>=32)return setMsg($('finance-msg'),'Podes registar até 32 parcelas por mês.');appendFinanceLine({category:'other',destination:'bank',expected_cents:null,received_cents:null});markFinanceDirty();$('finance-lines').lastElementChild.querySelector('select').focus()};
 $('finance-form').onsubmit=async event=>{
  event.preventDefault();if(financeBusy||!financeLoaded||!currentUserId)return;
- let entries,ppr,origin;try{
+ let entries,ppr,origin,bonusPlan;try{
+  bonusPlan=readBonusPlan();if(bonusReceivedDirty)applyBonusReceived();
   entries=readFinanceEntries();ppr=financeAmount($('finance-ppr-amount').value);origin=$('finance-ppr-origin').value;
   if(origin&&(!/^(19\d{2}|20\d{2}|2100)-(0[1-9]|1[0-2])$/.test(origin)||origin>financeMonth))throw new Error('O mês do prémio não pode ser posterior ao resgate.');
  }catch(error){return setMsg($('finance-msg'),error.message)}
@@ -1455,13 +1464,28 @@ $('finance-form').onsubmit=async event=>{
  try{
   const {data:{user},error:authError}=await supabase.auth.getUser();if(authError)throw authError;
   if(user?.id!==owner||currentUserId!==owner)throw new Error('A sessão mudou. Volta a entrar antes de guardar.');
-  const {error}=await supabase.from('hours_finance_months').upsert({user_id:owner,month:month+'-01',entries,ppr_redemption_cents:ppr,ppr_origin_month:ppr!==null&&origin?origin+'-01':null,updated_at:new Date().toISOString()},{onConflict:'user_id,month'});
+  const {error}=await supabase.from('hours_finance_months').upsert({user_id:owner,month:month+'-01',entries,...bonusPlan,ppr_redemption_cents:ppr,ppr_origin_month:ppr!==null&&origin?origin+'-01':null,updated_at:new Date().toISOString()},{onConflict:'user_id,month'});
   if(version!==financeVersion||currentUserId!==owner)return;
   if(error)throw error;
-  weeklyTipsKey=null;financeDirty=false;financePpr=ppr;renderPprSummary();$('finance-state').textContent='Guardado na tua conta';setMsg($('finance-msg'),'Mês guardado.',true);renderFinanceSummary();renderTipsWeeks();
+  weeklyTipsKey=null;financeDirty=false;bonusReceivedDirty=false;financePpr=ppr;renderPprSummary();$('finance-state').textContent='Guardado na tua conta';setMsg($('finance-msg'),'Mês guardado.',true);renderFinanceSummary();renderTipsWeeks();
  }catch(error){if(version===financeVersion){$('finance-state').textContent='Alterações por guardar';setMsg($('finance-msg'),error.message||'Não foi possível guardar. Tenta novamente.')}}
  finally{if(version===financeVersion)setFinanceBusy(false)}
 };
+function defaultBonusMonth(){const d=localDate(financeMonth+'-01');d.setMonth(d.getMonth()-2);return iso(d).slice(0,7)}
+function resetBonusPlan(){bonusReceivedDirty=false;$('bonus-revenue').value='';$('bonus-revenue-month').value='';$('bonus-received').value='';$('bonus-msg').textContent='';$('bonus-expected').textContent='—';$('bonus-check').classList.add('hidden');$('bonus-editor').open=false}
+function readBonusPlan(){const amount=financeAmount($('bonus-revenue').value),month=$('bonus-revenue-month').value;if(amount===null)return {bonus_revenue_cents:null,bonus_revenue_month:null};if(!/^(19\d{2}|20\d{2}|2100)-(0[1-9]|1[0-2])$/.test(month)||month>financeMonth)throw new Error('Indica o mês da faturação, até ao mês do pagamento.');return {bonus_revenue_cents:amount,bonus_revenue_month:month+'-01'}}
+function bonusForecast(){try{const plan=readBonusPlan();return plan.bonus_revenue_cents===null?null:Math.round(plan.bonus_revenue_cents/200)}catch{return null}}
+function renderBonusCheck(){
+ const forecast=bonusForecast();$('bonus-expected').textContent=forecast===null?'—':financeMoney(forecast);if(!financeLoaded){$('bonus-check').classList.add('hidden');return}
+ let entries;try{entries=readFinanceEntries()}catch{return}const received=entries.filter(e=>e.category==='coverflex'&&e.received_cents!==null),actual=received.reduce((n,e)=>n+e.received_cents,0);if(!bonusReceivedDirty)$('bonus-received').value=received.length?financeInput(actual):'';$('bonus-check').classList.toggle('hidden',forecast===null&&!received.length);$('bonus-check').classList.remove('short','matches');
+ if(forecast===null){$('bonus-status').textContent='Falta a faturação';$('bonus-check-note').textContent='Recebido: '+financeMoney(actual)+'. Adiciona a faturação para conferir.';return}
+ $('bonus-check-note').textContent=monthLabel($('bonus-revenue-month').value)+' · previsto '+financeMoney(forecast)+(received.length?' · recebido '+financeMoney(actual):'');
+ if(!received.length){$('bonus-status').textContent='Por receber';return}const delta=actual-forecast;$('bonus-status').textContent=delta===0?'Confere':delta<0?'Faltam '+financeMoney(-delta):'Recebeste mais '+financeMoney(delta);$('bonus-check').classList.toggle('short',delta<0);$('bonus-check').classList.toggle('matches',delta===0);
+}
+function applyBonusReceived(){const amount=financeAmount($('bonus-received').value),lines=[...$('finance-lines').children].filter(e=>e.querySelector('[data-finance="category"]').value==='coverflex');if(!lines.length){appendFinanceLine({category:'coverflex',destination:'coverflex',expected_cents:bonusForecast(),received_cents:amount});return}lines[0].querySelector('[data-finance="received_cents"]').value=financeInput(amount);for(const line of lines.slice(1))line.querySelector('[data-finance="received_cents"]').value=''}
+$('bonus-form').oninput=event=>{if(event.target.id==='bonus-received'){bonusReceivedDirty=true;try{applyBonusReceived()}catch{}}markFinanceDirty();$('bonus-msg').textContent='Por guardar'};
+$('bonus-form').onsubmit=async event=>{event.preventDefault();if(financeBusy||documentBusy||!financeLoaded)return;try{readBonusPlan();if(bonusReceivedDirty)applyBonusReceived();await $('finance-form').onsubmit({preventDefault(){}});$('bonus-msg').textContent=financeDirty?'Não foi possível guardar. Tenta novamente.':'Bónus guardado.'}catch(error){$('bonus-msg').textContent=error.message}};
+$('bonus-edit').onclick=()=>{showFinanceView('documents');$('bonus-editor').open=true;$('bonus-editor').scrollIntoView({block:'start'});$('bonus-revenue').focus()};
 function renderTipsWeeks(){
  const host=$('finance-tips-week-list');host.replaceChildren();const lines=[...$('finance-lines').children].filter(line=>line.dataset.weekStart&&line.querySelector('[data-finance="category"]').value==='tips');$('finance-tips-weeks').classList.toggle('hidden',!lines.length);
  for(const line of lines.sort((a,b)=>a.dataset.weekStart.localeCompare(b.dataset.weekStart))){const row=document.createElement('form'),label=document.createElement('label'),input=document.createElement('input'),save=document.createElement('button');row.className='tips-week-edit';const start=localDate(line.dataset.weekStart),end=addDays(start,6);label.textContent=rangeLabel({start,end});input.type='text';input.inputMode='decimal';input.value=line.querySelector('[data-finance="received_cents"]').value;input.setAttribute('aria-label','Gorjetas '+label.textContent);save.type='submit';save.textContent='Guardar';save.className='ghost';label.append(input);row.append(label,save);host.append(row);
@@ -1538,7 +1562,7 @@ $('weekly-tips-form').onsubmit=async event=>{
 const documentLabels={salary:'Salário líquido · sem alimentação e resgate',food:'Alimentação',bonus:'Prémio atribuído na Coverflex',ppr:'Resgate PPR · total do mês',gross:'Vencimento bruto',irs:'IRS',ss:'Segurança Social',net:'Líquido total do recibo'};
 let documentState=null,documentBusy=false,documentKind='payroll',documentTask=0;
 function setDocumentBusy(value){
- documentBusy=value;for(const id of ['add-payroll','add-coverflex','document-confirm','document-cancel','finance-prev','finance-next','finance-month'])$(id).disabled=value||financeBusy;
+ documentBusy=value;$('bonus-fields').disabled=value||financeBusy||!financeLoaded;for(const id of ['add-payroll','add-coverflex','document-confirm','document-cancel','finance-prev','finance-next','finance-month'])$(id).disabled=value||financeBusy;
  $('finance-fields').disabled=value||financeBusy||!financeLoaded;
  for(const input of $('document-review').querySelectorAll('input'))input.disabled=value;
 }
@@ -1675,7 +1699,7 @@ $('records').insertBefore($('my-time'),$('records').querySelector('.history-pane
 $('active-shift').append($('timer-progress'));
 $('finance-month-bar').append($('finances').querySelector('.finance-month'));
 const documentsView=document.createElement('div');documentsView.id='documents-view';documentsView.className='hidden';$('income-view').after(documentsView);
-for(const node of [$('finances').querySelector('.document-actions'),$('document-file'),$('document-progress'),$('document-review'),$('finance-tips-form'),$('finance-tips-weeks'),$('finance-manual'),$('finance-documents')])documentsView.append(node);
+for(const node of [$('finances').querySelector('.document-actions'),$('document-file'),$('document-progress'),$('document-review'),$('bonus-editor'),$('finance-tips-form'),$('finance-tips-weeks'),$('finance-manual'),$('finance-documents')])documentsView.append(node);
 $('finance-documents').querySelector('summary').classList.add('hidden');
 $('income-view').prepend($('finances').querySelector('.finance-stats'),$('finance-income-summary'));
 const monthMetrics=document.createElement('div');monthMetrics.id='income-month-metrics';for(const metric of [...$('income-view').querySelectorAll('.finance-stat')].slice(1))monthMetrics.append(metric);$('finance-income-summary').before(monthMetrics);const metricNote=document.createElement('p');metricNote.className='finance-note';metricNote.textContent='Sem gorjetas · inclui alimentação e prémios';monthMetrics.after(metricNote);

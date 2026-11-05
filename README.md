@@ -484,3 +484,21 @@ possível; alterar novamente entrada/saída volta a calcular automaticamente.
 Registos só com duração (sem entrada/saída) continuam suportados. O teste de
 regressão em `tests/days.cjs` cobre um total antigo, nova entrada, nova saída,
 pausa e passagem da meia-noite; `tests/history.cjs` cobre o total manual explícito.
+
+### Conferir bónus pela faturação
+
+Em Documentos → Conferir bónus, indicar mês da faturação e valor em euros. O mês
+sugerido é dois meses antes do pagamento, mas pode ser alterado. O previsto é
+0,5% da faturação, arredondado aos cêntimos. Recebido na Coverflex é um valor
+separado: vazio significa por receber, zero é um recebimento explicitamente nulo.
+Rendimentos mostra Por receber, Confere, Faltam X ou Recebeste mais X.
+
+`bonus_revenue_cents` e `bonus_revenue_month` em `hours_finance_months` guardam a
+base da conferência, sob as mesmas regras RLS por proprietário. Aplicar
+`sql/bonus-revenue.sql` antes da interface. A importação de documentos mantém esta
+base; mesmo que o leitor preencha esperado=recebido no documento, a comparação
+usa os 0,5% da faturação. Só valores efetivamente recebidos entram nos totais e
+nas médias por hora. Bónus anual e acertos pendentes não são calculados aqui.
+
+Verificação: `tests/finance.cjs`, `tests/documents.cjs` e
+`tests/bonus-revenue-rls.sql` (incluído em `tests/finance-db.sh`).

@@ -74,3 +74,11 @@ test('removing a document supports cancel and retry while keeping financial valu
   assert.equal(await p.evaluate(()=>window.documents.length),0);assert.equal(await p.evaluate(()=>Object.keys(window.files).length),0);assert.equal(await p.evaluate(()=>JSON.stringify(window.financeRecords)),before);
  });
 });
+
+test('Coverflex import preserves revenue forecast and reports the shortfall despite receipt expected=received',async()=>{
+ await withDocs(async p=>{
+  await p.fill('#finance-month','2026-10');await p.locator('#finance-month').dispatchEvent('change');await p.waitForFunction(()=>!document.getElementById('finance-fields').disabled);await p.locator('#bonus-editor>summary').click();await p.fill('#bonus-revenue','100000');await p.click('#bonus-save');await p.waitForFunction(()=>document.getElementById('bonus-msg').textContent==='Bónus guardado.');
+  await choose(p,'coverflex',{bonus:40000},'bonus.pdf');await confirm(p);assert.equal(await p.inputValue('#bonus-revenue'),'100000,00');assert.match(await p.textContent('#bonus-status'),/Faltam 100,00/);assert.match(await p.textContent('#finance-comparison'),/Faltam/);assert.match(await p.textContent('#finance-total'),/400,00/);
+  await p.click('#finance-menu-open');await p.click('#income-tab');assert.equal(await p.locator('#bonus-check').isVisible(),true);await p.screenshot({path:'/tmp/otto-bonus-check.png',fullPage:true});
+ });
+});

@@ -23,6 +23,7 @@ grant select,insert,update,delete on storage.objects to authenticated,anon;
 create policy other_app_broad_policy on storage.objects for all to public using(true) with check(true);
 SQL
 docker --host=unix:///var/run/docker.sock exec -i "$finance_container" psql -v ON_ERROR_STOP=1 -U postgres < sql/personal-finances.sql
+docker --host=unix:///var/run/docker.sock exec -i "$finance_container" psql -v ON_ERROR_STOP=1 -U postgres < sql/bonus-revenue.sql
 docker --host=unix:///var/run/docker.sock exec -i "$finance_container" psql -v ON_ERROR_STOP=1 -U postgres < tests/finance-rls.sql
 
 docker --host=unix:///var/run/docker.sock exec -i "$finance_container" psql -v ON_ERROR_STOP=1 -U postgres < sql/finance-documents.sql
@@ -31,3 +32,5 @@ docker --host=unix:///var/run/docker.sock exec -i "$finance_container" psql -v O
 docker --host=unix:///var/run/docker.sock exec -i "$finance_container" psql -v ON_ERROR_STOP=1 -U postgres < tests/weekly-tips-rls.sql
 docker --host=unix:///var/run/docker.sock exec -i "$finance_container" psql -v ON_ERROR_STOP=1 -U postgres < sql/money-plan.sql
 docker --host=unix:///var/run/docker.sock exec -i "$finance_container" psql -v ON_ERROR_STOP=1 -U postgres < tests/money-plan-rls.sql
+
+docker --host=unix:///var/run/docker.sock exec -i "$finance_container" psql -v ON_ERROR_STOP=1 -U postgres < tests/bonus-revenue-rls.sql
