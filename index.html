@@ -328,6 +328,9 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
     #finance-tips-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:16px;margin:14px 0 6px;background:#ffffff05;border:1px solid #ffffff10;border-radius:17px}#finance-tips-form>label{grid-column:1/-1;font-size:14px;color:var(--ink)}#finance-tips-form>input{width:100%;box-sizing:border-box;font-size:22px;height:48px;max-height:48px;margin:0;padding:8px 12px}#finance-tips-save{align-self:center;min-height:44px;color:#92c6ed}#finance-tips-msg{grid-column:1/-1;margin:0!important;min-height:0}#finance-tips-msg:empty{display:none}
     #finance-tips-weeks{margin:0 0 16px;padding:10px 0;border:0}#finance-tips-weeks>summary{font-size:12px;color:var(--muted)}.tips-week-edit{display:flex;align-items:end;gap:8px;margin:12px 0}.tips-week-edit label{flex:1;font-size:12px;color:var(--muted)}.tips-week-edit input{display:block;width:100%;box-sizing:border-box;height:42px;margin:5px 0 0;font-size:16px}.tips-week-edit button{min-height:42px;font-size:12px}#finance-state:empty{display:none}
 
+
+    #income-month-metrics{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin:12px 0 8px}#income-view #income-month-metrics .finance-stat{grid-column:auto;width:auto;display:block;padding:15px;background:#ffffff04;border:1px solid #ffffff0c;border-radius:16px;text-align:left;min-width:0}#income-view #income-month-metrics .finance-stat strong{font-size:25px;letter-spacing:-.6px}#income-view #income-month-metrics .finance-stat span{font-size:11px}#income-month-metrics+.finance-note{font-size:10px;margin:0 0 18px;color:var(--muted)}
+
 </style>
 </head>
 <body>
@@ -509,7 +512,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
     <section id="finances" class="section-collapsed" aria-labelledby="finance-title">
       <div class="section-header"><h2 id="finance-title">Finanças</h2></div>
       <div class="finance-heading"><button id="finance-menu-open" type="button" class="ghost" aria-label="Abrir menu das finanças" aria-haspopup="dialog" aria-controls="finance-menu">☰</button><h3 id="finance-view-title">Rendimentos</h3></div>
-      <dialog id="finance-menu" aria-labelledby="finance-menu-title"><div class="finance-menu-header"><h2 id="finance-menu-title">Finanças</h2><button id="finance-menu-close" type="button" class="ghost" aria-label="Fechar menu">×</button></div><nav aria-label="Áreas das finanças"><button id="income-tab" type="button" aria-current="page">Rendimentos<span>O que recebeste por mês</span></button><button id="documents-tab" type="button">Documentos<span>Recibos e Coverflex</span></button></nav></dialog>
+      <dialog id="finance-menu" aria-labelledby="finance-menu-title"><div class="finance-menu-header"><h2 id="finance-menu-title">Finanças</h2><button id="finance-menu-close" type="button" class="ghost" aria-label="Fechar menu">×</button></div><nav aria-label="Áreas das finanças"><button id="income-tab" type="button" aria-current="page">Rendimentos<span>O que recebeste por mês</span></button><button id="documents-tab" type="button">Documentos<span>Recibos, Coverflex e gorjetas</span></button></nav></dialog>
       <div id="finance-month-bar" class="hidden"></div>
       <div id="income-view" class="hidden">
 
@@ -538,8 +541,8 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
       <div id="finance-income-summary" class="income-summary"></div>
       <div class="finance-stats">
         <div class="finance-stat"><span>Recebido no mês · dinheiro e benefícios</span><strong id="finance-total">—</strong><div id="income-composition" class="finance-visual hidden"></div></div>
-        <div class="finance-stat"><span>Horas concluídas</span><strong id="finance-hours">—</strong></div>
-        <div class="finance-stat"><span>Dinheiro por hora</span><strong id="finance-rate">—</strong></div>
+        <div class="finance-stat"><span>Horas trabalhadas</span><strong id="finance-hours">—</strong></div>
+        <div class="finance-stat"><span>Valor médio / hora</span><strong id="finance-rate">—</strong></div>
       </div>
       <details id="finance-detail"><summary>Ver detalhe</summary>
       <p id="finance-comparison" class="finance-note"></p>
@@ -1403,9 +1406,9 @@ function renderFinanceSummary(){
  if(!hoursHistoryReady){$('finance-hour-note').textContent='A comparação por hora fica disponível quando o histórico de turnos estiver sincronizado.';return}
  const monthRows=rows.filter(r=>r.work_date.slice(0,7)===financeMonth),minutes=monthRows.reduce((total,r)=>total+duration(r),0);
  $('finance-hours').textContent=fmtMins(minutes);
- if(minutes>0&&cash.length)$('finance-rate').textContent=financeMoney(Math.round(cashTotal*60/minutes));
- const note=minutes>0&&received.length?`Com benefícios: ${financeMoney(Math.round(total*60/minutes))}/h. `:'';
- $('finance-hour-note').textContent=note+'Média dos valores registados e dos turnos concluídos deste mês; dinheiro por hora inclui conta e numerário.'+(monthRows.some(isOpenShift)?' O turno em curso ainda não entra nesta conta.':'');
+ if(minutes>0&&received.length)$('finance-rate').textContent=financeMoney(Math.round(total*60/minutes));
+ const note=minutes>0&&cash.length?`Só dinheiro (conta e numerário): ${financeMoney(Math.round(cashTotal*60/minutes))}/h. `:'';
+ $('finance-hour-note').textContent=note+'Média dos valores registados e dos turnos concluídos deste mês; não é o valor contratual da hora. Férias e folgas não acrescentam horas trabalhadas.'+(monthRows.some(isOpenShift)?' O turno em curso ainda não entra nesta conta.':'');
 }
 async function loadFinance(){
  if(!currentUserId)return;
@@ -1664,10 +1667,10 @@ $('records').insertBefore($('my-time'),$('records').querySelector('.history-pane
 $('active-shift').append($('timer-progress'));
 $('finance-month-bar').append($('finances').querySelector('.finance-month'));
 const documentsView=document.createElement('div');documentsView.id='documents-view';documentsView.className='hidden';$('income-view').after(documentsView);
-for(const node of [$('finances').querySelector('.document-actions'),$('document-file'),$('document-progress'),$('document-review'),$('finance-documents')])documentsView.append(node);
+for(const node of [$('finances').querySelector('.document-actions'),$('document-file'),$('document-progress'),$('document-review'),$('finance-tips-form'),$('finance-tips-weeks'),$('finance-manual'),$('finance-documents')])documentsView.append(node);
 $('finance-documents').querySelector('summary').classList.add('hidden');
 $('income-view').prepend($('finances').querySelector('.finance-stats'),$('finance-income-summary'));
-for(const metric of [...$('income-view').querySelectorAll('.finance-stat')].slice(1))$('finance-detail').append(metric);
+const monthMetrics=document.createElement('div');monthMetrics.id='income-month-metrics';for(const metric of [...$('income-view').querySelectorAll('.finance-stat')].slice(1))monthMetrics.append(metric);$('finance-income-summary').before(monthMetrics);const metricNote=document.createElement('p');metricNote.className='finance-note';metricNote.textContent='Total recebido ÷ horas concluídas · inclui benefícios';monthMetrics.after(metricNote);
 const financeStatus=document.createElement('div');financeStatus.id='finance-status';financeStatus.className='hidden';$('finances').append(financeStatus);financeStatus.append($('finance-state'),$('finance-msg'),$('finance-retry'));
 function showAppPage(page,scroll=true){
  $('app').dataset.page=page;for(const section of ['shift-section','my-time','records','finances'])$(section).classList.remove('section-collapsed');

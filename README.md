@@ -465,3 +465,11 @@ registos semanais. Editar por semana permite corrigir cada parcela preservando
 a divisão e a soma mensal. Substituir semanas por um único total exige confirmação
 explícita; cancelar mantém os registos guardados. A edição direta não exige abrir
 os valores avançados. Os detalhes e movimentos PPR continuam recolhidos.
+
+### Resumo mensal e edição
+
+Rendimentos apresenta o total, as horas dos turnos concluídos e o valor médio por
+hora (total recebido, incluindo benefícios, dividido pelas horas concluídas).
+Sem horas ou rendimentos, a média é desconhecida. O detalhe distingue a média
+só de dinheiro. Não é o valor contratual; férias e folgas não são trabalho.
+Documentos reúne recibos, Coverflex, edição de gorjetas e restantes valores.
