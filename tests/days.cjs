@@ -358,3 +358,12 @@ test('a recorded day off can become work without changing the recurring weekly r
   await page.click('#toggle-records');assert.match(await page.textContent('#list'),/Folga fixa/);assert.match(await page.textContent('#list'),/8h00/);
  });
 });
+
+test('editing saved entry and exit drops the old total, keeps pauses and handles midnight',async()=>{
+ await withDays(async page=>{
+  await page.evaluate(()=>{window.records=[{id:'cached',user_id:'user',work_date:'2026-11-05',day_type:'work',start_time:'13:54',end_time:'19:45',duration_minutes:351,break_seconds:0,work_adjustment_seconds:0}];window.authEvent('SIGNED_IN')});
+  await page.click('#settings-open');await page.click('#edit-records');await page.waitForSelector('#month-filter option[value="2026-11"]',{state:'attached'});await page.selectOption('#month-filter','2026-11');
+  await page.locator('[data-edit="cached"]').click();await page.fill('#start','11:00');assert.equal(await page.inputValue('#duration-override'),'');assert.match(await page.textContent('#hours-recalculation'),/8h45/);await page.click('#save');await page.waitForFunction(()=>window.records[0].duration_minutes===null&&document.getElementById('sync').textContent==='Sincronizado');let row=await page.evaluate(()=>window.records[0]);assert.equal(row.duration_minutes,null);assert.equal(row.start_time,'11:00');
+  await page.evaluate(()=>{Object.assign(window.records[0],{start_time:'22:00',end_time:'02:00',duration_minutes:180,break_seconds:3600});window.authEvent('SIGNED_IN')});await page.click('#toggle-records');await page.locator('[data-edit="cached"]').click();await page.fill('#end','03:00');assert.match(await page.textContent('#hours-recalculation'),/4h00/);await page.click('#save');await page.waitForFunction(()=>window.records[0].duration_minutes===null&&document.getElementById('sync').textContent==='Sincronizado');row=await page.evaluate(()=>window.records[0]);assert.equal(row.duration_minutes,null);assert.equal(row.break_seconds,3600);
+ });
+});

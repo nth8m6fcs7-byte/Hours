@@ -448,11 +448,12 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
         <label class="field" for="start"><span class="field-label">Entrada</span><input id="start" type="time" step="60"></label>
         <label class="field" for="end"><span class="field-label">Saída</span><input id="end" type="time" step="60"></label>
       </div>
+      <p id="hours-recalculation" class="finance-note hidden" role="status"></p>
       <p id="shift-lock" class="shift-lock hidden" role="status"></p>
       <details id="shift-details" class="shift-details">
         <summary><span>Total e notas <small>opcional</small></span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
         <div class="shift-detail-fields">
-          <div class="field"><label class="field-label" for="duration-override">Total de horas trabalhadas</label><input id="duration-override" type="text" placeholder="Automático" autocomplete="off" aria-describedby="duration-hint"><p id="duration-hint" class="field-help">Deixa vazio para calcular pela entrada e saída. Para descontar uma pausa, indica o total em HH:MM, por exemplo 08:30. Máximo: 24:00.</p></div>
+          <div class="field"><label class="field-label" for="duration-override">Total de horas trabalhadas</label><input id="duration-override" type="text" placeholder="Automático" autocomplete="off" aria-describedby="duration-hint"><p id="duration-hint" class="field-help">Deixa vazio para calcular pela entrada e saída, descontando pausas. Alterar entrada ou saída recalcula o total. Usa HH:MM apenas para um total manual.</p></div>
           <div class="field"><label class="field-label" for="notes">Notas</label><textarea id="notes" rows="3" placeholder="Uma pausa ou observação…" aria-describedby="notes-hint"></textarea><p id="notes-hint" class="field-help">As notas não alteram as horas.</p></div>
         </div>
       </details>
@@ -624,7 +625,7 @@ function parseDurationInput(value){
   return minutes;
 }
 const isOpenShift=r=>(!r.day_type||r.day_type==='work')&&!!r.start_time&&!r.end_time&&durationOverride(r)===null;
-let openShiftId=null, correctingEntry=false, currentUserId=null;
+let openShiftId=null, correctingEntry=false, currentUserId=null,manualDurationEdited=false;
 const draftKey=()=>currentUserId?'hours-entry-draft:'+currentUserId:null;
 function duration(r){
   if(isOpenShift(r))return 0;
@@ -984,8 +985,11 @@ function updateShiftForm(){
   $('shift-lock').classList.toggle('hidden',!locked&&!$('start').value);
   $('shift-lock').textContent=locked?'Entrada guardada. Carrega em Parar para terminar.':$('start').value?'Entrada por confirmar — carrega em Iniciar turno para guardar e iniciar o contador.':'';
   if(locked)$('form-title').textContent='Turno em curso';
+  const previous=rows.find(r=>r.id===editingId),start=$('start').value,end=$('end').value;
+  $('hours-recalculation').classList.toggle('hidden',!start||!end||locked);
+  if(start&&end&&!locked){let manual=null;try{manual=parseDurationInput($('duration-override').value)}catch{}const total=duration({...previous,day_type:'work',start_time:start,end_time:end,duration_minutes:manual});$('hours-recalculation').textContent='Total: '+fmtMins(total)+(storedBreakSeconds(previous||{})?' · pausas descontadas':'');}
 }
-function resumeShift(record){
+function resumeShift(record){manualDurationEdited=false;
   setSectionOpen('shift-section',true);
   closeVacation();editingId=record.id;openShiftId=record.id;correctingEntry=false;
   $('date').value=record.work_date;$('start').value=record.start_time.slice(0,5);$('end').value='';
@@ -999,8 +1003,10 @@ $('correct-entry').onclick=()=>{
   updateShiftForm();if(correctingEntry){closePauseEditor();closeTimerEditor(false);$('start').focus()}
 };
 $('date').onchange=()=>{const pending=rows.find(r=>r.work_date===$('date').value&&isOpenShift(r));if(pending)resumeShift(pending)};
-$('end').oninput=updateShiftForm;
-$('duration-override').oninput=updateShiftForm;
+function recalculateEditedTimes(){manualDurationEdited=false;const previous=rows.find(r=>r.id===editingId);if(previous&&(($('start').value||null)!==(previous.start_time?.slice(0,5)||null)||($('end').value||null)!==(previous.end_time?.slice(0,5)||null)))$('duration-override').value='';updateShiftForm()}
+$('start').oninput=recalculateEditedTimes;
+$('end').oninput=recalculateEditedTimes;
+$('duration-override').oninput=()=>{manualDurationEdited=true;updateShiftForm()};
 $('save').onclick=async()=>{
   if(savingHours)return;
   const recordId=editingId;
@@ -1020,6 +1026,8 @@ $('save').onclick=async()=>{
   try{duration_minutes=parseDurationInput($('duration-override').value)}catch(error){$('shift-details').open=true;setMsg($('form-msg'),error.message);$('duration-override').focus();return}
   const notes=$('notes').value.trim()||null;
   const previous=rows.find(r=>r.id===recordId);
+  // A cached/manual total belongs to the previous timestamps. Timing edits take precedence.
+  if(previous&&!manualDurationEdited&&((start_time||null)!==(previous.start_time?.slice(0,5)||null)||(end_time||null)!==(previous.end_time?.slice(0,5)||null)))duration_minutes=null;
   if(previous?.day_type==='day_off'&&!start_time&&!end_time&&duration_minutes===null)return setMsg($('form-msg'),'Indica a entrada ou o total de horas trabalhadas.');
   let break_seconds=previous&&previous.day_type!=='day_off'?storedBreakSeconds(previous):0;
   let pause_intervals=previous?.day_type==='day_off'?[]:completedPauses(previous);
@@ -1049,7 +1057,7 @@ $('save').onclick=async()=>{
   if(correctingEntry){
     if(previous?.paused_at&&shiftStart({work_date,start_time})>new Date(previous.paused_at).getTime())throw new Error('A entrada deve ser anterior ao início da pausa.');
     if(completedPauses(previous).some(p=>new Date(p.start).getTime()<shiftStart({work_date,start_time})))throw new Error('A entrada deve ser anterior às pausas registadas.');
-    result=await supabase.from('personal_work_hours').update({start_time,updated_at:new Date().toISOString()}).eq('id',recordId);
+    result=await supabase.from('personal_work_hours').update({start_time,duration_minutes:null,updated_at:new Date().toISOString()}).eq('id',recordId);
     if(result.error)throw result.error;
     correctingEntry=false;await load();updateShiftForm();setMsg($('form-msg'),'Entrada corrigida e bloqueada.',true);return;
   }
@@ -1067,14 +1075,14 @@ $('save').onclick=async()=>{
   }catch(error){$('sync').textContent='Erro';setMsg($('form-msg'),error.message||'Não foi possível guardar. Tenta novamente.')}
   finally{setHoursBusy(false)}
 };
-function resetForm(){closeVacation();openShiftId=null;correctingEntry=false;editingId=null;$('form-title').textContent='Adicionar horário';$('cancel').classList.add('hidden');$('date').value=iso(new Date());$('start').value='';$('end').value='';$('duration-override').value='';$('notes').value='';$('shift-details').open=false;setMsg($('form-msg'),'');updateShiftForm()}
+function resetForm(){manualDurationEdited=false;closeVacation();openShiftId=null;correctingEntry=false;editingId=null;$('form-title').textContent='Adicionar horário';$('cancel').classList.add('hidden');$('date').value=iso(new Date());$('start').value='';$('end').value='';$('duration-override').value='';$('notes').value='';$('shift-details').open=false;setMsg($('form-msg'),'');updateShiftForm()}
 $('cancel').onclick=()=>{clearEntryDraft();resetForm()};
 $('list').onclick=async e=>{
   if(!editingRecords||savingHours)return;
   const action=e.target.closest('[data-edit],[data-del],[data-register-work],[data-convert-work]');if(!action)return;
   if(action.dataset.registerWork){$('add-history').click();$('add-history-month').value=action.dataset.registerWork.slice(0,7);$('add-history-days').value=String(Number(action.dataset.registerWork.slice(8)));return}
   const edit=action.dataset.edit||action.dataset.convertWork, del=action.dataset.del;
-  if(edit){setSectionOpen('shift-section',true);openShiftId=null;correctingEntry=false;const r=rows.find(x=>x.id===edit);if(!r||r.day_type==='vacation')return;editingId=r.id;$('form-title').textContent='Editar horário';$('cancel').classList.remove('hidden');$('date').value=r.work_date;$('start').value=r.day_type==='day_off'?'':(r.start_time||'').slice(0,5);$('end').value=r.day_type==='day_off'?'':(r.end_time||'').slice(0,5);const override=r.day_type==='day_off'?null:durationOverride(r);$('duration-override').value=override===null?'':durationInput(override);$('notes').value=typeof r.notes==='string'?r.notes:'';$('shift-details').open=r.day_type==='day_off'||override!==null||!!$('notes').value.trim();if(isOpenShift(r))resumeShift(r);else updateShiftForm();setMsg($('form-msg'),'');$('form-title').scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'})}
+  if(edit){manualDurationEdited=false;setSectionOpen('shift-section',true);openShiftId=null;correctingEntry=false;const r=rows.find(x=>x.id===edit);if(!r||r.day_type==='vacation')return;editingId=r.id;$('form-title').textContent='Editar horário';$('cancel').classList.remove('hidden');$('date').value=r.work_date;$('start').value=r.day_type==='day_off'?'':(r.start_time||'').slice(0,5);$('end').value=r.day_type==='day_off'?'':(r.end_time||'').slice(0,5);const override=r.day_type==='day_off'?null:durationOverride(r);$('duration-override').value=override===null?'':durationInput(override);$('notes').value=typeof r.notes==='string'?r.notes:'';$('shift-details').open=r.day_type==='day_off'||override!==null||!!$('notes').value.trim();if(isOpenShift(r))resumeShift(r);else updateShiftForm();setMsg($('form-msg'),'');$('form-title').scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'})}
   if(del){if(!confirm('Apagar este registo?'))return;const {error}=await supabase.from('personal_work_hours').delete().eq('id',del);if(error)return alert(error.message);if(editingId===del)resetForm();await load()}
 };
 supabase.auth.onAuthStateChange((event)=>{

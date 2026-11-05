@@ -473,3 +473,14 @@ Rendimentos apresenta o total, as horas dos turnos concluídos e o valor **Empre
 horas concluídas).
 Sem horas ou rendimentos, a média é desconhecida. O detalhe mostra o total da empresa, as gorjetas por hora e a média global com gorjetas. Não é o valor contratual; férias e folgas não são trabalho.
 Documentos reúne recibos, Coverflex, edição de gorjetas e restantes valores.
+
+### Correção de entrada/saída e recálculo
+
+Ao editar entrada ou saída, o formulário limpa o total manual/copiado do horário
+anterior e mostra o novo total, descontando as pausas e mantendo os ajustes de
+cronómetro registados. A gravação também invalida o total antigo quando os tempos
+mudam. Um total manual introduzido explicitamente depois da correção continua
+possível; alterar novamente entrada/saída volta a calcular automaticamente.
+Registos só com duração (sem entrada/saída) continuam suportados. O teste de
+regressão em `tests/days.cjs` cobre um total antigo, nova entrada, nova saída,
+pausa e passagem da meia-noite; `tests/history.cjs` cobre o total manual explícito.
