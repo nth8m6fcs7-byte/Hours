@@ -542,7 +542,7 @@ button.metric[aria-pressed="true"],button.metric.primary[aria-pressed="true"]{bo
       <div class="finance-stats">
         <div class="finance-stat"><span>Recebido no mês · dinheiro e benefícios</span><strong id="finance-total">—</strong><div id="income-composition" class="finance-visual hidden"></div></div>
         <div class="finance-stat"><span>Horas trabalhadas</span><strong id="finance-hours">—</strong></div>
-        <div class="finance-stat"><span>Valor médio / hora</span><strong id="finance-rate">—</strong></div>
+        <div class="finance-stat"><span>Empresa / hora</span><strong id="finance-rate">—</strong></div>
       </div>
       <details id="finance-detail"><summary>Ver detalhe</summary>
       <p id="finance-comparison" class="finance-note"></p>
@@ -1389,7 +1389,7 @@ function renderFinanceSummary(){
  if(!financeLoaded)return;
  let entries;try{entries=readFinanceEntries()}catch{return}
  const received=entries.filter(e=>e.received_cents!==null),expected=entries.filter(e=>e.expected_cents!==null),sum=(list,key)=>list.reduce((total,e)=>total+e[key],0);
- const total=sum(received,'received_cents'),cash=received.filter(e=>e.destination==='bank'||e.destination==='cash'),cashTotal=sum(cash,'received_cents');
+ const total=sum(received,'received_cents'),company=received.filter(e=>e.category!=='tips'),companyTotal=sum(company,'received_cents'),tips=received.filter(e=>e.category==='tips'),tipsTotal=sum(tips,'received_cents');
  $('finance-total').textContent=received.length?financeMoney(total):'—';
  const incomeParts=[];let colorIndex=0;
  for(const [category,title] of Object.entries(financeCategories)){const group=received.filter(e=>e.category===category);if(!group.length)continue;const amount=sum(group,'received_cents'),color=financePalette[colorIndex++%financePalette.length],item=document.createElement('div'),label=document.createElement('span'),value=document.createElement('strong');item.style.setProperty('--part-color',color);item.className='income-source';label.textContent=title;value.textContent=financeMoney(amount);item.append(label,value);$('finance-income-summary').append(item);if(amount>0)incomeParts.push({label:title,value:amount,color})}
@@ -1406,9 +1406,9 @@ function renderFinanceSummary(){
  if(!hoursHistoryReady){$('finance-hour-note').textContent='A comparação por hora fica disponível quando o histórico de turnos estiver sincronizado.';return}
  const monthRows=rows.filter(r=>r.work_date.slice(0,7)===financeMonth),minutes=monthRows.reduce((total,r)=>total+duration(r),0);
  $('finance-hours').textContent=fmtMins(minutes);
- if(minutes>0&&received.length)$('finance-rate').textContent=financeMoney(Math.round(total*60/minutes));
- const note=minutes>0&&cash.length?`Só dinheiro (conta e numerário): ${financeMoney(Math.round(cashTotal*60/minutes))}/h. `:'';
- $('finance-hour-note').textContent=note+'Média dos valores registados e dos turnos concluídos deste mês; não é o valor contratual da hora. Férias e folgas não acrescentam horas trabalhadas.'+(monthRows.some(isOpenShift)?' O turno em curso ainda não entra nesta conta.':'');
+ if(minutes>0&&company.length)$('finance-rate').textContent=financeMoney(Math.round(companyTotal*60/minutes));
+ const note=(company.length?`Da empresa: ${financeMoney(companyTotal)}. `:'')+(minutes>0&&tips.length?`Gorjetas: ${financeMoney(Math.round(tipsTotal*60/minutes))}/h. `:'')+(minutes>0&&received.length?`Com gorjetas: ${financeMoney(Math.round(total*60/minutes))}/h. `:'');
+ $('finance-hour-note').textContent=note+'Empresa/hora exclui gorjetas e inclui os restantes valores registados, divididos pelas horas dos turnos concluídos; não é o valor contratual da hora. Férias e folgas não acrescentam horas trabalhadas.'+(monthRows.some(isOpenShift)?' O turno em curso ainda não entra nesta conta.':'');
 }
 async function loadFinance(){
  if(!currentUserId)return;
@@ -1670,7 +1670,7 @@ const documentsView=document.createElement('div');documentsView.id='documents-vi
 for(const node of [$('finances').querySelector('.document-actions'),$('document-file'),$('document-progress'),$('document-review'),$('finance-tips-form'),$('finance-tips-weeks'),$('finance-manual'),$('finance-documents')])documentsView.append(node);
 $('finance-documents').querySelector('summary').classList.add('hidden');
 $('income-view').prepend($('finances').querySelector('.finance-stats'),$('finance-income-summary'));
-const monthMetrics=document.createElement('div');monthMetrics.id='income-month-metrics';for(const metric of [...$('income-view').querySelectorAll('.finance-stat')].slice(1))monthMetrics.append(metric);$('finance-income-summary').before(monthMetrics);const metricNote=document.createElement('p');metricNote.className='finance-note';metricNote.textContent='Total recebido ÷ horas concluídas · inclui benefícios';monthMetrics.after(metricNote);
+const monthMetrics=document.createElement('div');monthMetrics.id='income-month-metrics';for(const metric of [...$('income-view').querySelectorAll('.finance-stat')].slice(1))monthMetrics.append(metric);$('finance-income-summary').before(monthMetrics);const metricNote=document.createElement('p');metricNote.className='finance-note';metricNote.textContent='Sem gorjetas · inclui alimentação e prémios';monthMetrics.after(metricNote);
 const financeStatus=document.createElement('div');financeStatus.id='finance-status';financeStatus.className='hidden';$('finances').append(financeStatus);financeStatus.append($('finance-state'),$('finance-msg'),$('finance-retry'));
 function showAppPage(page,scroll=true){
  $('app').dataset.page=page;for(const section of ['shift-section','my-time','records','finances'])$(section).classList.remove('section-collapsed');

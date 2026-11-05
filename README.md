@@ -468,8 +468,8 @@ os valores avançados. Os detalhes e movimentos PPR continuam recolhidos.
 
 ### Resumo mensal e edição
 
-Rendimentos apresenta o total, as horas dos turnos concluídos e o valor médio por
-hora (total recebido, incluindo benefícios, dividido pelas horas concluídas).
-Sem horas ou rendimentos, a média é desconhecida. O detalhe distingue a média
-só de dinheiro. Não é o valor contratual; férias e folgas não são trabalho.
+Rendimentos apresenta o total, as horas dos turnos concluídos e o valor **Empresa / hora**
+(valores recebidos sem gorjetas, incluindo alimentação e prémios, divididos pelas
+horas concluídas).
+Sem horas ou rendimentos, a média é desconhecida. O detalhe mostra o total da empresa, as gorjetas por hora e a média global com gorjetas. Não é o valor contratual; férias e folgas não são trabalho.
 Documentos reúne recibos, Coverflex, edição de gorjetas e restantes valores.
